@@ -1,0 +1,36 @@
+export interface StockData {
+  symbol: string;
+  name: string;
+  price: number;
+  previousClose: number;
+  open: number;
+  dayHigh: number;
+  dayLow: number;
+  change: number;
+  changePercent: number;
+  volume: number;
+  indexName: 'NIFTY50' | 'NIFTY500';
+  lastUpdated: string;
+  atDayHigh: boolean;
+  atDayLow: boolean;
+}
+
+export interface StockAlert {
+  id: string;
+  symbol: string;
+  name: string;
+  alertType: 'DAY_HIGH' | 'DAY_LOW';
+  price: number;
+  createdAt: string;
+}
+
+export interface FilterOptions {
+  index: 'ALL' | 'NIFTY50' | 'NIFTY500';
+  priceMin: number;
+  priceMax: number;
+  volumeMin: number;
+  search: string;
+}
+
+export type SortField = 'symbol' | 'name' | 'price' | 'change' | 'changePercent' | 'dayHigh' | 'dayLow' | 'volume';
+export type SortOrder = 'asc' | 'desc';

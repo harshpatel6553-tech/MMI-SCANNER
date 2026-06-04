@@ -1,0 +1,99 @@
+/**
+ * @module types
+ * @description Core type definitions for the Nifty Stock Screener backend.
+ * All interfaces are shared across services, routes, and socket handlers.
+ */
+
+/** Minimal stock identifier used in static stock lists */
+export interface StockQuote {
+  /** NSE trading symbol (e.g. "RELIANCE") */
+  symbol: string;
+  /** Full company name (e.g. "Reliance Industries") */
+  name: string;
+}
+
+/** Complete real-time stock data enriched from Yahoo Finance */
+export interface StockData {
+  /** NSE trading symbol */
+  symbol: string;
+  /** Full company name */
+  name: string;
+  /** Current market price (₹) */
+  price: number;
+  /** Previous trading day close price (₹) */
+  previousClose: number;
+  /** Market open price for today (₹) */
+  open: number;
+  /** Intraday high (₹) */
+  dayHigh: number;
+  /** Intraday low (₹) */
+  dayLow: number;
+  /** Absolute price change from previous close (₹) */
+  change: number;
+  /** Percentage change from previous close */
+  changePercent: number;
+  /** Total traded volume */
+  volume: number;
+  /** Index membership */
+  indexName: 'NIFTY50' | 'NIFTY500';
+  /** Last update timestamp in ISO 8601 format */
+  lastUpdated: string;
+  /** Whether current price is at or near the day's high */
+  atDayHigh: boolean;
+  /** Whether current price is at or near the day's low */
+  atDayLow: boolean;
+}
+
+/** Alert generated when a stock hits its intraday high or low */
+export interface StockAlert {
+  /** Unique alert identifier (UUID v4) */
+  id: string;
+  /** NSE trading symbol */
+  symbol: string;
+  /** Full company name */
+  name: string;
+  /** Type of price alert */
+  alertType: 'DAY_HIGH' | 'DAY_LOW';
+  /** Price at which the alert was triggered (₹) */
+  price: number;
+  /** Alert creation timestamp in ISO 8601 format */
+  createdAt: string;
+}
+
+/** Client-side filter/query options for stock screening */
+export interface FilterOptions {
+  /** Filter by index membership */
+  index: 'ALL' | 'NIFTY50' | 'NIFTY500';
+  /** Minimum price filter (₹) */
+  priceMin?: number;
+  /** Maximum price filter (₹) */
+  priceMax?: number;
+  /** Minimum volume filter */
+  volumeMin?: number;
+  /** Minimum change percent filter */
+  changePercentMin?: number;
+  /** Maximum change percent filter */
+  changePercentMax?: number;
+  /** Free-text search against symbol or company name */
+  search?: string;
+}
+
+/** Socket.IO events emitted from server to client */
+export interface ServerToClientEvents {
+  /** Batch stock data update */
+  'stocks:update': (data: StockData[]) => void;
+  /** New price alert notification */
+  'alert:new': (alert: StockAlert) => void;
+  /** Server connection status heartbeat */
+  'connection:status': (status: {
+    connected: boolean;
+    stockCount: number;
+    lastUpdate: string;
+  }) => void;
+}
+
+/** Socket.IO events emitted from client to server */
+export interface ClientToServerEvents {
+  /** Subscribe to updates for a specific index or all */
+  'subscribe:index': (index: 'NIFTY50' | 'NIFTY500' | 'ALL') => void;
+}

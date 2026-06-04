@@ -1,0 +1,137 @@
+.loading-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: var(--bg-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+
+.loading-screen.fade-out {
+  opacity: 0;
+  transform: scale(1.05);
+}
+
+.loading-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(218, 127, 99, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(218, 127, 99, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  animation: gridPulse 4s ease-in-out infinite;
+}
+
+.loading-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  z-index: 1;
+}
+
+.loading-icon {
+  font-size: 48px;
+  animation: breathe 2s ease-in-out infinite;
+  filter: drop-shadow(0 0 20px rgba(218, 127, 99, 0.4));
+}
+
+.loading-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  overflow: hidden;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+}
+
+.typing-text {
+  display: inline-block;
+  overflow: hidden;
+  white-space: nowrap;
+  background: linear-gradient(135deg, #e6e4e0, #da7f63, #dfb15b, #e6e4e0);
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: typeIn 1.4s steps(31) forwards, gradientFlow 4s ease infinite;
+}
+
+.cursor {
+  display: inline-block;
+  width: 3px;
+  height: 36px;
+  background: var(--accent);
+  margin-left: 4px;
+  animation: blinkCursor 0.8s step-end infinite;
+}
+
+.loading-title.typed .cursor {
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.loading-subtitle {
+  font-size: 14px;
+  color: var(--text-muted);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all 0.5s ease;
+}
+
+.loading-subtitle.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.loading-chart {
+  width: 300px;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.6s ease;
+}
+
+.loading-chart.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.chart-svg {
+  width: 100%;
+  height: auto;
+}
+
+.chart-line {
+  stroke-dasharray: 600;
+  stroke-dashoffset: 600;
+  animation: drawLine 1.5s ease forwards 0.3s;
+  filter: drop-shadow(0 0 6px rgba(218, 127, 99, 0.5));
+}
+
+.loading-bar-track {
+  width: 200px;
+  height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.loading-bar-track.visible {
+  opacity: 1;
+}
+
+.loading-bar-fill {
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, var(--accent), #dfb15b);
+  border-radius: 2px;
+  animation: progressShrink 1.5s ease reverse forwards 0.2s;
+  box-shadow: 0 0 8px var(--accent-glow);
+}

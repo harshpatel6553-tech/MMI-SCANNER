@@ -1,0 +1,209 @@
+.header {
+  position: relative;
+  height: var(--header-height);
+  border-radius: 0;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  z-index: 100;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 100%;
+  padding: 0 24px;
+  position: relative;
+  z-index: 2;
+}
+
+/* Scanner beam */
+.header-scanner-beam {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 150px;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(218, 127, 99, 0.04) 40%,
+    rgba(218, 127, 99, 0.08) 50%,
+    rgba(218, 127, 99, 0.04) 60%,
+    transparent 100%
+  );
+  animation: scannerBeam 6s linear infinite;
+  z-index: 1;
+}
+
+/* Bottom border glow */
+.header-border-glow {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--accent) 20%,
+    #dfb15b 50%,
+    var(--accent) 80%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: gradientFlow 4s ease infinite;
+}
+
+/* Left section */
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-logo {
+  font-size: 28px;
+  animation: logoGlow 3s ease-in-out infinite;
+  filter: drop-shadow(0 0 10px rgba(218, 127, 99, 0.4));
+}
+
+.header-title {
+  font-family: 'Outfit', -apple-system, sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  background: linear-gradient(135deg, #e6e4e0, #da7f63, #dfb15b, #e6e4e0);
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradientFlow 8s ease infinite;
+}
+
+/* Center - Market badge */
+.header-center {
+  display: flex;
+  align-items: center;
+}
+
+.market-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.market-badge.market-open {
+  background: var(--positive-bg);
+  border: 1px solid rgba(0, 255, 136, 0.2);
+  color: var(--positive);
+}
+
+.market-badge.market-closed {
+  background: var(--negative-bg);
+  border: 1px solid rgba(255, 71, 87, 0.2);
+  color: var(--negative);
+}
+
+.market-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  animation: breathe 2s ease-in-out infinite;
+}
+
+.market-open .market-dot {
+  background: var(--positive);
+  box-shadow: 0 0 8px var(--positive-glow);
+}
+
+.market-closed .market-dot {
+  background: var(--negative);
+  box-shadow: 0 0 8px var(--negative-glow);
+}
+
+/* Right section */
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.connection-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  position: relative;
+}
+
+.connection-status .status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  position: relative;
+  z-index: 2;
+}
+
+.status-rings {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.status-rings .ring {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  left: 0;
+  top: 0;
+  transform: translate(0%, -50%);
+}
+
+.connected .status-dot {
+  background: var(--positive);
+  box-shadow: 0 0 6px var(--positive-glow);
+}
+
+.connected .ring {
+  border: 1px solid var(--positive);
+  animation: expandRing 2s ease-out infinite;
+}
+
+.connected .ring:nth-child(2) {
+  animation-delay: 1s;
+}
+
+.connected span:last-child {
+  color: var(--positive);
+  animation: recordBlink 2s ease-in-out infinite;
+}
+
+.disconnected .status-dot {
+  background: var(--negative);
+  box-shadow: 0 0 6px var(--negative-glow);
+}
+
+.disconnected span:last-child {
+  color: var(--negative);
+}
+
+.stock-count-badge {
+  font-variant-numeric: tabular-nums;
+}
+
+.last-update {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}

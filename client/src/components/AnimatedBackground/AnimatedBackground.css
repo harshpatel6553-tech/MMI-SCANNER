@@ -1,0 +1,47 @@
+.animated-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.gradient-mesh {
+  position: absolute;
+  inset: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(ellipse at 20% 50%, rgba(10, 14, 40, 1) 0%, transparent 50%),
+              radial-gradient(ellipse at 80% 20%, rgba(20, 10, 50, 0.8) 0%, transparent 50%),
+              radial-gradient(ellipse at 50% 80%, rgba(5, 20, 40, 0.9) 0%, transparent 50%),
+              linear-gradient(135deg, #0a0e1a 0%, #0d1525 25%, #10092a 50%, #0a1628 75%, #0a0e1a 100%);
+  background-size: 100% 100%;
+  animation: gradientMesh 30s ease infinite;
+}
+
+.grid-overlay {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0, 212, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 212, 255, 0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+  animation: gridPulse 8s ease-in-out infinite;
+}
+
+.particles {
+  position: absolute;
+  inset: 0;
+}
+
+.particle {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: var(--size);
+  height: var(--size);
+  background: var(--accent);
+  border-radius: 50%;
+  animation: floatParticle var(--duration) var(--delay) ease-in-out infinite;
+  box-shadow: 0 0 6px var(--accent-glow);
+}

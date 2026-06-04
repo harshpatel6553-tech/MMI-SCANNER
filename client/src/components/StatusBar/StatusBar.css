@@ -1,0 +1,111 @@
+/* ============================================
+   STATUS BAR — Bottom Bar Styles
+   ============================================ */
+
+.status-bar {
+  height: var(--statusbar-height);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  background: rgba(10, 14, 26, 0.95);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Data stream background */
+.status-bar::before {
+  content: '01001010 11010010 00110101 10101010 01001010 11010010 00110101 10101010 01001010 11010010';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%);
+  font-family: 'Courier New', monospace;
+  font-size: 9px;
+  color: var(--accent);
+  opacity: 0.04;
+  white-space: nowrap;
+  animation: dataStream 20s linear infinite;
+  pointer-events: none;
+}
+
+.status-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  position: relative;
+}
+
+.status-dot.connected {
+  background: var(--positive);
+  box-shadow: 0 0 6px var(--positive-glow);
+}
+
+.status-dot.connected::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 1px solid var(--positive);
+  animation: expandRing 2s ease-out infinite;
+  opacity: 0;
+}
+
+.status-dot.disconnected {
+  background: var(--negative);
+  box-shadow: 0 0 6px var(--negative-glow);
+}
+
+.status-text.connected {
+  color: var(--positive);
+}
+
+.status-text.disconnected {
+  color: var(--negative);
+}
+
+.live-indicator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.live-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #ff4444;
+  animation: recordBlink 1.5s ease-in-out infinite;
+}
+
+.live-text {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #ff4444;
+}
+
+.refresh-icon {
+  display: inline-block;
+  font-size: 12px;
+}
+
+.refresh-icon.spinning {
+  animation: spin 1s linear infinite;
+}
+
+.stock-count {
+  font-variant-numeric: tabular-nums;
+}
