@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: mmi-scanner-server
+    env: docker
+    dockerfilePath: Dockerfile
+    plan: free
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: NIFTY50_POLL_INTERVAL
+        value: "30000"
+      - key: NIFTY500_POLL_INTERVAL
+        value: "120000"
