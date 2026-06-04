@@ -1,0 +1,20 @@
+# Exclude node modules
+node_modules
+client/node_modules
+server/node_modules
+
+# Exclude build outputs
+client/dist
+server/dist
+
+# Exclude secrets and logs
+.env
+.env*.local
+*.log
+logs/
+
+# Exclude git configuration and docs
+.git
+.gitignore
+README.md
+supabase/
