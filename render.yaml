@@ -12,6 +12,6 @@ services:
       - key: SUPABASE_ANON_KEY
         sync: false
       - key: NIFTY50_POLL_INTERVAL
-        value: "30000"
+        value: "10000"
       - key: NIFTY500_POLL_INTERVAL
-        value: "120000"
+        value: "60000"
