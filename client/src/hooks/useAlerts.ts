@@ -16,7 +16,9 @@ export function useAlerts() {
   useEffect(() => {
     const fetchAlertHistory = async () => {
       try {
-        const res = await fetch('/api/alerts?limit=100');
+        const socketUrl = import.meta.env.VITE_SOCKET_URL || '';
+        const baseUrl = socketUrl.endsWith('/') ? socketUrl.slice(0, -1) : socketUrl;
+        const res = await fetch(`${baseUrl}/api/alerts?limit=100`);
         if (!res.ok) {
           throw new Error(`HTTP ${res.status}`);
         }
