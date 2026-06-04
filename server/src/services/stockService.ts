@@ -20,9 +20,9 @@ const BATCH_DELAY_MS = 1000;
 
 /**
  * Tolerance for detecting whether a stock is at its day high or low.
- * A price within 0.05% of the extreme is considered "at" the extreme.
+ * A price within 0.01% of the extreme is considered "at" the extreme.
  */
-const HIGH_LOW_TOLERANCE = 0.0005;
+const HIGH_LOW_TOLERANCE = 0.0001;
 
 /** Yahoo Finance v8 chart endpoint — NO crumb/cookie required */
 const YAHOO_CHART_URL = 'https://query1.finance.yahoo.com/v8/finance/chart';

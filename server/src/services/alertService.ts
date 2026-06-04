@@ -78,12 +78,12 @@ class AlertService {
           symbol: stock.symbol,
           name: stock.name,
           alertType: 'DAY_HIGH',
-          price: stock.price,
+          price: stock.dayHigh,
           createdAt: now,
         };
         newAlerts.push(alert);
         logger.info(
-          `🔔 DAY HIGH ALERT: ${stock.symbol} (${stock.name}) hit ₹${stock.price.toFixed(2)}${isNewHighValue ? ' (New High)' : ''}`
+          `🔔 DAY HIGH ALERT: ${stock.symbol} (${stock.name}) hit ₹${stock.dayHigh.toFixed(2)}${isNewHighValue ? ' (New High)' : ''}`
         );
       }
 
@@ -95,12 +95,12 @@ class AlertService {
           symbol: stock.symbol,
           name: stock.name,
           alertType: 'DAY_LOW',
-          price: stock.price,
+          price: stock.dayLow,
           createdAt: now,
         };
         newAlerts.push(alert);
         logger.info(
-          `🔔 DAY LOW ALERT: ${stock.symbol} (${stock.name}) hit ₹${stock.price.toFixed(2)}${isNewLowValue ? ' (New Low)' : ''}`
+          `🔔 DAY LOW ALERT: ${stock.symbol} (${stock.name}) hit ₹${stock.dayLow.toFixed(2)}${isNewLowValue ? ' (New Low)' : ''}`
         );
       }
 
