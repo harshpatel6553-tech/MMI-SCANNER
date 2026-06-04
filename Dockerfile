@@ -1,7 +1,7 @@
 # ============================================
 # BUILD STAGE
 # ============================================
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 
 # Set working directory for the server
 WORKDIR /app/server
@@ -21,7 +21,7 @@ RUN npm run build
 # ============================================
 # RUN STAGE
 # ============================================
-FROM node:20-alpine AS runner
+FROM node:22-alpine AS runner
 
 # Set working directory
 WORKDIR /app/server
