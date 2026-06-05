@@ -10,9 +10,13 @@ interface StockTableProps {
   sortOrder: SortOrder;
   onSort: (field: SortField) => void;
   isLoading: boolean;
+  watchlist: Set<string>;
+  onToggleWatchlist: (symbol: string) => void;
+  onRowClick: (stock: StockData) => void;
 }
 
-const columns: { key: SortField | 'index' | 'indicator'; label: string; className: string; sortable: boolean }[] = [
+const columns: { key: SortField | 'index' | 'indicator' | 'watchlist'; label: string; className: string; sortable: boolean }[] = [
+  { key: 'watchlist', label: '★', className: 'col-watchlist', sortable: false },
   { key: 'index', label: '#', className: 'col-index', sortable: false },
   { key: 'symbol', label: 'Symbol', className: 'col-symbol', sortable: true },
   { key: 'name', label: 'Company', className: 'col-name', sortable: true },
@@ -24,7 +28,7 @@ const columns: { key: SortField | 'index' | 'indicator'; label: string; classNam
   { key: 'volume', label: 'Volume', className: 'col-volume', sortable: true },
 ];
 
-export function StockTable({ stocks, priceFlash, sortField, sortOrder, onSort, isLoading }: StockTableProps) {
+export function StockTable({ stocks, priceFlash, sortField, sortOrder, onSort, isLoading, watchlist, onToggleWatchlist, onRowClick }: StockTableProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [scrollProgress, setScrollProgress] = useState(0);
   const [hasAnimated, setHasAnimated] = useState(false);
@@ -56,6 +60,7 @@ export function StockTable({ stocks, priceFlash, sortField, sortOrder, onSort, i
         <div className="table-scroll-progress" style={{ width: '30%' }} />
         {Array.from({ length: 15 }).map((_, i) => (
           <div key={i} className="skeleton-row" style={{ animationDelay: `${i * 80}ms` }}>
+            <div className="skeleton-cell sk-star skeleton" />
             <div className="skeleton-cell sk-index skeleton" />
             <div className="skeleton-cell sk-symbol skeleton" />
             <div className="skeleton-cell sk-name skeleton" />
@@ -94,7 +99,7 @@ export function StockTable({ stocks, priceFlash, sortField, sortOrder, onSort, i
               <th
                 key={col.key}
                 className={`${col.className} ${col.sortable && sortField === col.key ? 'sorted' : ''}`}
-                onClick={() => col.sortable && col.key !== 'index' && col.key !== 'indicator' && onSort(col.key as SortField)}
+                onClick={() => col.sortable && col.key !== 'index' && col.key !== 'indicator' && col.key !== 'watchlist' && onSort(col.key as SortField)}
               >
                 {col.label}
                 {col.sortable && sortField === col.key && (
@@ -115,6 +120,9 @@ export function StockTable({ stocks, priceFlash, sortField, sortOrder, onSort, i
                 index={i}
                 flash={priceFlash.get(stock.symbol) ?? null}
                 isNew={!hasAnimated}
+                isWatchlisted={watchlist.has(stock.symbol)}
+                onToggleWatchlist={() => onToggleWatchlist(stock.symbol)}
+                onRowClick={onRowClick}
               />
             ))}
           </tbody>

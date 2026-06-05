@@ -79,6 +79,23 @@
   50% { opacity: 0.6; box-shadow: 0 0 16px var(--accent-glow); }
 }
 
+/* Watchlist count badge */
+.watchlist-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--bg-primary);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  margin-left: 4px;
+}
+
 /* ---- Responsive ---- */
 @media (max-width: 480px) {
   .view-tab {

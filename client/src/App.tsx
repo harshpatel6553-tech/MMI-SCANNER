@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { SocketProvider } from './context/SocketContext';
 import { useStocks } from './hooks/useStocks';
 import { useAlerts } from './hooks/useAlerts';
+import { useWatchlist } from './hooks/useWatchlist';
 import { Header } from './components/Header/Header';
 import { SearchBar } from './components/SearchBar/SearchBar';
 import { FilterPanel } from './components/Filters/FilterPanel';
@@ -15,7 +16,8 @@ import { AlertPanel } from './components/Alerts/AlertPanel';
 import { StatusBar } from './components/StatusBar/StatusBar';
 import { AnimatedBackground } from './components/AnimatedBackground/AnimatedBackground';
 import { LoadingScreen } from './components/LoadingScreen/LoadingScreen';
-import type { FilterOptions, SortField, SortOrder } from './types';
+import { StockDetailModal } from './components/StockDetailModal/StockDetailModal';
+import type { FilterOptions, SortField, SortOrder, StockData } from './types';
 import './App.css';
 
 function AppContent() {
@@ -28,10 +30,12 @@ function AppContent() {
   });
   const [sortField, setSortField] = useState<SortField>('symbol');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
-  const [activeTab, setActiveTab] = useState<'table' | 'heatmap' | 'sectors'>('table');
+  const [activeTab, setActiveTab] = useState<'table' | 'heatmap' | 'sectors' | 'watchlist'>('table');
+  const [selectedStock, setSelectedStock] = useState<StockData | null>(null);
 
   const { stocks, allStocks, stats, priceFlash, sectorData } = useStocks(filters, sortField, sortOrder);
   const { toasts, alertHistory, dismissToast, clearAll } = useAlerts();
+  const { watchlist, toggle: toggleWatchlist, count: watchlistCount } = useWatchlist();
 
   const handleSort = useCallback((field: SortField) => {
     setSortField(prev => {
@@ -48,18 +52,23 @@ function AppContent() {
     setFilters(prev => ({ ...prev, search }));
   }, []);
 
+  // Filter stocks for watchlist view
+  const watchlistStocks = activeTab === 'watchlist'
+    ? stocks.filter(s => watchlist.has(s.symbol))
+    : stocks;
+
   return (
     <div className="app">
       <AnimatedBackground />
       <Header />
 
       <main className="app-main">
-        {activeTab === 'table' && (
+        {(activeTab === 'table' || activeTab === 'watchlist') && (
           <div className="app-controls">
             <SearchBar
               value={filters.search}
               onChange={handleSearch}
-              matchCount={stocks.length}
+              matchCount={activeTab === 'watchlist' ? watchlistStocks.length : stocks.length}
             />
             <FilterPanel
               filters={filters}
@@ -70,7 +79,11 @@ function AppContent() {
         )}
 
         <MarketBreadth stats={stats} />
-        <ViewTabs activeTab={activeTab} onTabChange={(tab) => setActiveTab(tab as 'table' | 'heatmap' | 'sectors')} />
+        <ViewTabs
+          activeTab={activeTab}
+          onTabChange={(tab) => setActiveTab(tab as 'table' | 'heatmap' | 'sectors' | 'watchlist')}
+          watchlistCount={watchlistCount}
+        />
 
         {activeTab === 'table' && (
           <div className="app-table">
@@ -81,6 +94,25 @@ function AppContent() {
               sortOrder={sortOrder}
               onSort={handleSort}
               isLoading={allStocks.length === 0}
+              watchlist={watchlist}
+              onToggleWatchlist={toggleWatchlist}
+              onRowClick={setSelectedStock}
+            />
+          </div>
+        )}
+
+        {activeTab === 'watchlist' && (
+          <div className="app-table">
+            <StockTable
+              stocks={watchlistStocks}
+              priceFlash={priceFlash}
+              sortField={sortField}
+              sortOrder={sortOrder}
+              onSort={handleSort}
+              isLoading={allStocks.length === 0}
+              watchlist={watchlist}
+              onToggleWatchlist={toggleWatchlist}
+              onRowClick={setSelectedStock}
             />
           </div>
         )}
@@ -99,6 +131,7 @@ function AppContent() {
       {/* Overlays */}
       <AlertToast toasts={toasts} onDismiss={dismissToast} />
       <AlertPanel alerts={alertHistory} onClearAll={clearAll} />
+      <StockDetailModal stock={selectedStock} onClose={() => setSelectedStock(null)} />
     </div>
   );
 }

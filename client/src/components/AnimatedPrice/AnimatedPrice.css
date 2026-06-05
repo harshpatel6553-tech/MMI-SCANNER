@@ -1,0 +1,59 @@
+/* ============================================
+   ANIMATED PRICE — Odometer Digit Transition
+   ============================================ */
+
+.animated-price {
+  display: inline-flex;
+  font-family: 'Space Grotesk', monospace;
+  font-variant-numeric: tabular-nums;
+  align-items: baseline;
+}
+
+.digit-container {
+  display: inline-block;
+  position: relative;
+  overflow: hidden;
+  height: 1.2em;
+  width: 0.65em;
+}
+
+.digit-container.separator {
+  width: auto;
+  overflow: visible;
+}
+
+.digit {
+  display: block;
+  text-align: center;
+  line-height: 1.2em;
+}
+
+.digit.slide-up {
+  animation: digitSlideUp 0.4s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+}
+
+.digit.slide-down {
+  animation: digitSlideDown 0.4s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+}
+
+@keyframes digitSlideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0.3;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes digitSlideDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0.3;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}

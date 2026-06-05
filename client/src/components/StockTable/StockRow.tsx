@@ -1,15 +1,27 @@
 import React from 'react';
 import type { StockData } from '../../types';
 import { formatPrice, formatVolume, formatPercent, getChangeClass } from '../../utils/formatters';
+import { AnimatedPrice } from '../AnimatedPrice/AnimatedPrice';
 
 interface StockRowProps {
   stock: StockData;
   index: number;
   flash: 'up' | 'down' | null;
   isNew: boolean;
+  isWatchlisted: boolean;
+  onToggleWatchlist: () => void;
+  onRowClick: (stock: StockData) => void;
 }
 
-export const StockRow = React.memo(function StockRow({ stock, index, flash, isNew }: StockRowProps) {
+export const StockRow = React.memo(function StockRow({
+  stock,
+  index,
+  flash,
+  isNew,
+  isWatchlisted,
+  onToggleWatchlist,
+  onRowClick,
+}: StockRowProps) {
   const changeClass = getChangeClass(stock.change);
   const rowClasses = [
     'stock-row',
@@ -20,15 +32,32 @@ export const StockRow = React.memo(function StockRow({ stock, index, flash, isNe
     stock.atDayLow ? 'at-day-low' : '',
   ].filter(Boolean).join(' ');
 
+  const handleStarClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onToggleWatchlist();
+  };
+
   return (
     <tr
       className={rowClasses}
       style={isNew ? { animationDelay: `${index * 30}ms` } : undefined}
+      onClick={() => onRowClick(stock)}
     >
+      <td className="cell-watchlist">
+        <button
+          className={`watchlist-star ${isWatchlisted ? 'watchlisted' : ''}`}
+          onClick={handleStarClick}
+          aria-label={isWatchlisted ? 'Remove from watchlist' : 'Add to watchlist'}
+        >
+          {isWatchlisted ? '★' : '☆'}
+        </button>
+      </td>
       <td className="cell-index">{index + 1}</td>
       <td className="cell-symbol">{stock.symbol}</td>
       <td className="cell-name" title={stock.name}>{stock.name}</td>
-      <td className={`cell-price ${changeClass}`}>{formatPrice(stock.price)}</td>
+      <td className={`cell-price ${changeClass}`}>
+        <AnimatedPrice value={stock.price} className={changeClass} />
+      </td>
       <td className={`cell-change ${changeClass}`}>
         <span className="change-arrow">{stock.change > 0 ? '▲' : stock.change < 0 ? '▼' : '—'}</span>
         {formatPrice(Math.abs(stock.change))}

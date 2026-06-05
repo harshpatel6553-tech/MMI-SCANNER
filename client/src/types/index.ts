@@ -17,6 +17,9 @@ export interface StockData {
   averageVolume: number;
   relativeVolume: number;
   volumeSpike: boolean;
+  fiftyTwoWeekHigh: number;
+  fiftyTwoWeekLow: number;
+  marketCap: number;
 }
 
 export interface StockAlert {

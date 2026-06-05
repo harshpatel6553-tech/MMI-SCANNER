@@ -4,15 +4,17 @@ import './ViewTabs.css';
 interface ViewTabsProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
+  watchlistCount?: number;
 }
 
 const tabs = [
   { key: 'table', label: '📋 Table' },
   { key: 'heatmap', label: '🟩 Heatmap' },
   { key: 'sectors', label: '📊 Sectors' },
+  { key: 'watchlist', label: '⭐ Watchlist' },
 ];
 
-export function ViewTabs({ activeTab, onTabChange }: ViewTabsProps) {
+export function ViewTabs({ activeTab, onTabChange, watchlistCount = 0 }: ViewTabsProps) {
   const tabsRef = useRef<HTMLDivElement>(null);
   const [indicatorStyle, setIndicatorStyle] = useState<{ left: number; width: number }>({ left: 0, width: 0 });
 
@@ -39,6 +41,9 @@ export function ViewTabs({ activeTab, onTabChange }: ViewTabsProps) {
             onClick={() => onTabChange(tab.key)}
           >
             {tab.label}
+            {tab.key === 'watchlist' && watchlistCount > 0 && (
+              <span className="watchlist-count-badge">{watchlistCount}</span>
+            )}
           </button>
         ))}
         <div
@@ -52,3 +57,4 @@ export function ViewTabs({ activeTab, onTabChange }: ViewTabsProps) {
     </div>
   );
 }
+

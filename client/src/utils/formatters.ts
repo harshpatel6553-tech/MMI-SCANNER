@@ -41,3 +41,14 @@ export function getChangeClass(change: number): string {
   if (change < 0) return 'negative';
   return '';
 }
+
+export function formatMarketCap(cap: number): string {
+  if (cap >= 1e12) {
+    return '₹' + (cap / 1e12).toFixed(1) + 'LCr';
+  } else if (cap >= 1e10) {
+    return '₹' + (cap / 1e7).toLocaleString('en-IN', { maximumFractionDigits: 0 }) + 'Cr';
+  } else if (cap >= 1e7) {
+    return '₹' + Math.round(cap / 1e7) + 'Cr';
+  }
+  return '₹' + cap.toLocaleString('en-IN');
+}
