@@ -46,8 +46,8 @@ function sleep(ms: number): Promise<void> {
 async function fetchChartQuote(
   yahooSymbol: string
 ): Promise<{ meta: Record<string, any>; quote: Record<string, any>; volumes: number[] } | null> {
-  // Use 2d range to get perfectly live prices + yesterday's volume for 1-day spike detection
-  const url = `${YAHOO_CHART_URL}/${encodeURIComponent(yahooSymbol)}?interval=1d&range=2d`;
+  // Use 5m interval to detect sudden intraday volume spikes
+  const url = `${YAHOO_CHART_URL}/${encodeURIComponent(yahooSymbol)}?interval=5m&range=1d`;
 
   const response = await fetch(url, {
     headers: {
@@ -159,9 +159,9 @@ class StockService {
           const dayLow: number = meta.regularMarketDayLow ?? price;
           const prevClose: number = meta.previousClose ?? meta.chartPreviousClose ?? price;
 
-          // Extract open price from indicators.quote (last day's open)
+          // Extract open price from indicators.quote (first 5-minute candle of the day)
           const openArray: number[] = (quote.open ?? []).filter((v: any) => v != null);
-          const openPrice: number = openArray.length > 0 ? openArray[openArray.length - 1] : 0;
+          const openPrice: number = openArray.length > 0 ? openArray[0] : price;
 
           // Detect if price is at day high/low within tolerance
           const atDayHigh =
@@ -177,18 +177,26 @@ class StockService {
           const change = price - prevClose;
           const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
 
-          // Volume analytics — use 1-day lookback (yesterday's volume) for spike detection
-          const volume: number = meta.regularMarketVolume ?? 0;
-          let averageVolume: number = meta.averageDailyVolume10Day ?? meta.averageDailyVolume3Month ?? 0;
-          
-          if (volumes.length > 1) {
-            // volumes[0] is yesterday's total volume
-            averageVolume = volumes[volumes.length - 2];
+          // Intraday Volume analytics (5-min Sudden Spikes)
+          let volume = 0; // Current 5m volume
+          let averageVolume = 0; // Average 5m volume today
+
+          if (volumes.length > 0) {
+            volume = volumes[volumes.length - 1] ?? 0;
+            
+            // Calculate average 5m volume, excluding the very first 9:15 AM candle which is always huge
+            const validVolumes = volumes.length > 1 ? volumes.slice(1, -1) : volumes;
+            if (validVolumes.length > 0) {
+              averageVolume = validVolumes.reduce((sum, v) => sum + v, 0) / validVolumes.length;
+            } else {
+              averageVolume = volume;
+            }
           }
 
           const relativeVolume: number =
             averageVolume > 0 ? volume / averageVolume : 0;
-          const volumeSpike: boolean = relativeVolume >= 2.0;
+          // Trigger spike if sudden 5m volume is 3x higher than average 5m volume
+          const volumeSpike: boolean = relativeVolume >= 3.0;
 
           // Market cap: price × shares outstanding (estimate from volume data if not in meta)
           const marketCap: number = meta.marketCap ?? 0;
