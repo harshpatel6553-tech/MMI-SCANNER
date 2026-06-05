@@ -44,10 +44,10 @@ function sleep(ms: number): Promise<void> {
  * Returns both meta and indicators.quote data from the chart response.
  */
 async function fetchChartQuote(
-  yahooSymbol: string
+  yahooSymbol: string,
+  range: string = '1d'
 ): Promise<{ meta: Record<string, any>; quote: Record<string, any>; volumes: number[] } | null> {
-  // Use 3mo range to get historical volumes for average calculation
-  const url = `${YAHOO_CHART_URL}/${encodeURIComponent(yahooSymbol)}?interval=1d&range=3mo`;
+  const url = `${YAHOO_CHART_URL}/${encodeURIComponent(yahooSymbol)}?interval=1d&range=${range}`;
 
   const response = await fetch(url, {
     headers: {
@@ -145,7 +145,13 @@ class StockService {
       const promises = batch.map(async (stock) => {
         const yahooSymbol = `${stock.symbol}.NS`;
         try {
-          const chartData = await fetchChartQuote(yahooSymbol);
+          // If we already have averageVolume, use fast 1d range for live prices
+          // Otherwise use 3mo range to calculate the average
+          const cachedStock = this.stockCache.get(stock.symbol);
+          const needsHistory = !cachedStock || cachedStock.averageVolume === 0;
+          const fetchRange = needsHistory ? '3mo' : '1d';
+
+          const chartData = await fetchChartQuote(yahooSymbol, fetchRange);
 
           if (!chartData || chartData.meta.regularMarketPrice == null) {
             logger.warn(`No data returned for ${yahooSymbol}`);
@@ -179,13 +185,15 @@ class StockService {
           const change = price - prevClose;
           const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
 
-          // Volume analytics — compute average from 3-month historical data
+          // Volume analytics — compute average from historical data if available, else use cached
           const volume: number = meta.regularMarketVolume ?? 0;
-          // Exclude today's volume (last element) from average calculation
-          const historicalVolumes = volumes.length > 1 ? volumes.slice(0, -1) : volumes;
-          const averageVolume: number = historicalVolumes.length > 0
-            ? Math.round(historicalVolumes.reduce((sum, v) => sum + v, 0) / historicalVolumes.length)
-            : 0;
+          let averageVolume: number = cachedStock?.averageVolume ?? 0;
+          
+          if (needsHistory && volumes.length > 1) {
+            // Exclude today's volume (last element) from average calculation
+            const historicalVolumes = volumes.slice(0, -1);
+            averageVolume = Math.round(historicalVolumes.reduce((sum, v) => sum + v, 0) / historicalVolumes.length);
+          }
           const relativeVolume: number =
             averageVolume > 0 ? volume / averageVolume : 0;
           const volumeSpike: boolean = relativeVolume >= 2.0;
