@@ -1,7 +1,6 @@
 import { useEffect, useCallback, useState, useRef } from 'react';
 import type { StockData } from '../../types';
 import { formatPrice, formatVolume, formatMarketCap, formatPercent, getChangeClass } from '../../utils/formatters';
-import { StockChart } from '../StockChart/StockChart';
 import './StockDetailModal.css';
 
 interface StockDetailModalProps {
@@ -177,8 +176,16 @@ export function StockDetailModal({ stock, onClose }: StockDetailModalProps) {
         </div>
 
         <div className="modal-section modal-chart-section">
-          <h3 className="modal-section-title">Chart (3M)</h3>
-          <StockChart symbol={displayStock.symbol} />
+          <h3 className="modal-section-title">Chart</h3>
+          <div className="modal-chart-wrapper">
+            <iframe
+              key={displayStock.symbol}
+              src={`https://s.tradingview.com/embed-widget/advanced-chart/?symbol=NSE%3A${encodeURIComponent(displayStock.symbol)}&interval=D&theme=dark&style=1&locale=en&timezone=Asia%2FKolkata&hide_side_toolbar=1&allow_symbol_change=0&calendar=false&hide_volume=false&support_host=https%3A%2F%2Fwww.tradingview.com`}
+              style={{ width: '100%', height: '350px', border: 'none', borderRadius: '8px' }}
+              title={`${displayStock.symbol} Chart`}
+              sandbox="allow-scripts allow-same-origin allow-popups"
+            />
+          </div>
         </div>
       </div>
     </div>
