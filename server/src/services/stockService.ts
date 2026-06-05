@@ -10,6 +10,7 @@
 import type { StockQuote, StockData } from '../types/index.js';
 import { NIFTY_50_STOCKS } from '../data/nifty50.js';
 import { NIFTY_500_STOCKS } from '../data/nifty500.js';
+import { SECTOR_MAP } from '../data/sectorMap.js';
 import logger from '../utils/logger.js';
 
 /** Number of concurrent requests per batch */
@@ -166,6 +167,14 @@ class StockService {
           const change = price - prevClose;
           const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
 
+          // Volume analytics
+          const volume: number = meta.regularMarketVolume ?? 0;
+          const averageVolume: number =
+            meta.averageDailyVolume3Month ?? meta.averageDailyVolume10Day ?? 0;
+          const relativeVolume: number =
+            averageVolume > 0 ? volume / averageVolume : 0;
+          const volumeSpike: boolean = relativeVolume >= 2.0;
+
           const stockData: StockData = {
             symbol: stock.symbol,
             name:
@@ -177,7 +186,11 @@ class StockService {
             dayLow,
             change,
             changePercent,
-            volume: meta.regularMarketVolume ?? 0,
+            volume,
+            sector: SECTOR_MAP[stock.symbol] || 'Others',
+            averageVolume,
+            relativeVolume,
+            volumeSpike,
             indexName,
             lastUpdated: new Date().toISOString(),
             atDayHigh,

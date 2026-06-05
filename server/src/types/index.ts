@@ -34,6 +34,14 @@ export interface StockData {
   changePercent: number;
   /** Total traded volume */
   volume: number;
+  /** Stock sector category */
+  sector: string;
+  /** Average daily volume (3-month or 10-day from Yahoo Finance) */
+  averageVolume: number;
+  /** Relative volume: current volume / average volume */
+  relativeVolume: number;
+  /** Whether volume is spiking (relativeVolume >= 2.0) */
+  volumeSpike: boolean;
   /** Index membership */
   indexName: 'NIFTY50' | 'NIFTY500';
   /** Last update timestamp in ISO 8601 format */
@@ -53,7 +61,7 @@ export interface StockAlert {
   /** Full company name */
   name: string;
   /** Type of price alert */
-  alertType: 'DAY_HIGH' | 'DAY_LOW';
+  alertType: 'DAY_HIGH' | 'DAY_LOW' | 'VOLUME_SPIKE';
   /** Price at which the alert was triggered (₹) */
   price: number;
   /** Alert creation timestamp in ISO 8601 format */

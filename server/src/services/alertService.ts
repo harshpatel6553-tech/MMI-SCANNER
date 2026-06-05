@@ -19,6 +19,7 @@ interface HighLowState {
   atLow: boolean;
   highValue: number;
   lowValue: number;
+  volumeSpiked: boolean;
 }
 
 /**
@@ -66,6 +67,7 @@ class AlertService {
         atLow: false,
         highValue: 0,
         lowValue: 0,
+        volumeSpiked: false,
       };
 
       const now = new Date().toISOString();
@@ -104,12 +106,29 @@ class AlertService {
         );
       }
 
+      // Detect VOLUME_SPIKE transition
+      if (stock.volumeSpike === true && previousState.volumeSpiked === false) {
+        const alert: StockAlert = {
+          id: crypto.randomUUID(),
+          symbol: stock.symbol,
+          name: stock.name,
+          alertType: 'VOLUME_SPIKE',
+          price: stock.price,
+          createdAt: now,
+        };
+        newAlerts.push(alert);
+        logger.info(
+          `⚡ VOLUME SPIKE ALERT: ${stock.symbol} (${stock.name}) volume ${stock.relativeVolume.toFixed(1)}x average`
+        );
+      }
+
       // Update state map
       this.previousHighLowState.set(stock.symbol, {
         atHigh: stock.atDayHigh,
         atLow: stock.atDayLow,
         highValue: stock.dayHigh,
         lowValue: stock.dayLow,
+        volumeSpiked: stock.volumeSpike,
       });
     }
 
@@ -198,7 +217,7 @@ class AlertService {
             id: row.id as string,
             symbol: row.symbol as string,
             name: row.name as string,
-            alertType: row.alert_type as 'DAY_HIGH' | 'DAY_LOW',
+            alertType: row.alert_type as 'DAY_HIGH' | 'DAY_LOW' | 'VOLUME_SPIKE',
             price: row.price as number,
             createdAt: row.created_at as string,
           }) satisfies StockAlert
