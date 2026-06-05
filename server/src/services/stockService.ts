@@ -46,8 +46,8 @@ function sleep(ms: number): Promise<void> {
 async function fetchChartQuote(
   yahooSymbol: string
 ): Promise<{ meta: Record<string, any>; quote: Record<string, any>; volumes: number[] } | null> {
-  // Use 5m interval to detect sudden intraday volume spikes
-  const url = `${YAHOO_CHART_URL}/${encodeURIComponent(yahooSymbol)}?interval=5m&range=1d`;
+  // Use 1h interval to detect sudden intraday volume spikes on an hourly basis
+  const url = `${YAHOO_CHART_URL}/${encodeURIComponent(yahooSymbol)}?interval=1h&range=1d`;
 
   const response = await fetch(url, {
     headers: {
@@ -159,7 +159,7 @@ class StockService {
           const dayLow: number = meta.regularMarketDayLow ?? price;
           const prevClose: number = meta.previousClose ?? meta.chartPreviousClose ?? price;
 
-          // Extract open price from indicators.quote (first 5-minute candle of the day)
+          // Extract open price from indicators.quote (first 1-hour candle of the day)
           const openArray: number[] = (quote.open ?? []).filter((v: any) => v != null);
           const openPrice: number = openArray.length > 0 ? openArray[0] : price;
 
@@ -177,14 +177,14 @@ class StockService {
           const change = price - prevClose;
           const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
 
-          // Intraday Volume analytics (5-min Sudden Spikes)
-          let volume = 0; // Current 5m volume
-          let averageVolume = 0; // Average 5m volume today
+          // Intraday Volume analytics (1-hour Sudden Spikes)
+          let volume = 0; // Current 1h volume
+          let averageVolume = 0; // Average 1h volume today
 
           if (volumes.length > 0) {
             volume = volumes[volumes.length - 1] ?? 0;
             
-            // Calculate average 5m volume, excluding the very first 9:15 AM candle which is always huge
+            // Calculate average 1h volume, excluding the very first opening hour which is always huge
             const validVolumes = volumes.length > 1 ? volumes.slice(1, -1) : volumes;
             if (validVolumes.length > 0) {
               averageVolume = validVolumes.reduce((sum, v) => sum + v, 0) / validVolumes.length;
@@ -195,7 +195,7 @@ class StockService {
 
           const relativeVolume: number =
             averageVolume > 0 ? volume / averageVolume : 0;
-          // Trigger spike if sudden 5m volume is 3x higher than average 5m volume
+          // Trigger spike if sudden 1h volume is 3x higher than average 1h volume
           const volumeSpike: boolean = relativeVolume >= 3.0;
 
           // Market cap: price × shares outstanding (estimate from volume data if not in meta)
