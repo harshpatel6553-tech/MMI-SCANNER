@@ -46,7 +46,8 @@ function sleep(ms: number): Promise<void> {
 async function fetchChartQuote(
   yahooSymbol: string
 ): Promise<{ meta: Record<string, any>; quote: Record<string, any>; volumes: number[] } | null> {
-  const url = `${YAHOO_CHART_URL}/${encodeURIComponent(yahooSymbol)}?interval=1d&range=1d`;
+  // Use 2d range to get perfectly live prices + yesterday's volume for 1-day spike detection
+  const url = `${YAHOO_CHART_URL}/${encodeURIComponent(yahooSymbol)}?interval=1d&range=2d`;
 
   const response = await fetch(url, {
     headers: {
@@ -151,7 +152,7 @@ class StockService {
             return null;
           }
 
-          const { meta, quote } = chartData;
+          const { meta, quote, volumes } = chartData;
 
           const price: number = meta.regularMarketPrice ?? 0;
           const dayHigh: number = meta.regularMarketDayHigh ?? price;
@@ -176,9 +177,15 @@ class StockService {
           const change = price - prevClose;
           const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
 
-          // Volume analytics — fallback to meta fields if available
+          // Volume analytics — use 1-day lookback (yesterday's volume) for spike detection
           const volume: number = meta.regularMarketVolume ?? 0;
-          const averageVolume: number = meta.averageDailyVolume10Day ?? meta.averageDailyVolume3Month ?? 0;
+          let averageVolume: number = meta.averageDailyVolume10Day ?? meta.averageDailyVolume3Month ?? 0;
+          
+          if (volumes.length > 1) {
+            // volumes[0] is yesterday's total volume
+            averageVolume = volumes[volumes.length - 2];
+          }
+
           const relativeVolume: number =
             averageVolume > 0 ? volume / averageVolume : 0;
           const volumeSpike: boolean = relativeVolume >= 2.0;
