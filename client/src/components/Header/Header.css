@@ -64,10 +64,13 @@
   gap: 12px;
 }
 
-.header-logo {
-  font-size: 28px;
+.header-logo-img {
+  height: 32px;
+  width: auto;
+  border-radius: 4px;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
+  filter: drop-shadow(0 0 5px rgba(218, 127, 99, 0.3));
   animation: logoGlow 3s ease-in-out infinite;
-  filter: drop-shadow(0 0 10px rgba(218, 127, 99, 0.4));
 }
 
 .header-title {

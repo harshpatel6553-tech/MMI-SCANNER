@@ -32,10 +32,13 @@
   z-index: 1;
 }
 
-.loading-icon {
-  font-size: 48px;
+.loading-logo-img {
+  height: 80px;
+  width: auto;
+  border-radius: 8px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.6);
+  filter: drop-shadow(0 0 10px rgba(218, 127, 99, 0.3));
   animation: breathe 2s ease-in-out infinite;
-  filter: drop-shadow(0 0 20px rgba(218, 127, 99, 0.4));
 }
 
 .loading-title {

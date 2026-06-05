@@ -28,7 +28,7 @@ export function Header() {
       <div className="header-scanner-beam" />
       <div className="header-content">
         <div className="header-left">
-          <span className="header-logo">🛡️</span>
+          <img src="/logo.jpg" className="header-logo-img" alt="Market Minds Investment Logo" />
           <h1 className="header-title">MARKET MINDS INVESTMENT SCANNER</h1>
         </div>
 

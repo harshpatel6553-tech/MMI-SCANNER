@@ -23,7 +23,7 @@ export function LoadingScreen({ onComplete }: LoadingScreenProps) {
     <div className={`loading-screen ${phase === 'fadeout' ? 'fade-out' : ''}`}>
       <div className="loading-grid" />
       <div className="loading-content">
-        <div className="loading-icon">🛡️</div>
+        <img src="/logo.jpg" className="loading-logo-img" alt="Market Minds Investment Logo" />
         <div className={`loading-title ${phase !== 'typing' ? 'typed' : ''}`}>
           <span className="typing-text">MARKET MINDS INVESTMENT SCANNER</span>
           <span className="cursor" />
