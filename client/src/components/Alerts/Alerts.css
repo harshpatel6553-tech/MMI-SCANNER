@@ -155,6 +155,20 @@
   background: linear-gradient(90deg, var(--negative), #ff6b81);
 }
 
+/* Volume Spike toast styles */
+.toast-type-bar.volume-spike {
+  background: linear-gradient(180deg, #a855f7, #7c3aed);
+  box-shadow: 0 0 12px rgba(168, 85, 247, 0.4);
+}
+
+.toast-progress.volume-spike {
+  background: linear-gradient(90deg, #a855f7, #c084fc);
+}
+
+.toast-message .toast-price.volume-spike-text {
+  color: #a855f7;
+}
+
 /* ---- Alert Panel ---- */
 .alert-panel-toggle {
   position: fixed;
@@ -296,6 +310,12 @@
   background: var(--negative-bg);
   color: var(--negative);
   border: 1px solid rgba(255, 71, 87, 0.2);
+}
+
+.alert-item-type.spike {
+  background: rgba(168, 85, 247, 0.12);
+  color: #a855f7;
+  border: 1px solid rgba(168, 85, 247, 0.25);
 }
 
 .alert-item-symbol {

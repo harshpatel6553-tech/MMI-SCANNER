@@ -1,0 +1,201 @@
+/* ============================================
+   HEATMAP — Treemap Grid of Stocks
+   ============================================ */
+
+.heatmap-container {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 4px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ---- Sector Group ---- */
+.heatmap-sector {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.heatmap-sector-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 4px;
+  border-bottom: 1px solid var(--border-light);
+  padding-bottom: 6px;
+}
+
+.heatmap-sector-name {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+}
+
+.heatmap-sector-count {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+
+/* ---- Grid ---- */
+.heatmap-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 3px;
+}
+
+/* ---- Tile ---- */
+.heatmap-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 6px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease;
+  animation: heatmapTileFadeIn 0.4s ease-out both;
+  min-height: 56px;
+  overflow: visible;
+}
+
+.heatmap-tile.hovered {
+  transform: scale(1.12);
+  z-index: 10;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+@keyframes heatmapTileFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.heatmap-tile-symbol {
+  font-family: 'Space Grotesk', -apple-system, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  text-align: center;
+  line-height: 1.2;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.heatmap-spike-icon {
+  font-size: 10px;
+  animation: pulseGlow 1.5s ease-in-out infinite;
+  filter: drop-shadow(0 0 3px rgba(168, 85, 247, 0.7));
+}
+
+.heatmap-tile-change {
+  font-family: 'Space Grotesk', -apple-system, sans-serif;
+  font-variant-numeric: tabular-nums;
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+/* ---- Tooltip ---- */
+.heatmap-tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(10, 10, 15, 0.96);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  min-width: 180px;
+  z-index: 100;
+  box-shadow: var(--shadow-lg);
+  animation: fadeIn 0.15s ease;
+  pointer-events: none;
+}
+
+.heatmap-tooltip-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.heatmap-tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 11px;
+  padding: 2px 0;
+}
+
+.heatmap-tooltip-row span:first-child {
+  color: var(--text-muted);
+}
+
+.heatmap-tooltip-row span:last-child {
+  font-family: 'Space Grotesk', -apple-system, sans-serif;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* ---- Empty State ---- */
+.heatmap-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 300px;
+  gap: 12px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.heatmap-empty-icon {
+  font-size: 48px;
+  opacity: 0.3;
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 768px) {
+  .heatmap-grid {
+    grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+    gap: 2px;
+  }
+
+  .heatmap-tile {
+    padding: 8px 4px;
+    min-height: 48px;
+  }
+
+  .heatmap-tile-symbol {
+    font-size: 9px;
+  }
+
+  .heatmap-tile-change {
+    font-size: 8px;
+  }
+}

@@ -1,0 +1,237 @@
+/* ============================================
+   SECTOR BREAKDOWN — Card Grid
+   ============================================ */
+
+.sector-breakdown-container {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 4px 0;
+}
+
+.sector-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 12px;
+}
+
+/* ---- Card ---- */
+.sector-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: sectorCardEnter 0.4s ease-out both;
+}
+
+.sector-card:hover {
+  box-shadow: 0 0 20px var(--accent-glow), var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.sector-card.expanded {
+  grid-column: span 1;
+}
+
+@keyframes sectorCardEnter {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ---- Header ---- */
+.sector-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sector-card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sector-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.sector-count-pill {
+  font-size: 10px;
+  padding: 1px 8px;
+}
+
+.sector-avg-change {
+  font-family: 'Space Grotesk', -apple-system, sans-serif;
+  font-variant-numeric: tabular-nums;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+/* ---- Mini Bar ---- */
+.sector-mini-bar {
+  display: flex;
+  height: 4px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--bg-tertiary);
+}
+
+.sector-bar-segment {
+  height: 100%;
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sector-bar-segment.bar-gainers {
+  background: linear-gradient(90deg, var(--positive-dim), var(--positive));
+  border-radius: 999px 0 0 999px;
+}
+
+.sector-bar-segment.bar-unchanged {
+  background: var(--text-muted);
+  opacity: 0.4;
+}
+
+.sector-bar-segment.bar-losers {
+  background: linear-gradient(90deg, var(--negative), var(--negative-dim));
+  border-radius: 0 999px 999px 0;
+}
+
+/* ---- Extremes ---- */
+.sector-extremes {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sector-extreme {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-family: 'Space Grotesk', -apple-system, sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+.sector-extreme-label {
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+/* ---- Expand Hint ---- */
+.sector-expand-hint {
+  display: flex;
+  justify-content: center;
+}
+
+.sector-expand-icon {
+  font-size: 10px;
+  color: var(--text-muted);
+  transition: transform 0.3s ease;
+}
+
+.sector-card.expanded .sector-expand-icon {
+  transform: rotate(180deg);
+}
+
+/* ---- Detail Table ---- */
+.sector-detail-table {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border-top: 1px solid var(--border-light);
+  padding-top: 10px;
+  margin-top: 2px;
+  max-height: 280px;
+  overflow-y: auto;
+  animation: fadeIn 0.25s ease;
+}
+
+.sector-detail-header {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  padding: 4px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-light);
+  padding-bottom: 6px;
+  margin-bottom: 2px;
+}
+
+.sector-detail-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  padding: 4px 8px;
+  font-size: 12px;
+  border-radius: var(--radius-sm);
+  transition: background 0.15s ease;
+}
+
+.sector-detail-row:hover {
+  background: var(--bg-card-hover);
+}
+
+.sector-detail-symbol {
+  font-weight: 700;
+  color: var(--text-primary);
+  font-family: 'Space Grotesk', -apple-system, sans-serif;
+}
+
+.sector-detail-price {
+  font-family: 'Space Grotesk', -apple-system, sans-serif;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}
+
+.sector-detail-change {
+  font-family: 'Space Grotesk', -apple-system, sans-serif;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  text-align: right;
+}
+
+/* ---- Empty State ---- */
+.sector-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 300px;
+  gap: 12px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.sector-empty-icon {
+  font-size: 48px;
+  opacity: 0.3;
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 768px) {
+  .sector-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 1200px) {
+  .sector-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

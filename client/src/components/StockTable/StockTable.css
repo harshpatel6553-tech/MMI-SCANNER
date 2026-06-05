@@ -246,6 +246,15 @@
   color: var(--text-secondary);
 }
 
+.volume-spike-badge {
+  display: inline-flex;
+  margin-left: 4px;
+  font-size: 12px;
+  cursor: help;
+  animation: pulseGlow 1.5s ease-in-out infinite;
+  filter: drop-shadow(0 0 4px rgba(168, 85, 247, 0.6));
+}
+
 .cell-indicator {
   text-align: center;
 }

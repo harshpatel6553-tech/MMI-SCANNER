@@ -46,7 +46,17 @@ export const StockRow = React.memo(function StockRow({ stock, index, flash, isNe
         {stock.atDayLow && <span className="day-low-indicator" />}
         {formatPrice(stock.dayLow)}
       </td>
-      <td className="cell-volume">{formatVolume(stock.volume)}</td>
+      <td className="cell-volume">
+        {formatVolume(stock.volume)}
+        {stock.volumeSpike && (
+          <span
+            className="volume-spike-badge"
+            title={`${stock.relativeVolume.toFixed(1)}x avg volume`}
+          >
+            ⚡
+          </span>
+        )}
+      </td>
     </tr>
   );
 });

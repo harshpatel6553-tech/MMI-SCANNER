@@ -13,13 +13,17 @@ export interface StockData {
   lastUpdated: string;
   atDayHigh: boolean;
   atDayLow: boolean;
+  sector: string;
+  averageVolume: number;
+  relativeVolume: number;
+  volumeSpike: boolean;
 }
 
 export interface StockAlert {
   id: string;
   symbol: string;
   name: string;
-  alertType: 'DAY_HIGH' | 'DAY_LOW';
+  alertType: 'DAY_HIGH' | 'DAY_LOW' | 'VOLUME_SPIKE';
   price: number;
   createdAt: string;
 }

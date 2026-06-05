@@ -6,6 +6,10 @@ import { Header } from './components/Header/Header';
 import { SearchBar } from './components/SearchBar/SearchBar';
 import { FilterPanel } from './components/Filters/FilterPanel';
 import { StockTable } from './components/StockTable/StockTable';
+import { MarketBreadth } from './components/MarketBreadth/MarketBreadth';
+import { ViewTabs } from './components/ViewTabs/ViewTabs';
+import { Heatmap } from './components/Heatmap/Heatmap';
+import { SectorBreakdown } from './components/SectorBreakdown/SectorBreakdown';
 import { AlertToast } from './components/Alerts/AlertToast';
 import { AlertPanel } from './components/Alerts/AlertPanel';
 import { StatusBar } from './components/StatusBar/StatusBar';
@@ -24,8 +28,9 @@ function AppContent() {
   });
   const [sortField, setSortField] = useState<SortField>('symbol');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+  const [activeTab, setActiveTab] = useState<'table' | 'heatmap' | 'sectors'>('table');
 
-  const { stocks, allStocks, stats, priceFlash } = useStocks(filters, sortField, sortOrder);
+  const { stocks, allStocks, stats, priceFlash, sectorData } = useStocks(filters, sortField, sortOrder);
   const { toasts, alertHistory, dismissToast, clearAll } = useAlerts();
 
   const handleSort = useCallback((field: SortField) => {
@@ -49,29 +54,44 @@ function AppContent() {
       <Header />
 
       <main className="app-main">
-        <div className="app-controls">
-          <SearchBar
-            value={filters.search}
-            onChange={handleSearch}
-            matchCount={stocks.length}
-          />
-          <FilterPanel
-            filters={filters}
-            onChange={setFilters}
-            stats={stats}
-          />
-        </div>
+        {activeTab === 'table' && (
+          <div className="app-controls">
+            <SearchBar
+              value={filters.search}
+              onChange={handleSearch}
+              matchCount={stocks.length}
+            />
+            <FilterPanel
+              filters={filters}
+              onChange={setFilters}
+              stats={stats}
+            />
+          </div>
+        )}
 
-        <div className="app-table">
-          <StockTable
-            stocks={stocks}
-            priceFlash={priceFlash}
-            sortField={sortField}
-            sortOrder={sortOrder}
-            onSort={handleSort}
-            isLoading={allStocks.length === 0}
-          />
-        </div>
+        <MarketBreadth stats={stats} />
+        <ViewTabs activeTab={activeTab} onTabChange={(tab) => setActiveTab(tab as 'table' | 'heatmap' | 'sectors')} />
+
+        {activeTab === 'table' && (
+          <div className="app-table">
+            <StockTable
+              stocks={stocks}
+              priceFlash={priceFlash}
+              sortField={sortField}
+              sortOrder={sortOrder}
+              onSort={handleSort}
+              isLoading={allStocks.length === 0}
+            />
+          </div>
+        )}
+
+        {activeTab === 'heatmap' && (
+          <Heatmap stocks={allStocks} />
+        )}
+
+        {activeTab === 'sectors' && (
+          <SectorBreakdown sectorData={sectorData} />
+        )}
       </main>
 
       <StatusBar stockCount={allStocks.length} />

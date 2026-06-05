@@ -1,0 +1,88 @@
+/* ============================================
+   VIEW TABS — Table / Heatmap / Sectors
+   ============================================ */
+
+.view-tabs-wrapper {
+  flex-shrink: 0;
+}
+
+.view-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg-card);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px;
+  position: relative;
+}
+
+.view-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 18px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  z-index: 1;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.view-tab:hover {
+  color: var(--text-primary);
+}
+
+.view-tab.active {
+  color: var(--text-primary);
+}
+
+/* Sliding indicator behind active tab */
+.view-tab-indicator {
+  position: absolute;
+  top: 4px;
+  height: calc(100% - 8px);
+  background: var(--bg-tertiary);
+  border-radius: 999px;
+  border: 1px solid var(--border-accent);
+  box-shadow: 0 0 12px var(--accent-glow), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 0;
+}
+
+/* Accent underline glow on active */
+.view-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  left: 25%;
+  width: 50%;
+  height: 2px;
+  background: var(--accent);
+  border-radius: 2px;
+  box-shadow: 0 0 8px var(--accent-glow);
+  animation: tabGlowPulse 2s ease-in-out infinite;
+}
+
+@keyframes tabGlowPulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 8px var(--accent-glow); }
+  50% { opacity: 0.6; box-shadow: 0 0 16px var(--accent-glow); }
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 480px) {
+  .view-tab {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+}

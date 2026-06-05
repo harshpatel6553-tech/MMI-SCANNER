@@ -67,16 +67,20 @@ export function AlertPanel({ alerts, onClearAll }: AlertPanelProps) {
                 groupedAlerts.map(group => (
                   <div key={group.title}>
                     <div className="alert-group-title">{group.title}</div>
-                    {group.items.map(alert => (
-                      <div key={alert.id} className="alert-item">
-                        <span className={`alert-item-type ${alert.alertType === 'DAY_HIGH' ? 'high' : 'low'}`}>
-                          {alert.alertType === 'DAY_HIGH' ? 'HIGH' : 'LOW'}
-                        </span>
-                        <span className="alert-item-symbol">{alert.symbol}</span>
-                        <span className="alert-item-price">{formatPrice(alert.price)}</span>
-                        <span className="alert-item-time">{formatTime(alert.createdAt)}</span>
-                      </div>
-                    ))}
+                    {group.items.map(alert => {
+                      const typeClass = alert.alertType === 'DAY_HIGH' ? 'high' : alert.alertType === 'DAY_LOW' ? 'low' : 'spike';
+                      const typeLabel = alert.alertType === 'DAY_HIGH' ? 'HIGH' : alert.alertType === 'DAY_LOW' ? 'LOW' : '⚡ SPIKE';
+                      return (
+                        <div key={alert.id} className="alert-item">
+                          <span className={`alert-item-type ${typeClass}`}>
+                            {typeLabel}
+                          </span>
+                          <span className="alert-item-symbol">{alert.symbol}</span>
+                          <span className="alert-item-price">{formatPrice(alert.price)}</span>
+                          <span className="alert-item-time">{formatTime(alert.createdAt)}</span>
+                        </div>
+                      );
+                    })}
                   </div>
                 ))
               )}

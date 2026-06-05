@@ -68,13 +68,38 @@ export function useStocks(
   const allStocks = useMemo(() => Array.from(stockMap.values()), [stockMap]);
 
   const stats = useMemo(() => {
-    let gainers = 0, losers = 0, unchanged = 0;
+    let gainers = 0, losers = 0, unchanged = 0, volumeSpikes = 0;
     allStocks.forEach(s => {
       if (s.change > 0) gainers++;
       else if (s.change < 0) losers++;
       else unchanged++;
+      if (s.volumeSpike) volumeSpikes++;
     });
-    return { total: allStocks.length, gainers, losers, unchanged };
+    const advanceDeclineRatio = losers > 0 ? +(gainers / losers).toFixed(2) : gainers > 0 ? Infinity : 0;
+    const breadthPercent = allStocks.length > 0 ? +((gainers / allStocks.length) * 100).toFixed(1) : 0;
+    return { total: allStocks.length, gainers, losers, unchanged, advanceDeclineRatio, breadthPercent, volumeSpikes };
+  }, [allStocks]);
+
+  const sectorData = useMemo(() => {
+    const map = new Map<string, { stocks: StockData[], totalStocks: number, avgChange: number, gainers: number, losers: number }>();
+    allStocks.forEach(s => {
+      const sector = s.sector || 'Unknown';
+      if (!map.has(sector)) {
+        map.set(sector, { stocks: [], totalStocks: 0, avgChange: 0, gainers: 0, losers: 0 });
+      }
+      const entry = map.get(sector)!;
+      entry.stocks.push(s);
+      entry.totalStocks++;
+      if (s.change > 0) entry.gainers++;
+      else if (s.change < 0) entry.losers++;
+    });
+    // compute avgChange per sector
+    map.forEach(entry => {
+      if (entry.totalStocks > 0) {
+        entry.avgChange = +(entry.stocks.reduce((sum, s) => sum + s.changePercent, 0) / entry.totalStocks).toFixed(2);
+      }
+    });
+    return map;
   }, [allStocks]);
 
   const filteredAndSorted = useMemo(() => {
@@ -130,5 +155,7 @@ export function useStocks(
     allStocks,
     stats,
     priceFlash,
+    sectorData,
   };
 }
+
