@@ -225,4 +225,75 @@ router.get('/health', (_req: Request, res: Response): void => {
   }
 });
 
+/**
+ * GET /api/stocks/:symbol/chart
+ *
+ * Returns 3-month daily OHLC chart data for a stock from Yahoo Finance.
+ * Used by the Stock Detail Modal to render a custom price chart.
+ *
+ * Query Parameters:
+ * - `range` — Time range: 1mo | 3mo | 6mo | 1y (default: 3mo)
+ */
+router.get(
+  '/stocks/:symbol/chart',
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const symbol = req.params.symbol?.toUpperCase();
+      if (!symbol) {
+        res.status(400).json({ success: false, error: 'Symbol required' });
+        return;
+      }
+
+      const validRanges = ['1mo', '3mo', '6mo', '1y'];
+      const range = validRanges.includes(req.query.range as string)
+        ? (req.query.range as string)
+        : '3mo';
+
+      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(
+        symbol + '.NS'
+      )}?interval=1d&range=${range}`;
+
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          Accept: 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        res.status(502).json({ success: false, error: 'Yahoo Finance unavailable' });
+        return;
+      }
+
+      const data = (await response.json()) as any;
+      const result = data?.chart?.result?.[0];
+
+      if (!result) {
+        res.status(404).json({ success: false, error: 'No chart data found' });
+        return;
+      }
+
+      const timestamps: number[] = result.timestamp ?? [];
+      const quote = result.indicators?.quote?.[0] ?? {};
+
+      res.json({
+        success: true,
+        data: {
+          timestamps,
+          open: quote.open ?? [],
+          high: quote.high ?? [],
+          low: quote.low ?? [],
+          close: quote.close ?? [],
+          volume: quote.volume ?? [],
+        },
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error(`GET /api/stocks/${req.params.symbol}/chart error: ${message}`);
+      res.status(500).json({ success: false, error: 'Failed to fetch chart data' });
+    }
+  }
+);
+
 export default router;

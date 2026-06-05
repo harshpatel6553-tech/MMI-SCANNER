@@ -1,0 +1,114 @@
+.stock-chart-container {
+  position: relative;
+  width: 100%;
+  height: 300px;
+  background: rgba(11, 11, 13, 0.6);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.stock-chart-canvas {
+  width: 100%;
+  height: 100%;
+  cursor: crosshair;
+}
+
+/* Loading */
+.chart-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 100%;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.chart-loading-pulse {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: chartPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes chartPulse {
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+.chart-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+/* Crosshair */
+.chart-crosshair-v {
+  position: absolute;
+  top: 20px;
+  bottom: 30px;
+  width: 1px;
+  background: rgba(218, 127, 99, 0.35);
+  pointer-events: none;
+}
+
+.chart-crosshair-h {
+  position: absolute;
+  left: 60px;
+  right: 20px;
+  height: 1px;
+  background: rgba(218, 127, 99, 0.25);
+  pointer-events: none;
+}
+
+/* Hover dot */
+.chart-hover-dot {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 10px var(--accent-glow);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+/* Tooltip */
+.chart-tooltip {
+  position: absolute;
+  background: rgba(17, 17, 20, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border-accent);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  pointer-events: none;
+  z-index: 10;
+  box-shadow: var(--shadow-md);
+  min-width: 120px;
+}
+
+.chart-tooltip-date {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+  font-family: 'Outfit', sans-serif;
+}
+
+.chart-tooltip-price {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-family: 'Space Grotesk', monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-tooltip-vol {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  margin-top: 2px;
+  font-family: 'Space Grotesk', monospace;
+}
