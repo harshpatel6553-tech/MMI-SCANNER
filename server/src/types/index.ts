@@ -50,6 +50,12 @@ export interface StockData {
   atDayHigh: boolean;
   /** Whether current price is at or near the day's low */
   atDayLow: boolean;
+  /** 52-week high price */
+  fiftyTwoWeekHigh: number;
+  /** 52-week low price */
+  fiftyTwoWeekLow: number;
+  /** Market capitalization */
+  marketCap: number;
 }
 
 /** Alert generated when a stock hits its intraday high or low */

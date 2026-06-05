@@ -145,6 +145,9 @@ async function upsertStocksToSupabase(
         index_name: s.indexName,
         at_day_high: s.atDayHigh,
         at_day_low: s.atDayLow,
+        fifty_two_week_high: s.fiftyTwoWeekHigh,
+        fifty_two_week_low: s.fiftyTwoWeekLow,
+        market_cap: s.marketCap,
         last_updated: s.lastUpdated,
       })),
       { onConflict: 'symbol' }

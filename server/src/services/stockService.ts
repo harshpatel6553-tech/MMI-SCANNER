@@ -195,6 +195,9 @@ class StockService {
             lastUpdated: new Date().toISOString(),
             atDayHigh,
             atDayLow,
+            fiftyTwoWeekHigh: meta.fiftyTwoWeekHigh ?? 0,
+            fiftyTwoWeekLow: meta.fiftyTwoWeekLow ?? 0,
+            marketCap: meta.marketCap ?? 0,
           };
 
           return stockData;
