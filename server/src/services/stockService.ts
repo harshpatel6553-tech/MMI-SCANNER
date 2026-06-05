@@ -44,10 +44,9 @@ function sleep(ms: number): Promise<void> {
  * Returns both meta and indicators.quote data from the chart response.
  */
 async function fetchChartQuote(
-  yahooSymbol: string,
-  range: string = '1d'
+  yahooSymbol: string
 ): Promise<{ meta: Record<string, any>; quote: Record<string, any>; volumes: number[] } | null> {
-  const url = `${YAHOO_CHART_URL}/${encodeURIComponent(yahooSymbol)}?interval=1d&range=${range}`;
+  const url = `${YAHOO_CHART_URL}/${encodeURIComponent(yahooSymbol)}?interval=1d&range=1d`;
 
   const response = await fetch(url, {
     headers: {
@@ -145,27 +144,19 @@ class StockService {
       const promises = batch.map(async (stock) => {
         const yahooSymbol = `${stock.symbol}.NS`;
         try {
-          // If we already have averageVolume, use fast 1d range for live prices
-          // Otherwise use 3mo range to calculate the average
-          const cachedStock = this.stockCache.get(stock.symbol);
-          const needsHistory = !cachedStock || cachedStock.averageVolume === 0;
-          const fetchRange = needsHistory ? '3mo' : '1d';
-
-          const chartData = await fetchChartQuote(yahooSymbol, fetchRange);
+          const chartData = await fetchChartQuote(yahooSymbol);
 
           if (!chartData || chartData.meta.regularMarketPrice == null) {
             logger.warn(`No data returned for ${yahooSymbol}`);
             return null;
           }
 
-          const { meta, quote, volumes } = chartData;
+          const { meta, quote } = chartData;
 
           const price: number = meta.regularMarketPrice ?? 0;
           const dayHigh: number = meta.regularMarketDayHigh ?? price;
           const dayLow: number = meta.regularMarketDayLow ?? price;
-          const closeArray: number[] = (quote.close ?? []).filter((v: any) => v != null);
-          const prevClose: number =
-            closeArray.length > 1 ? closeArray[closeArray.length - 2] : (meta.previousClose ?? price);
+          const prevClose: number = meta.previousClose ?? meta.chartPreviousClose ?? price;
 
           // Extract open price from indicators.quote (last day's open)
           const openArray: number[] = (quote.open ?? []).filter((v: any) => v != null);
@@ -185,15 +176,9 @@ class StockService {
           const change = price - prevClose;
           const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
 
-          // Volume analytics — compute average from historical data if available, else use cached
+          // Volume analytics — fallback to meta fields if available
           const volume: number = meta.regularMarketVolume ?? 0;
-          let averageVolume: number = cachedStock?.averageVolume ?? 0;
-          
-          if (needsHistory && volumes.length > 1) {
-            // Exclude today's volume (last element) from average calculation
-            const historicalVolumes = volumes.slice(0, -1);
-            averageVolume = Math.round(historicalVolumes.reduce((sum, v) => sum + v, 0) / historicalVolumes.length);
-          }
+          const averageVolume: number = meta.averageDailyVolume10Day ?? meta.averageDailyVolume3Month ?? 0;
           const relativeVolume: number =
             averageVolume > 0 ? volume / averageVolume : 0;
           const volumeSpike: boolean = relativeVolume >= 2.0;
