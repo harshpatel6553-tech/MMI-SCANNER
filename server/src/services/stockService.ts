@@ -157,8 +157,9 @@ class StockService {
           const price: number = meta.regularMarketPrice ?? 0;
           const dayHigh: number = meta.regularMarketDayHigh ?? price;
           const dayLow: number = meta.regularMarketDayLow ?? price;
+          const closeArray: number[] = (quote.close ?? []).filter((v: any) => v != null);
           const prevClose: number =
-            meta.chartPreviousClose ?? meta.previousClose ?? 0;
+            closeArray.length > 1 ? closeArray[closeArray.length - 2] : (meta.previousClose ?? price);
 
           // Extract open price from indicators.quote (last day's open)
           const openArray: number[] = (quote.open ?? []).filter((v: any) => v != null);
