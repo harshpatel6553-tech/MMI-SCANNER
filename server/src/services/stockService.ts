@@ -41,12 +41,13 @@ function sleep(ms: number): Promise<void> {
 
 /**
  * Fetches a single stock quote from Yahoo Finance v8 Chart API.
- * Returns the meta object from the chart response.
+ * Returns both meta and indicators.quote data from the chart response.
  */
 async function fetchChartQuote(
   yahooSymbol: string
-): Promise<Record<string, any> | null> {
-  const url = `${YAHOO_CHART_URL}/${encodeURIComponent(yahooSymbol)}?interval=1d&range=1d`;
+): Promise<{ meta: Record<string, any>; quote: Record<string, any>; volumes: number[] } | null> {
+  // Use 3mo range to get historical volumes for average calculation
+  const url = `${YAHOO_CHART_URL}/${encodeURIComponent(yahooSymbol)}?interval=1d&range=3mo`;
 
   const response = await fetch(url, {
     headers: {
@@ -60,12 +61,16 @@ async function fetchChartQuote(
   }
 
   const data = (await response.json()) as any;
+  const result = data?.chart?.result?.[0];
 
-  if (!data?.chart?.result?.[0]?.meta) {
+  if (!result?.meta) {
     return null;
   }
 
-  return data.chart.result[0].meta;
+  const quote = result?.indicators?.quote?.[0] ?? {};
+  const volumes: number[] = (quote.volume ?? []).filter((v: any) => v != null && v > 0);
+
+  return { meta: result.meta, quote, volumes };
 }
 
 /**
@@ -140,18 +145,24 @@ class StockService {
       const promises = batch.map(async (stock) => {
         const yahooSymbol = `${stock.symbol}.NS`;
         try {
-          const meta = await fetchChartQuote(yahooSymbol);
+          const chartData = await fetchChartQuote(yahooSymbol);
 
-          if (!meta || meta.regularMarketPrice == null) {
+          if (!chartData || chartData.meta.regularMarketPrice == null) {
             logger.warn(`No data returned for ${yahooSymbol}`);
             return null;
           }
+
+          const { meta, quote, volumes } = chartData;
 
           const price: number = meta.regularMarketPrice ?? 0;
           const dayHigh: number = meta.regularMarketDayHigh ?? price;
           const dayLow: number = meta.regularMarketDayLow ?? price;
           const prevClose: number =
             meta.chartPreviousClose ?? meta.previousClose ?? 0;
+
+          // Extract open price from indicators.quote (last day's open)
+          const openArray: number[] = (quote.open ?? []).filter((v: any) => v != null);
+          const openPrice: number = openArray.length > 0 ? openArray[openArray.length - 1] : 0;
 
           // Detect if price is at day high/low within tolerance
           const atDayHigh =
@@ -167,13 +178,19 @@ class StockService {
           const change = price - prevClose;
           const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
 
-          // Volume analytics
+          // Volume analytics — compute average from 3-month historical data
           const volume: number = meta.regularMarketVolume ?? 0;
-          const averageVolume: number =
-            meta.averageDailyVolume3Month ?? meta.averageDailyVolume10Day ?? 0;
+          // Exclude today's volume (last element) from average calculation
+          const historicalVolumes = volumes.length > 1 ? volumes.slice(0, -1) : volumes;
+          const averageVolume: number = historicalVolumes.length > 0
+            ? Math.round(historicalVolumes.reduce((sum, v) => sum + v, 0) / historicalVolumes.length)
+            : 0;
           const relativeVolume: number =
             averageVolume > 0 ? volume / averageVolume : 0;
           const volumeSpike: boolean = relativeVolume >= 2.0;
+
+          // Market cap: price × shares outstanding (estimate from volume data if not in meta)
+          const marketCap: number = meta.marketCap ?? 0;
 
           const stockData: StockData = {
             symbol: stock.symbol,
@@ -181,7 +198,7 @@ class StockService {
               meta.longName || meta.shortName || this.nameMap.get(stock.symbol) || stock.name,
             price,
             previousClose: prevClose,
-            open: meta.regularMarketOpen ?? 0,
+            open: openPrice,
             dayHigh,
             dayLow,
             change,
@@ -197,7 +214,7 @@ class StockService {
             atDayLow,
             fiftyTwoWeekHigh: meta.fiftyTwoWeekHigh ?? 0,
             fiftyTwoWeekLow: meta.fiftyTwoWeekLow ?? 0,
-            marketCap: meta.marketCap ?? 0,
+            marketCap,
           };
 
           return stockData;

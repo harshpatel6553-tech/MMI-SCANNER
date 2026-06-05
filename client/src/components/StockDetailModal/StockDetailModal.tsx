@@ -106,7 +106,7 @@ export function StockDetailModal({ stock, onClose }: StockDetailModalProps) {
           <div className="modal-ohlc-grid">
             <div className="ohlc-item">
               <span className="ohlc-label">Open</span>
-              <span className="ohlc-value">{formatPrice(displayStock.open)}</span>
+              <span className="ohlc-value">{displayStock.open > 0 ? formatPrice(displayStock.open) : 'N/A'}</span>
             </div>
             <div className="ohlc-item">
               <span className="ohlc-label">High</span>
@@ -158,27 +158,32 @@ export function StockDetailModal({ stock, onClose }: StockDetailModalProps) {
           </div>
           <div className="modal-stat-card">
             <span className="stat-card-label">Market Cap</span>
-            <span className="stat-card-value">{formatMarketCap(displayStock.marketCap)}</span>
+            <span className="stat-card-value">{displayStock.marketCap > 0 ? formatMarketCap(displayStock.marketCap) : 'N/A'}</span>
           </div>
           <div className="modal-stat-card">
             <span className="stat-card-label">Rel. Volume</span>
             <span className="stat-card-value">
-              {displayStock.relativeVolume.toFixed(1)}x
-              {displayStock.volumeSpike && (
-                <span className="stat-spike-badge" title="Volume Spike">⚡</span>
-              )}
+              {displayStock.averageVolume > 0 ? (
+                <>
+                  {displayStock.relativeVolume.toFixed(1)}x
+                  {displayStock.volumeSpike && (
+                    <span className="stat-spike-badge" title="Volume Spike">⚡</span>
+                  )}
+                </>
+              ) : 'N/A'}
             </span>
           </div>
         </div>
 
-        {/* TradingView Chart */}
         <div className="modal-section modal-chart-section">
           <h3 className="modal-section-title">Chart</h3>
           <div className="modal-chart-wrapper">
             <iframe
-              src={`https://s.tradingview.com/widgetembed/?frameElementId=tradingview_chart&symbol=NSE%3A${displayStock.symbol}&interval=D&hidesidetoolbar=1&symboledit=0&saveimage=0&toolbarbg=0b0b0d&studies=[]&theme=dark&style=1&timezone=Asia%2FKolkata&withdateranges=1&showpopupbutton=0&studies_overrides={}&overrides={}&enabled_features=[]&disabled_features=[]&locale=en&utm_source=localhost&utm_medium=widget_new&utm_campaign=chart`}
+              key={displayStock.symbol}
+              src={`https://s.tradingview.com/embed-widget/advanced-chart/?symbol=NSE%3A${encodeURIComponent(displayStock.symbol)}&interval=D&theme=dark&style=1&locale=en&timezone=Asia%2FKolkata&hide_side_toolbar=1&allow_symbol_change=0&calendar=false&hide_volume=false&support_host=https%3A%2F%2Fwww.tradingview.com`}
               style={{ width: '100%', height: '350px', border: 'none', borderRadius: '8px' }}
               title={`${displayStock.symbol} Chart`}
+              sandbox="allow-scripts allow-same-origin allow-popups"
             />
           </div>
         </div>
