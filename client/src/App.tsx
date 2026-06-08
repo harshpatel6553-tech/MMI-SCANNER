@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import { SocketProvider } from './context/SocketContext';
 import { useStocks } from './hooks/useStocks';
 import { useAlerts } from './hooks/useAlerts';
@@ -143,6 +144,7 @@ export default function App() {
     <SocketProvider>
       {showLoading && <LoadingScreen onComplete={() => setShowLoading(false)} />}
       {!showLoading && <AppContent />}
+      <Analytics />
     </SocketProvider>
   );
 }
