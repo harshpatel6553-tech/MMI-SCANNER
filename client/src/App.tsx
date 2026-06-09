@@ -11,6 +11,7 @@ import { MarketBreadth } from './components/MarketBreadth/MarketBreadth';
 import { ViewTabs } from './components/ViewTabs/ViewTabs';
 import { Heatmap } from './components/Heatmap/Heatmap';
 import { SectorBreakdown } from './components/SectorBreakdown/SectorBreakdown';
+import { TwitterFeed } from './components/TwitterFeed/TwitterFeed';
 import { AlertToast } from './components/Alerts/AlertToast';
 import { AlertPanel } from './components/Alerts/AlertPanel';
 import { StatusBar } from './components/StatusBar/StatusBar';
@@ -30,7 +31,7 @@ function AppContent() {
   });
   const [sortField, setSortField] = useState<SortField>('symbol');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
-  const [activeTab, setActiveTab] = useState<'table' | 'heatmap' | 'sectors' | 'watchlist'>('table');
+  const [activeTab, setActiveTab] = useState<'table' | 'heatmap' | 'sectors' | 'watchlist' | 'news'>('table');
   const [selectedStock, setSelectedStock] = useState<StockData | null>(null);
 
   const { stocks, allStocks, stats, priceFlash, sectorData } = useStocks(filters, sortField, sortOrder);
@@ -81,7 +82,7 @@ function AppContent() {
         <MarketBreadth stats={stats} />
         <ViewTabs
           activeTab={activeTab}
-          onTabChange={(tab) => setActiveTab(tab as 'table' | 'heatmap' | 'sectors' | 'watchlist')}
+          onTabChange={(tab) => setActiveTab(tab as any)}
           watchlistCount={watchlistCount}
         />
 
@@ -123,6 +124,12 @@ function AppContent() {
 
         {activeTab === 'sectors' && (
           <SectorBreakdown sectorData={sectorData} />
+        )}
+
+        {activeTab === 'news' && (
+          <div style={{ padding: '1rem' }}>
+            <TwitterFeed handle="CNBCTV18News" />
+          </div>
         )}
       </main>
 

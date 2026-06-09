@@ -12,6 +12,7 @@ const tabs = [
   { key: 'heatmap', label: '🟩 Heatmap' },
   { key: 'sectors', label: '📊 Sectors' },
   { key: 'watchlist', label: '⭐ Watchlist' },
+  { key: 'news', label: '📰 Live News' },
 ];
 
 export function ViewTabs({ activeTab, onTabChange, watchlistCount = 0 }: ViewTabsProps) {
