@@ -165,6 +165,16 @@
   background: linear-gradient(90deg, #a855f7, #c084fc);
 }
 
+/* News toast styles */
+.toast-type-bar.news {
+  background: linear-gradient(180deg, #3b82f6, #2563eb);
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.4);
+}
+
+.toast-progress.news {
+  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+}
+
 .toast-message .toast-price.volume-spike-text {
   color: #a855f7;
 }
@@ -316,6 +326,12 @@
   background: rgba(168, 85, 247, 0.12);
   color: #a855f7;
   border: 1px solid rgba(168, 85, 247, 0.25);
+}
+
+.alert-item-type.news {
+  background: rgba(59, 130, 246, 0.12);
+  color: #3b82f6;
+  border: 1px solid rgba(59, 130, 246, 0.25);
 }
 
 .alert-item-symbol {

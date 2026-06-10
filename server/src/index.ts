@@ -96,6 +96,20 @@ setupSocketHandlers(io);
 app.use('/api/stocks', stockRoutes);
 app.use('/api/news', newsRoutes);
 
+// ── News Alerts ────────────────────────────────────────────────
+import { newsService } from './services/newsService.js';
+
+newsService.on('news:alert', (news) => {
+  io.emit('alert:new', {
+    id: `news-${news.id}`,
+    symbol: news.source,
+    name: news.title,
+    alertType: 'NEWS',
+    price: 0,
+    createdAt: new Date().toISOString()
+  });
+});
+
 // ── Root endpoint ──────────────────────────────────────────────
 
 app.get('/', (_req, res) => {

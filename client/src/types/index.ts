@@ -26,7 +26,8 @@ export interface StockAlert {
   id: string;
   symbol: string;
   name: string;
-  alertType: 'DAY_HIGH' | 'DAY_LOW' | 'VOLUME_SPIKE';
+  /** Type of price alert */
+  alertType: 'DAY_HIGH' | 'DAY_LOW' | 'VOLUME_SPIKE' | 'NEWS';
   price: number;
   createdAt: string;
 }

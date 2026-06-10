@@ -67,7 +67,7 @@ export interface StockAlert {
   /** Full company name */
   name: string;
   /** Type of price alert */
-  alertType: 'DAY_HIGH' | 'DAY_LOW' | 'VOLUME_SPIKE';
+  alertType: 'DAY_HIGH' | 'DAY_LOW' | 'VOLUME_SPIKE' | 'NEWS';
   /** Price at which the alert was triggered (₹) */
   price: number;
   /** Alert creation timestamp in ISO 8601 format */

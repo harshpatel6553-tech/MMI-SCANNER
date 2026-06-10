@@ -14,20 +14,22 @@ interface AlertToastProps {
 function getToastBarClass(alertType: StockAlert['alertType']): string {
   if (alertType === 'DAY_HIGH') return 'day-high';
   if (alertType === 'DAY_LOW') return 'day-low';
+  if (alertType === 'NEWS') return 'news';
   return 'volume-spike';
+}
+
+function getIcon(alertType: StockAlert['alertType']): string {
+  if (alertType === 'DAY_HIGH') return '📈';
+  if (alertType === 'DAY_LOW') return '📉';
+  if (alertType === 'NEWS') return '📰';
+  return '⚡';
 }
 
 function getToastTitle(alertType: StockAlert['alertType']): string {
   if (alertType === 'DAY_HIGH') return '📈 Day High Hit';
   if (alertType === 'DAY_LOW') return '📉 Day Low Hit';
+  if (alertType === 'NEWS') return '📰 News Alert';
   return '⚡ Volume Spike';
-}
-
-function getToastMessage(toast: Toast): string {
-  if (toast.alertType === 'VOLUME_SPIKE') {
-    return `${toast.symbol} is experiencing unusual volume`;
-  }
-  return `${toast.symbol} reached ${toast.alertType === 'DAY_HIGH' ? 'day high' : 'day low'}`;
 }
 
 function getToastPriceClass(alertType: StockAlert['alertType']): string {
@@ -48,28 +50,37 @@ export function AlertToast({ toasts, onDismiss }: AlertToastProps) {
           <div key={toast.id} className="alert-toast">
             <div className={`toast-type-bar ${barClass}`} />
             <div className="toast-body">
-              <div className="toast-header">
-                <span className="toast-icon">
-                  {toast.alertType === 'VOLUME_SPIKE' ? '⚡' : '🔔'}
-                  <span className="sound-ring" />
-                  <span className="sound-ring" />
-                </span>
-                <span className="toast-title">
-                  {getToastTitle(toast.alertType)}
-                </span>
-              </div>
-              <div className="toast-message">
-                <strong>{toast.symbol}</strong>{' '}
-                {toast.alertType === 'VOLUME_SPIKE' ? (
-                  <>is experiencing unusual volume at{' '}
-                  <span className={`toast-price ${getToastPriceClass(toast.alertType)}`}>
-                    {formatPrice(toast.price)}
-                  </span></>
+              <div className="toast-content">
+                {toast.alertType === 'NEWS' ? (
+                  <>
+                    <div className="toast-header">
+                      <span className="toast-icon">{getIcon(toast.alertType)}</span>
+                      <span className="toast-title">{getToastTitle(toast.alertType)}</span>
+                    </div>
+                    <div className="toast-symbol">{toast.symbol}</div>
+                    <div className="toast-news-title" style={{ fontSize: '12px', marginTop: '4px', lineHeight: '1.4' }}>{toast.name}</div>
+                  </>
                 ) : (
-                  <>reached {toast.alertType === 'DAY_HIGH' ? 'day high' : 'day low'} at{' '}
-                  <span className={`toast-price ${getToastPriceClass(toast.alertType)}`}>
-                    {formatPrice(toast.price)}
-                  </span></>
+                  <>
+                    <div className="toast-header">
+                      <span className="toast-icon">{getIcon(toast.alertType)}</span>
+                      <span className="toast-title">{getToastTitle(toast.alertType)}</span>
+                    </div>
+                    <div className="toast-message">
+                      <strong>{toast.symbol}</strong>{' '}
+                      {toast.alertType === 'VOLUME_SPIKE' ? (
+                        <>is experiencing unusual volume at{' '}
+                        <span className={`toast-price ${getToastPriceClass(toast.alertType)}`}>
+                          {formatPrice(toast.price)}
+                        </span></>
+                      ) : (
+                        <>reached {toast.alertType === 'DAY_HIGH' ? 'day high' : 'day low'} at{' '}
+                        <span className={`toast-price ${getToastPriceClass(toast.alertType)}`}>
+                          {formatPrice(toast.price)}
+                        </span></>
+                      )}
+                    </div>
+                  </>
                 )}
               </div>
               <div className="toast-time">{formatTime(toast.createdAt)}</div>

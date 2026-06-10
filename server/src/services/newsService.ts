@@ -1,4 +1,5 @@
 import he from 'he';
+import { EventEmitter } from 'events';
 import logger from '../utils/logger.js';
 
 export interface NewsItem {
@@ -9,12 +10,13 @@ export interface NewsItem {
   source: string;
 }
 
-class NewsService {
+class NewsService extends EventEmitter {
   private newsCache: NewsItem[] = [];
   private isPolling = false;
   private readonly POLL_INTERVAL = 60 * 1000; // 60 seconds
 
   constructor() {
+    super();
     this.startPolling();
   }
 
@@ -63,8 +65,18 @@ class NewsService {
         };
       });
 
+      const isFirstFetch = this.newsCache.length === 0;
+      const newTweets = newNews.filter(n => !this.newsCache.find(old => old.id === n.id));
+
       this.newsCache = newNews;
       logger.debug(`Fetched ${newNews.length} latest tweets from RedboxIndia via RapidAPI.`);
+
+      // Emit news alerts for new tweets (skip on first boot to avoid spamming alerts)
+      if (!isFirstFetch && newTweets.length > 0) {
+        newTweets.forEach(news => {
+          this.emit('news:alert', news);
+        });
+      }
 
     } catch (error) {
       logger.error('Error fetching RapidAPI:', error instanceof Error ? error.message : String(error));
