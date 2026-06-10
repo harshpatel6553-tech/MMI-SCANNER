@@ -13,7 +13,7 @@ export interface NewsItem {
 class NewsService {
   private newsCache: NewsItem[] = [];
   private isPolling = false;
-  private readonly RSS_URL = 'https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms';
+  private readonly RSS_URL = 'https://www.moneycontrol.com/rss/latestnews.xml';
   private readonly POLL_INTERVAL = 60 * 1000; // 60 seconds
 
   constructor() {
@@ -42,13 +42,13 @@ class NewsService {
       const items = result?.rss?.channel?.item;
       
       if (!items || !Array.isArray(items)) {
-        logger.warn('Unexpected RSS format from Economic Times');
+        logger.warn('Unexpected RSS format from Moneycontrol');
         return;
       }
 
       // Parse and clean the top 20 news items
       const newNews: NewsItem[] = items.slice(0, 20).map((item: any, index: number) => {
-        // ET sometimes includes CDATA or HTML entities
+        // Moneycontrol sometimes includes CDATA or HTML entities
         const cleanTitle = he.decode(item.title || 'Breaking News').replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1');
         
         return {
@@ -56,12 +56,12 @@ class NewsService {
           title: cleanTitle,
           link: item.link || '#',
           pubDate: item.pubDate || new Date().toUTCString(),
-          source: 'Economic Times'
+          source: 'Moneycontrol'
         };
       });
 
       this.newsCache = newNews;
-      logger.debug(`Fetched ${newNews.length} latest news items from ET Markets.`);
+      logger.debug(`Fetched ${newNews.length} latest news items from Moneycontrol.`);
 
     } catch (error) {
       logger.error('Error fetching news RSS:', error instanceof Error ? error.message : String(error));

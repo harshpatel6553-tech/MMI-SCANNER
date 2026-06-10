@@ -18,7 +18,7 @@ export function LiveNewsFeed() {
           </svg>
           <h3>Breaking Market News</h3>
         </div>
-        <div className="live-news-source">Source: Economic Times</div>
+        <div className="live-news-source">Source: Moneycontrol</div>
       </div>
       
       <div className="live-news-content">
