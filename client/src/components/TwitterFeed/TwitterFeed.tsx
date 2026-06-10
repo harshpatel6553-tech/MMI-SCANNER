@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { TwitterTimelineEmbed } from 'react-twitter-embed';
 import './TwitterFeed.css';
 
 interface TwitterFeedProps {
@@ -6,41 +6,6 @@ interface TwitterFeedProps {
 }
 
 export function TwitterFeed({ handle }: TwitterFeedProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    // Clear existing content to prevent duplicates in strict mode
-    if (containerRef.current) {
-      containerRef.current.innerHTML = '';
-      
-      const anchor = document.createElement('a');
-      anchor.setAttribute('class', 'twitter-timeline');
-      anchor.setAttribute('data-theme', 'dark');
-      anchor.setAttribute('data-chrome', 'noheader nofooter noborders transparent');
-      anchor.setAttribute('href', `https://twitter.com/${handle}?ref_src=twsrc%5Etfw`);
-      anchor.innerText = `Tweets by ${handle}`;
-      containerRef.current.appendChild(anchor);
-
-      const loadTwitterWidget = () => {
-        if ((window as any).twttr && (window as any).twttr.widgets) {
-          (window as any).twttr.widgets.load(containerRef.current);
-        }
-      };
-
-      // Load Twitter script
-      if (!(window as any).twttr) {
-        const script = document.createElement('script');
-        script.setAttribute('src', 'https://platform.twitter.com/widgets.js');
-        script.setAttribute('charset', 'utf-8');
-        script.setAttribute('async', 'true');
-        script.onload = loadTwitterWidget;
-        document.body.appendChild(script);
-      } else {
-        loadTwitterWidget();
-      }
-    }
-  }, [handle]);
-
   return (
     <div className="twitter-feed-container glass-card">
       <div className="twitter-feed-header">
@@ -52,8 +17,15 @@ export function TwitterFeed({ handle }: TwitterFeedProps) {
         </div>
         <div className="twitter-feed-source">REAL-TIME</div>
       </div>
-      <div className="twitter-feed-content" ref={containerRef}>
-        {/* Twitter widget injects here */}
+      <div className="twitter-feed-content">
+        <TwitterTimelineEmbed
+          sourceType="profile"
+          screenName={handle}
+          options={{ theme: 'dark', transparent: true, height: 600 }}
+          noHeader
+          noFooter
+          noBorders
+        />
       </div>
     </div>
   );
