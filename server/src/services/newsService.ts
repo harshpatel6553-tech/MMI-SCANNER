@@ -13,7 +13,7 @@ export interface NewsItem {
 class NewsService extends EventEmitter {
   private newsCache: NewsItem[] = [];
   private isPolling = false;
-  private readonly POLL_INTERVAL = 60 * 1000; // 60 seconds
+  private readonly POLL_INTERVAL = 90 * 1000; // 90 seconds
 
   constructor() {
     super();
