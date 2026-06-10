@@ -11,6 +11,7 @@ import { MarketBreadth } from './components/MarketBreadth/MarketBreadth';
 import { ViewTabs } from './components/ViewTabs/ViewTabs';
 import { Heatmap } from './components/Heatmap/Heatmap';
 import { SectorBreakdown } from './components/SectorBreakdown/SectorBreakdown';
+import { LiveNewsFeed } from './components/LiveNewsFeed/LiveNewsFeed';
 import { AlertToast } from './components/Alerts/AlertToast';
 import { AlertPanel } from './components/Alerts/AlertPanel';
 import { StatusBar } from './components/StatusBar/StatusBar';
@@ -125,6 +126,9 @@ function AppContent() {
           <SectorBreakdown sectorData={sectorData} />
         )}
 
+        {activeTab === 'news' && (
+          <LiveNewsFeed />
+        )}
       </main>
 
       <StatusBar stockCount={allStocks.length} />

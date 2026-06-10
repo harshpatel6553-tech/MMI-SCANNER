@@ -1,4 +1,3 @@
-import { XMLParser } from 'fast-xml-parser';
 import he from 'he';
 import logger from '../utils/logger.js';
 
@@ -13,7 +12,6 @@ export interface NewsItem {
 class NewsService {
   private newsCache: NewsItem[] = [];
   private isPolling = false;
-  private readonly RSS_URL = 'https://www.moneycontrol.com/rss/latestnews.xml';
   private readonly POLL_INTERVAL = 60 * 1000; // 60 seconds
 
   constructor() {
@@ -24,47 +22,51 @@ class NewsService {
     return this.newsCache;
   }
 
-  private async fetchRSS(): Promise<void> {
+  private async fetchTweets(): Promise<void> {
     try {
-      const response = await fetch(this.RSS_URL);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch RSS: ${response.statusText}`);
-      }
-      
-      const xmlData = await response.text();
-      
-      const parser = new XMLParser({
-        ignoreAttributes: false,
-        attributeNamePrefix: "@_"
-      });
-      
-      const result = parser.parse(xmlData);
-      const items = result?.rss?.channel?.item;
-      
-      if (!items || !Array.isArray(items)) {
-        logger.warn('Unexpected RSS format from Moneycontrol');
+      const apiKey = process.env.TWITTERAPI_KEY;
+      if (!apiKey) {
+        logger.warn('TWITTERAPI_KEY is missing. Skipping Twitter fetch.');
         return;
       }
 
-      // Parse and clean the top 20 news items
-      const newNews: NewsItem[] = items.slice(0, 20).map((item: any, index: number) => {
-        // Moneycontrol sometimes includes CDATA or HTML entities
-        const cleanTitle = he.decode(item.title || 'Breaking News').replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1');
+      const response = await fetch('https://api.twitterapi.io/twitter/user/last_tweets?userName=RedboxIndia', {
+        headers: {
+          'X-API-Key': apiKey
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch Twitter API: ${response.statusText}`);
+      }
+      
+      const json = await response.json();
+      
+      if (json.status !== 'success' || !json.data || !json.data.tweets) {
+        logger.warn('Unexpected JSON format from twitterapi.io');
+        return;
+      }
+
+      const tweets = json.data.tweets;
+
+      // Parse and clean the top 20 tweets
+      const newNews: NewsItem[] = tweets.slice(0, 20).map((item: any, index: number) => {
+        const cleanTitle = he.decode(item.text || 'Breaking News');
         
         return {
-          id: item.guid || `${Date.now()}-${index}`,
+          id: item.id || `${Date.now()}-${index}`,
           title: cleanTitle,
-          link: item.link || '#',
-          pubDate: item.pubDate || new Date().toUTCString(),
-          source: 'Moneycontrol'
+          link: item.url || `https://twitter.com/RedboxIndia/status/${item.id}`,
+          pubDate: item.createdAt || new Date().toUTCString(),
+          source: 'RedboxIndia'
         };
       });
 
       this.newsCache = newNews;
-      logger.debug(`Fetched ${newNews.length} latest news items from Moneycontrol.`);
+      logger.debug(`Fetched ${newNews.length} latest tweets from RedboxIndia.`);
 
     } catch (error) {
-      logger.error('Error fetching news RSS:', error instanceof Error ? error.message : String(error));
+      logger.error('Error fetching Twitter API:', error instanceof Error ? error.message : String(error));
     }
   }
 
@@ -73,11 +75,11 @@ class NewsService {
     this.isPolling = true;
 
     // Initial fetch
-    this.fetchRSS();
+    this.fetchTweets();
 
     // Poll every interval
     setInterval(() => {
-      this.fetchRSS();
+      this.fetchTweets();
     }, this.POLL_INTERVAL);
   }
 }
