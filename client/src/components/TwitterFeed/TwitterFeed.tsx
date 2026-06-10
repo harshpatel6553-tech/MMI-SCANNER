@@ -26,7 +26,12 @@ export function TwitterFeed({ handle }: TwitterFeedProps) {
           transparent
           theme="dark"
           placeholder={
-            <div className="twitter-loading">Connecting to X live feed...</div>
+            <div className="twitter-loading" style={{ flexDirection: 'column', gap: '1rem' }}>
+              <div>Connecting to X live feed...</div>
+              <div style={{ fontSize: '0.8rem', opacity: 0.7 }}>
+                (If this takes too long, your AdBlocker or Browser Shields might be blocking Twitter. Try disabling them for this site.)
+              </div>
+            </div>
           }
         />
       </div>
