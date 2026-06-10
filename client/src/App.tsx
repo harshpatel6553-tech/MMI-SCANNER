@@ -11,7 +11,6 @@ import { MarketBreadth } from './components/MarketBreadth/MarketBreadth';
 import { ViewTabs } from './components/ViewTabs/ViewTabs';
 import { Heatmap } from './components/Heatmap/Heatmap';
 import { SectorBreakdown } from './components/SectorBreakdown/SectorBreakdown';
-import { TwitterFeed } from './components/TwitterFeed/TwitterFeed';
 import { AlertToast } from './components/Alerts/AlertToast';
 import { AlertPanel } from './components/Alerts/AlertPanel';
 import { StatusBar } from './components/StatusBar/StatusBar';
@@ -126,11 +125,6 @@ function AppContent() {
           <SectorBreakdown sectorData={sectorData} />
         )}
 
-        {activeTab === 'news' && (
-          <div style={{ padding: '1rem' }}>
-            <TwitterFeed handle="RedboxIndia" />
-          </div>
-        )}
       </main>
 
       <StatusBar stockCount={allStocks.length} />
