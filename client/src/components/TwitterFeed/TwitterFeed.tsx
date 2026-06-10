@@ -1,4 +1,4 @@
-import { TwitterTimelineEmbed } from 'react-twitter-embed';
+import { useEffect, useRef, useState } from 'react';
 import './TwitterFeed.css';
 
 interface TwitterFeedProps {
@@ -6,6 +6,54 @@ interface TwitterFeedProps {
 }
 
 export function TwitterFeed({ handle }: TwitterFeedProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const renderWidget = () => {
+      if (!isMounted || !containerRef.current) return;
+      if ((window as any).twttr && (window as any).twttr.widgets) {
+        // Clear previous widget explicitly
+        containerRef.current.innerHTML = '';
+        
+        (window as any).twttr.widgets.createTimeline(
+          {
+            sourceType: 'profile',
+            screenName: handle
+          },
+          containerRef.current,
+          {
+            theme: 'dark',
+            chrome: 'noheader nofooter noborders transparent'
+          }
+        ).then(() => {
+          if (isMounted) setIsLoaded(true);
+        }).catch((err: any) => {
+          console.error("Twitter widget failed to load:", err);
+        });
+      }
+    };
+
+    if (!(window as any).twttr) {
+      const script = document.createElement('script');
+      script.src = 'https://platform.twitter.com/widgets.js';
+      script.async = true;
+      script.onload = () => {
+        // Small delay to ensure twttr object is fully populated
+        setTimeout(renderWidget, 100);
+      };
+      document.body.appendChild(script);
+    } else {
+      renderWidget();
+    }
+
+    return () => {
+      isMounted = false;
+    };
+  }, [handle]);
+
   return (
     <div className="twitter-feed-container glass-card">
       <div className="twitter-feed-header">
@@ -17,15 +65,12 @@ export function TwitterFeed({ handle }: TwitterFeedProps) {
         </div>
         <div className="twitter-feed-source">REAL-TIME</div>
       </div>
-      <div className="twitter-feed-content">
-        <TwitterTimelineEmbed
-          sourceType="profile"
-          screenName={handle}
-          options={{ theme: 'dark', transparent: true, height: 600 }}
-          noHeader
-          noFooter
-          noBorders
-        />
+      <div className="twitter-feed-content" ref={containerRef} style={{ minHeight: '400px' }}>
+        {!isLoaded && (
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'rgba(255,255,255,0.5)' }}>
+            Loading live squawk... (If this spins forever, please disable your adblocker)
+          </div>
+        )}
       </div>
     </div>
   );
