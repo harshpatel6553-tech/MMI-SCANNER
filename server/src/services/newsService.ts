@@ -24,49 +24,50 @@ class NewsService {
 
   private async fetchTweets(): Promise<void> {
     try {
-      const apiKey = process.env.TWITTERAPI_KEY;
+      const apiKey = process.env.RAPIDAPI_KEY || process.env.TWITTERAPI_KEY;
       if (!apiKey) {
-        logger.warn('TWITTERAPI_KEY is missing. Skipping Twitter fetch.');
+        logger.warn('RAPIDAPI_KEY is missing. Skipping Twitter fetch.');
         return;
       }
 
-      const response = await fetch('https://api.twitterapi.io/twitter/user/last_tweets?userName=RedboxIndia', {
+      const response = await fetch('https://twitter-search-only.p.rapidapi.com/timeline.php?screenname=RedboxIndia', {
         headers: {
-          'X-API-Key': apiKey
+          'x-rapidapi-key': apiKey,
+          'x-rapidapi-host': 'twitter-search-only.p.rapidapi.com'
         }
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch Twitter API: ${response.statusText}`);
+        throw new Error(`Failed to fetch RapidAPI: ${response.statusText}`);
       }
       
       const json = await response.json();
       
-      if (json.status !== 'success' || !json.data || !json.data.tweets) {
-        logger.warn('Unexpected JSON format from twitterapi.io');
+      if (!json.timeline || !Array.isArray(json.timeline)) {
+        logger.warn('Unexpected JSON format from RapidAPI');
         return;
       }
 
-      const tweets = json.data.tweets;
+      const tweets = json.timeline;
 
       // Parse and clean the top 20 tweets
       const newNews: NewsItem[] = tweets.slice(0, 20).map((item: any, index: number) => {
         const cleanTitle = he.decode(item.text || 'Breaking News');
         
         return {
-          id: item.id || `${Date.now()}-${index}`,
+          id: item.tweet_id || `${Date.now()}-${index}`,
           title: cleanTitle,
-          link: item.url || `https://twitter.com/RedboxIndia/status/${item.id}`,
-          pubDate: item.createdAt || new Date().toUTCString(),
+          link: `https://x.com/RedboxIndia/status/${item.tweet_id}`,
+          pubDate: item.created_at || new Date().toUTCString(),
           source: 'RedboxIndia'
         };
       });
 
       this.newsCache = newNews;
-      logger.debug(`Fetched ${newNews.length} latest tweets from RedboxIndia.`);
+      logger.debug(`Fetched ${newNews.length} latest tweets from RedboxIndia via RapidAPI.`);
 
     } catch (error) {
-      logger.error('Error fetching Twitter API:', error instanceof Error ? error.message : String(error));
+      logger.error('Error fetching RapidAPI:', error instanceof Error ? error.message : String(error));
     }
   }
 
