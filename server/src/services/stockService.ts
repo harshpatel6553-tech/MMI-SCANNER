@@ -14,10 +14,10 @@ import { SECTOR_MAP } from '../data/sectorMap.js';
 import logger from '../utils/logger.js';
 
 /** Number of concurrent requests per batch */
-const CONCURRENCY = 5;
+const CONCURRENCY = 25;
 
 /** Delay (ms) between successive batches */
-const BATCH_DELAY_MS = 1000;
+const BATCH_DELAY_MS = 250;
 
 /**
  * Tolerance for detecting whether a stock is at its day high or low.
