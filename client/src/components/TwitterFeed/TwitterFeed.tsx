@@ -21,15 +21,22 @@ export function TwitterFeed({ handle }: TwitterFeedProps) {
       anchor.innerText = `Tweets by ${handle}`;
       containerRef.current.appendChild(anchor);
 
+      const loadTwitterWidget = () => {
+        if ((window as any).twttr && (window as any).twttr.widgets) {
+          (window as any).twttr.widgets.load(containerRef.current);
+        }
+      };
+
       // Load Twitter script
       if (!(window as any).twttr) {
         const script = document.createElement('script');
         script.setAttribute('src', 'https://platform.twitter.com/widgets.js');
         script.setAttribute('charset', 'utf-8');
         script.setAttribute('async', 'true');
+        script.onload = loadTwitterWidget;
         document.body.appendChild(script);
       } else {
-        (window as any).twttr.widgets.load(containerRef.current);
+        loadTwitterWidget();
       }
     }
   }, [handle]);
