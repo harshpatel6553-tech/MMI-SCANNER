@@ -95,10 +95,10 @@ class NewsService extends EventEmitter {
     // Check if it's a weekend
     if (day === 0 || day === 6) return false;
     
-    // Check if it's between 9:00 AM and 4:00 PM IST
+    // Check if it's between 9:00 AM and 3:30 PM IST
     const timeInMinutes = hours * 60 + minutes;
-    const marketOpenMinutes = 9 * 60; // 9:00 AM
-    const marketCloseMinutes = 16 * 60; // 4:00 PM
+    const marketOpenMinutes = 9 * 60; // 9:00 AM (Pre-market)
+    const marketCloseMinutes = 15 * 60 + 30; // 3:30 PM (Market Close)
     
     return timeInMinutes >= marketOpenMinutes && timeInMinutes <= marketCloseMinutes;
   }
