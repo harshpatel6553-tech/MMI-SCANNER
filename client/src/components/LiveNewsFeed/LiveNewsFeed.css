@@ -1,0 +1,114 @@
+.live-news-container {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 250px);
+  max-width: 800px;
+  margin: 0 auto;
+  overflow: hidden;
+}
+
+.live-news-header {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(11, 11, 13, 0.5);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.live-news-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--text-primary);
+}
+
+.live-news-title svg {
+  color: var(--accent);
+}
+
+.live-news-title h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.live-news-source {
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.live-news-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0;
+  position: relative;
+}
+
+/* Custom Scrollbar */
+.live-news-content::-webkit-scrollbar {
+  width: 6px;
+}
+.live-news-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+.live-news-content::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+.news-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  animation: pulse 1.5s infinite;
+}
+
+.news-status.error {
+  color: var(--negative);
+  animation: none;
+}
+
+.news-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.news-item {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.news-item:hover {
+  background: rgba(255, 255, 255, 0.02);
+  transform: translateX(4px);
+}
+
+.news-item-time {
+  color: var(--accent);
+  font-family: 'Space Grotesk', monospace;
+  font-size: 0.85rem;
+  min-width: 65px;
+  padding-top: 2px;
+}
+
+.news-item-title {
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  font-weight: 400;
+}
+
+.news-item:hover .news-item-title {
+  color: #fff;
+}

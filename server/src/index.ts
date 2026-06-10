@@ -26,6 +26,7 @@ import type {
 import { testConnection, supabase, isSupabaseConfigured } from './config/supabase.js';
 import logger from './utils/logger.js';
 import stockRoutes from './routes/stockRoutes.js';
+import { newsRoutes } from './routes/newsRoutes.js';
 import { stockService } from './services/stockService.js';
 import { alertService } from './services/alertService.js';
 import {
@@ -92,7 +93,8 @@ setupSocketHandlers(io);
 
 // ── REST Routes ────────────────────────────────────────────────
 
-app.use('/api', stockRoutes);
+app.use('/api/stocks', stockRoutes);
+app.use('/api/news', newsRoutes);
 
 // ── Root endpoint ──────────────────────────────────────────────
 
