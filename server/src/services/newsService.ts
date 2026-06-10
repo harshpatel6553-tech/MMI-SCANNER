@@ -70,6 +70,26 @@ class NewsService {
     }
   }
 
+  private isIndianMarketOpen(): boolean {
+    const now = new Date();
+    // Convert to IST
+    const istTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+    
+    const day = istTime.getDay(); // 0 = Sunday, 1 = Monday, ... 6 = Saturday
+    const hours = istTime.getHours();
+    const minutes = istTime.getMinutes();
+    
+    // Check if it's a weekend
+    if (day === 0 || day === 6) return false;
+    
+    // Check if it's between 9:00 AM and 4:00 PM IST
+    const timeInMinutes = hours * 60 + minutes;
+    const marketOpenMinutes = 9 * 60; // 9:00 AM
+    const marketCloseMinutes = 16 * 60; // 4:00 PM
+    
+    return timeInMinutes >= marketOpenMinutes && timeInMinutes <= marketCloseMinutes;
+  }
+
   private startPolling() {
     if (this.isPolling) return;
     this.isPolling = true;
@@ -79,7 +99,12 @@ class NewsService {
 
     // Poll every interval
     setInterval(() => {
-      this.fetchTweets();
+      // Only waste API credits during active Indian Market Hours!
+      if (this.isIndianMarketOpen()) {
+        this.fetchTweets();
+      } else {
+        logger.debug('Indian Market is closed. Skipping Twitter API fetch to save credits.');
+      }
     }, this.POLL_INTERVAL);
   }
 }
