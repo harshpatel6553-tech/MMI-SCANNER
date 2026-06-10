@@ -1,6 +1,6 @@
 import { XMLParser } from 'fast-xml-parser';
 import * as he from 'he';
-import { logger } from '../utils/logger.js';
+import logger from '../utils/logger.js';
 
 export interface NewsItem {
   id: string;
