@@ -8,7 +8,7 @@ export interface NewsItem {
   source: string;
 }
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = (import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000') + '/api';
 
 export function useNews() {
   const [news, setNews] = useState<NewsItem[]>([]);
