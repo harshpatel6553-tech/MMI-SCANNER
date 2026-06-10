@@ -12,6 +12,7 @@ import { ViewTabs } from './components/ViewTabs/ViewTabs';
 import { Heatmap } from './components/Heatmap/Heatmap';
 import { SectorBreakdown } from './components/SectorBreakdown/SectorBreakdown';
 import { LiveNewsFeed } from './components/LiveNewsFeed/LiveNewsFeed';
+import { NewsTicker } from './components/NewsTicker/NewsTicker';
 import { AlertToast } from './components/Alerts/AlertToast';
 import { AlertPanel } from './components/Alerts/AlertPanel';
 import { StatusBar } from './components/StatusBar/StatusBar';
@@ -62,6 +63,7 @@ function AppContent() {
     <div className="app">
       <AnimatedBackground />
       <Header />
+      <NewsTicker />
 
       <main className="app-main">
         {(activeTab === 'table' || activeTab === 'watchlist') && (
