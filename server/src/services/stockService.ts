@@ -229,7 +229,11 @@ class StockService {
           return stockData;
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err);
-          logger.error(`Failed to fetch ${yahooSymbol}: ${message}`);
+          if (message.includes('404')) {
+            logger.debug(`Skipping ${yahooSymbol} (404 Not Found)`);
+          } else {
+            logger.error(`Failed to fetch ${yahooSymbol}: ${message}`);
+          }
           return null;
         }
       });

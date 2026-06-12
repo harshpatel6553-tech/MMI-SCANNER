@@ -175,7 +175,11 @@ class AlertService {
         }
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : String(err);
-        logger.error(`Supabase alert insert error: ${message}`);
+        if (message.includes('check constraint')) {
+          logger.warn(`Supabase alert insert warning: ${message}. (Please update your Supabase 'alerts_alert_type_check' constraint to include new alert types like VOLUME_SPIKE)`);
+        } else {
+          logger.error(`Supabase alert insert error: ${message}`);
+        }
       }
     })();
   }
