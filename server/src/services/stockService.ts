@@ -187,11 +187,13 @@ class StockService {
             // Calculate average 1h volume, excluding the very first opening hour which is always huge
             const validVolumes = volumes.length > 1 ? volumes.slice(1, -1) : volumes;
             if (validVolumes.length > 0) {
-              averageVolume = validVolumes.reduce((sum, v) => sum + v, 0) / validVolumes.length;
+              averageVolume = Math.round(validVolumes.reduce((sum, v) => sum + v, 0) / validVolumes.length);
             } else {
-              averageVolume = volume;
+              averageVolume = Math.round(volume);
             }
           }
+
+          volume = Math.round(volume);
 
           const relativeVolume: number =
             averageVolume > 0 ? volume / averageVolume : 0;
