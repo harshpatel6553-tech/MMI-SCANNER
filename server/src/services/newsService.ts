@@ -13,6 +13,7 @@ export interface NewsItem {
 class NewsService extends EventEmitter {
   private newsCache: NewsItem[] = [];
   private isPolling = false;
+  private currentKeyIndex = 0;
   private readonly POLL_INTERVAL = 90 * 1000; // 90 seconds
 
   constructor() {
@@ -26,21 +27,42 @@ class NewsService extends EventEmitter {
 
   private async fetchTweets(): Promise<void> {
     try {
-      const apiKey = process.env.RAPIDAPI_KEY || process.env.TWITTERAPI_KEY;
-      if (!apiKey) {
+      const keyString = process.env.RAPIDAPI_KEY || process.env.TWITTERAPI_KEY || '';
+      const keys = keyString.split(',').map(k => k.trim()).filter(Boolean);
+
+      if (keys.length === 0) {
         logger.warn('RAPIDAPI_KEY is missing. Skipping Twitter fetch.');
         return;
       }
 
-      const response = await fetch('https://twitter-search-only.p.rapidapi.com/timeline.php?screenname=RedboxIndia', {
-        headers: {
-          'x-rapidapi-key': apiKey,
-          'x-rapidapi-host': 'twitter-search-only.p.rapidapi.com'
-        }
-      });
+      let response: Response | null = null;
+      let lastError: any = null;
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch RapidAPI: ${response.statusText}`);
+      // Try keys until one succeeds, up to the number of available keys
+      for (let i = 0; i < keys.length; i++) {
+        const apiKey = keys[this.currentKeyIndex % keys.length];
+        try {
+          response = await fetch('https://twitter-search-only.p.rapidapi.com/timeline.php?screenname=RedboxIndia', {
+            headers: {
+              'x-rapidapi-key': apiKey,
+              'x-rapidapi-host': 'twitter-search-only.p.rapidapi.com'
+            }
+          });
+
+          if (response.ok) {
+            break; // Success! Exit the retry loop.
+          } else {
+            throw new Error(`HTTP ${response.status} ${response.statusText}`);
+          }
+        } catch (error) {
+          lastError = error;
+          logger.warn(`API Key (Index ${this.currentKeyIndex % keys.length}) failed. Rotating to next key...`);
+          this.currentKeyIndex++; // Move to next key for the next iteration
+        }
+      }
+
+      if (!response || !response.ok) {
+        throw new Error(`All ${keys.length} API keys failed. Last error: ${lastError?.message || 'Unknown'}`);
       }
       
       const json = await response.json();
