@@ -76,7 +76,8 @@ class NewsService extends EventEmitter {
 
       // Parse and clean the top 20 tweets
       const newNews: NewsItem[] = tweets.slice(0, 20).map((item: any, index: number) => {
-        const cleanTitle = he.decode(item.text || 'Breaking News');
+        const textContent = item.full_text || item.retweeted_status?.full_text || item.retweeted_status?.text || item.text || 'Breaking News';
+        const cleanTitle = he.decode(textContent);
         
         return {
           id: item.tweet_id || `${Date.now()}-${index}`,
