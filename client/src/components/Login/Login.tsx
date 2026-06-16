@@ -16,12 +16,19 @@ export function Login() {
     
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
         });
         if (error) throw error;
-        alert('Check your email for the confirmation link!');
+        
+        // If Supabase returns a session immediately, it means email confirmation is OFF
+        if (data.session) {
+          // Successfully logged in! React router will redirect via AuthContext automatically.
+        } else {
+          // If session is null, it means email confirmation is ON
+          alert('Account created! Check your email for the confirmation link.');
+        }
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email,
