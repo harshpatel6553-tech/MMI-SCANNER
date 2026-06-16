@@ -19,6 +19,11 @@ import { StatusBar } from './components/StatusBar/StatusBar';
 import { AnimatedBackground } from './components/AnimatedBackground/AnimatedBackground';
 import { LoadingScreen } from './components/LoadingScreen/LoadingScreen';
 import { StockDetailModal } from './components/StockDetailModal/StockDetailModal';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { useAuth } from './context/AuthContext';
+import { Login } from './components/Login/Login';
+import { Paywall } from './components/Paywall/Paywall';
+import { AdminDashboard } from './components/AdminDashboard/AdminDashboard';
 import type { FilterOptions, SortField, SortOrder, StockData } from './types';
 import './App.css';
 
@@ -143,13 +148,38 @@ function AppContent() {
   );
 }
 
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { user, isTrialExpired, loading } = useAuth();
+  
+  if (loading) return <div className="app" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: 'var(--bg-color)', color: 'white' }}>Verifying Account...</div>;
+  if (!user) return <Navigate to="/login" replace />;
+  if (isTrialExpired) return <Navigate to="/paywall" replace />;
+  
+  return <>{children}</>;
+}
+
 export default function App() {
   const [showLoading, setShowLoading] = useState(true);
 
   return (
     <SocketProvider>
       {showLoading && <LoadingScreen onComplete={() => setShowLoading(false)} />}
-      {!showLoading && <AppContent />}
+      {!showLoading && (
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/paywall" element={<Paywall />} />
+          <Route path="/admin" element={
+            <ProtectedRoute>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/*" element={
+            <ProtectedRoute>
+              <AppContent />
+            </ProtectedRoute>
+          } />
+        </Routes>
+      )}
     </SocketProvider>
   );
 }
