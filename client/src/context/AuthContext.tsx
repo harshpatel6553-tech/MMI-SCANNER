@@ -30,6 +30,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isRecoveringPassword, setIsRecoveringPassword] = useState(false);
 
   useEffect(() => {
+    // Check URL hash for recovery token (foolproof fallback)
+    if (window.location.hash.includes('type=recovery')) {
+      setIsRecoveringPassword(true);
+    }
+
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
