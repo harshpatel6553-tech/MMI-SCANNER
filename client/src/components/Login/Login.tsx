@@ -55,7 +55,20 @@ export function Login() {
         if (error) throw error;
       }
     } catch (err: any) {
-      setError(err.message || 'An error occurred during authentication');
+      console.error("Auth error:", err);
+      let errorMsg = 'An error occurred during authentication';
+      if (err?.message) {
+        errorMsg = err.message;
+      } else if (err?.error_description) {
+        errorMsg = err.error_description;
+      } else if (err?.msg) {
+        errorMsg = err.msg;
+      } else if (typeof err === 'object') {
+        errorMsg = Object.keys(err).length === 0 ? "Server error: Check your Supabase SMTP/Email configuration." : JSON.stringify(err);
+      } else {
+        errorMsg = String(err);
+      }
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
