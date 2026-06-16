@@ -12,6 +12,8 @@ export function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSignUp, setIsSignUp] = useState(false);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -25,7 +27,13 @@ export function Login() {
     setError(null);
     
     try {
-      if (isSignUp) {
+      if (isForgotPassword) {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: window.location.origin,
+        });
+        if (error) throw error;
+        setResetSent(true);
+      } else if (isSignUp) {
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
@@ -75,10 +83,11 @@ export function Login() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
           </svg>
           <h2>Market Minds Scanner</h2>
-          <p>Sign in to access real-time breakouts</p>
+          <p>{isForgotPassword ? 'Reset your password' : 'Sign in to access real-time breakouts'}</p>
         </div>
 
         {error && <div className="login-error">{error}</div>}
+        {resetSent && <div className="login-success" style={{background: 'rgba(34, 197, 94, 0.1)', color: '#4ade80', padding: '0.75rem', borderRadius: '8px', fontSize: '0.85rem', border: '1px solid rgba(34, 197, 94, 0.2)'}}>Password reset link sent! Check your email.</div>}
 
         <form onSubmit={handleEmailAuth} className="login-form">
           <input
@@ -88,24 +97,43 @@ export function Login() {
             onChange={(e) => setEmail(e.target.value)}
             required
           />
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            minLength={6}
-          />
+          {!isForgotPassword && (
+            <input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={6}
+            />
+          )}
           <button type="submit" className="email-btn" disabled={loading}>
-            {loading ? 'Processing...' : (isSignUp ? 'Create Free Account' : 'Sign In')}
+            {loading ? 'Processing...' : (isForgotPassword ? 'Send Reset Link' : (isSignUp ? 'Create Free Account' : 'Sign In'))}
           </button>
         </form>
 
         <div className="login-footer">
-          {isSignUp ? 'Already have an account?' : 'Need an account?'}
-          <button type="button" className="text-btn" onClick={() => setIsSignUp(!isSignUp)}>
-            {isSignUp ? 'Sign In' : 'Start 14-Day Free Trial'}
-          </button>
+          {isForgotPassword ? (
+            <button type="button" className="text-btn" onClick={() => { setIsForgotPassword(false); setResetSent(false); }}>
+              Back to Sign In
+            </button>
+          ) : (
+            <>
+              <div>
+                {isSignUp ? 'Already have an account?' : 'Need an account?'}
+                <button type="button" className="text-btn" onClick={() => setIsSignUp(!isSignUp)}>
+                  {isSignUp ? 'Sign In' : 'Start 14-Day Free Trial'}
+                </button>
+              </div>
+              {!isSignUp && (
+                <div style={{ marginTop: '0.75rem' }}>
+                  <button type="button" className="text-btn" onClick={() => setIsForgotPassword(true)}>
+                    Forgot Password?
+                  </button>
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
     </div>

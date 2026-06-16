@@ -24,6 +24,7 @@ import { useAuth } from './context/AuthContext';
 import { Login } from './components/Login/Login';
 import { Paywall } from './components/Paywall/Paywall';
 import { AdminDashboard } from './components/AdminDashboard/AdminDashboard';
+import { UpdatePasswordModal } from './components/UpdatePasswordModal/UpdatePasswordModal';
 import type { FilterOptions, SortField, SortOrder, StockData } from './types';
 import './App.css';
 
@@ -180,6 +181,7 @@ export default function App() {
           } />
         </Routes>
       )}
+      <UpdatePasswordModal />
     </SocketProvider>
   );
 }
