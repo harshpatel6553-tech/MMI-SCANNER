@@ -26,7 +26,18 @@ export function UpdatePasswordModal() {
         setIsRecoveringPassword(false);
       }, 2000);
     } catch (err: any) {
-      setError(err.message || 'Failed to update password');
+      console.error("Update error:", err);
+      let errorMsg = 'Failed to update password';
+      if (err?.message) {
+        errorMsg = err.message;
+      } else if (err?.error_description) {
+        errorMsg = err.error_description;
+      } else if (typeof err === 'object') {
+        errorMsg = JSON.stringify(err);
+      } else {
+        errorMsg = String(err);
+      }
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
