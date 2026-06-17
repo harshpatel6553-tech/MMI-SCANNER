@@ -65,7 +65,7 @@ export function Paywall() {
 
             <div className="step">
               <div className="step-number">2</div>
-              <p>Send a screenshot of the successful payment via Email to: <strong>support@marketmindsscanner.com</strong></p>
+              <p>Send a screenshot of the successful payment via Email to: <strong>marketmindsinvestment25@gmail.com</strong></p>
             </div>
             
             <div className="step">
