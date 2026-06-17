@@ -6,7 +6,7 @@ import './Header.css';
 
 export function Header() {
   const { isConnected, lastUpdate, stockCount } = useSocket();
-  const { signOut } = useAuth();
+  const { profile, signOut } = useAuth();
   const [marketOpen, setMarketOpen] = useState(false);
 
   useEffect(() => {
@@ -57,6 +57,14 @@ export function Header() {
             <div className="last-update text-muted">
               {formatTime(lastUpdate)}
             </div>
+          )}
+          {profile?.is_admin && (
+            <button className="header-logout-btn" onClick={() => window.location.href = '/admin'} style={{ background: 'rgba(218, 127, 99, 0.15)', borderColor: 'rgba(218, 127, 99, 0.3)', color: '#da7f63' }}>
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              </svg>
+              Admin Panel
+            </button>
           )}
           <button className="header-logout-btn" onClick={signOut}>
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
