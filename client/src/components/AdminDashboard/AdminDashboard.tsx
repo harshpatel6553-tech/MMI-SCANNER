@@ -152,7 +152,9 @@ export function AdminDashboard() {
                           )}
                           {u.subscription_status === 'trialing' && (
                             <span className="expires-date text-muted" style={{ display: 'block', fontSize: '0.75rem', marginTop: '4px', color: '#60a5fa' }}>
-                              Exp: {new Date(new Date(u.trial_start_date).getTime() + 14 * 24 * 60 * 60 * 1000).toLocaleDateString()}
+                              Exp: {new Date(new Date(u.trial_start_date).getTime() + 14 * 24 * 60 * 60 * 1000).toLocaleDateString()} 
+                              <br/>
+                              ({Math.max(0, 14 - Math.floor((new Date().getTime() - new Date(u.trial_start_date).getTime()) / (1000 * 60 * 60 * 24)))} days left)
                             </span>
                           )}
                         </div>
