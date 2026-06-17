@@ -38,15 +38,29 @@ export function Paywall() {
               <p>Scan the QR code below using Google Pay, PhonePe, or Paytm to pay for your chosen plan.</p>
             </div>
             
-            <div className="qr-placeholder">
-              {/* Replace this with an actual image of the UPI QR code */}
-              <div className="qr-fake">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
-                </svg>
-                <span>UPI QR CODE HERE</span>
+            <div className="high-tech-qr-container">
+              <div className="qr-scanner-frame">
+                <div className="qr-corner top-left"></div>
+                <div className="qr-corner top-right"></div>
+                <div className="qr-corner bottom-left"></div>
+                <div className="qr-corner bottom-right"></div>
+                <div className="scanner-laser"></div>
+                
+                {/* Dynamically generated crisp QR code for the UPI ID */}
+                <img 
+                  src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=upi%3A%2F%2Fpay%3Fpa%3Dharshpatel6553-2%40oksbi%26pn%3DMarket%2520Minds%2520Scanner%26cu%3DINR" 
+                  alt="UPI QR Code" 
+                  className="qr-code-img"
+                />
               </div>
-              <div className="upi-id">UPI ID: your-upi-id@bank</div>
+              <div className="upi-id-box" onClick={() => navigator.clipboard.writeText('harshpatel6553-2@oksbi')}>
+                <span className="upi-label">UPI ID</span>
+                <span className="upi-value">harshpatel6553-2@oksbi</span>
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="copy-icon">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+              </div>
             </div>
 
             <div className="step">
