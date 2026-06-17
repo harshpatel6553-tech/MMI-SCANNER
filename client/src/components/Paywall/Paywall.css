@@ -52,17 +52,18 @@
 }
 
 .subscription-tiers {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 16px;
-  margin-bottom: 24px;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  margin-bottom: 20px;
 }
 
 .tier-card {
+  flex: 1;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  padding: 20px;
+  border-radius: 8px;
+  padding: 16px 8px 12px 8px;
   text-align: center;
   position: relative;
   transition: all 0.3s ease;
@@ -77,39 +78,42 @@
 .tier-card.recommended {
   border-color: rgba(218, 127, 99, 0.5);
   background: rgba(218, 127, 99, 0.05);
+  margin-top: 8px; /* Room for badge */
 }
 
 .recommended-badge {
   position: absolute;
-  top: -12px;
+  top: -10px;
   left: 50%;
   transform: translateX(-50%);
   background: var(--accent-primary);
   color: #fff;
-  font-size: 0.75rem;
+  font-size: 0.6rem;
   font-weight: 700;
-  padding: 4px 12px;
+  padding: 2px 8px;
   border-radius: 20px;
   white-space: nowrap;
 }
 
 .tier-card h3 {
   color: var(--text-secondary);
-  font-size: 1.1rem;
-  margin-bottom: 8px;
+  font-size: 0.85rem;
+  margin-bottom: 4px;
 }
 
 .price-tag {
   color: var(--accent-primary);
-  font-size: 1.75rem;
+  font-size: 1.25rem;
   font-weight: 700;
   font-family: var(--font-heading);
 }
 
 .price-tag span {
-  font-size: 0.9rem;
+  display: block;
+  font-size: 0.7rem;
   color: var(--text-secondary);
   font-weight: 400;
+  margin-top: 2px;
 }
 
 .payment-instructions {
