@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../supabaseClient';
 import { useAuth } from '../../context/AuthContext';
 import './AdminDashboard.css';
@@ -11,6 +12,7 @@ interface Profile {
 }
 
 export function AdminDashboard() {
+  const navigate = useNavigate();
   const { profile, signOut } = useAuth();
   const [users, setUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -79,7 +81,7 @@ export function AdminDashboard() {
         <div className="glass-card" style={{ padding: '2rem', textAlign: 'center' }}>
           <h2>Access Denied</h2>
           <p>You must be an administrator to view this page.</p>
-          <button className="signout-btn" onClick={() => window.location.href = '/'}>Go Back</button>
+          <button className="signout-btn" onClick={() => navigate('/')}>Go Back</button>
         </div>
       </div>
     );
@@ -90,7 +92,7 @@ export function AdminDashboard() {
       <div className="admin-header">
         <h2>Admin Dashboard</h2>
         <div className="admin-actions">
-          <button className="signout-btn" onClick={() => window.location.href = '/'}>Back to Scanner</button>
+          <button className="signout-btn" onClick={() => navigate('/')}>Back to Scanner</button>
           <button className="signout-btn" onClick={signOut}>Sign Out</button>
         </div>
       </div>
