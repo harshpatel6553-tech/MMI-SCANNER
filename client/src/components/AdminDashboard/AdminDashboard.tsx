@@ -150,6 +150,11 @@ export function AdminDashboard() {
                               Exp: {new Date(u.subscription_status.split(':')[1]).toLocaleDateString()}
                             </span>
                           )}
+                          {u.subscription_status === 'trialing' && (
+                            <span className="expires-date text-muted" style={{ display: 'block', fontSize: '0.75rem', marginTop: '4px', color: '#60a5fa' }}>
+                              Exp: {new Date(new Date(u.trial_start_date).getTime() + 14 * 24 * 60 * 60 * 1000).toLocaleDateString()}
+                            </span>
+                          )}
                         </div>
                       </td>
                       <td>
