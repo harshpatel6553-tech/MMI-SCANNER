@@ -16,15 +16,26 @@ export function Paywall() {
         </div>
 
         <div className="payment-box">
-          <div className="payment-price">
-            <h3>Lifetime Access</h3>
-            <div className="price-tag">₹1,000</div>
+          <div className="subscription-tiers">
+            <div className="tier-card">
+              <h3>Monthly</h3>
+              <div className="price-tag">₹499<span>/mo</span></div>
+            </div>
+            <div className="tier-card recommended">
+              <div className="recommended-badge">Most Popular</div>
+              <h3>Yearly</h3>
+              <div className="price-tag">₹2,999<span>/yr</span></div>
+            </div>
+            <div className="tier-card">
+              <h3>Lifetime</h3>
+              <div className="price-tag">₹5,999<span>/one-time</span></div>
+            </div>
           </div>
           
           <div className="payment-instructions">
             <div className="step">
               <div className="step-number">1</div>
-              <p>Scan the QR code below using Google Pay, PhonePe, or Paytm.</p>
+              <p>Scan the QR code below using Google Pay, PhonePe, or Paytm to pay for your chosen plan.</p>
             </div>
             
             <div className="qr-placeholder">
@@ -40,12 +51,12 @@ export function Paywall() {
 
             <div className="step">
               <div className="step-number">2</div>
-              <p>Send a screenshot of the successful payment to Telegram: <strong>@YourTelegramHandle</strong></p>
+              <p>Send a screenshot of the successful payment via Email to: <strong>support@marketmindsscanner.com</strong></p>
             </div>
             
             <div className="step">
               <div className="step-number">3</div>
-              <p>Include your email (<strong>{user?.email}</strong>) in the message. Your account will be activated instantly upon verification.</p>
+              <p>Include your account email (<strong>{user?.email}</strong>) and your chosen plan in the message. Your account will be activated manually upon verification.</p>
             </div>
           </div>
         </div>
