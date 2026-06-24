@@ -24,7 +24,7 @@ class NseSessionManager {
       if (response.headers['set-cookie']) {
         const cookieArray = response.headers['set-cookie'];
         // Parse and combine the cookies
-        this.cookies = cookieArray.map(c => c.split(';')[0]).join('; ');
+        this.cookies = cookieArray.map((c: string) => c.split(';')[0]).join('; ');
         logger.info('✅ Successfully refreshed NSE session cookies.');
         return true;
       }
