@@ -142,6 +142,18 @@ class AlertService {
   }
 
   /**
+   * Manually adds a custom alert (e.g., from the Option Chain or News scanner)
+   * and pushes it to the in-memory cache and Supabase.
+   */
+  addAlert(alert: StockAlert): void {
+    this.inMemoryAlerts.unshift(alert);
+    if (this.inMemoryAlerts.length > 200) {
+      this.inMemoryAlerts.pop();
+    }
+    this.saveAlerts([alert]);
+  }
+
+  /**
    * Save alerts to the Supabase `alerts` table.
    * This is fire-and-forget — errors are logged but do not propagate.
    *

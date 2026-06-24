@@ -96,6 +96,22 @@ setupSocketHandlers(io);
 app.use('/api/stocks', stockRoutes);
 app.use('/api/news', newsRoutes);
 
+// ── Option Chain Alerts ────────────────────────────────────────
+import { nseOptionService } from './services/nseOptionService.js';
+
+nseOptionService.on('option:alert', (alertData) => {
+  const alert = {
+    id: `opt-${alertData.symbol}-${Date.now()}`,
+    symbol: alertData.symbol,
+    name: alertData.name,
+    alertType: alertData.alertType,
+    price: alertData.price,
+    createdAt: new Date().toISOString()
+  };
+  alertService.addAlert(alert);
+  io.emit('alert:new', alert);
+});
+
 // ── News Alerts ────────────────────────────────────────────────
 import { newsService } from './services/newsService.js';
 
@@ -346,6 +362,9 @@ async function startServer(): Promise<void> {
     // Start polling intervals
     nifty50Interval = setInterval(pollNifty50, NIFTY50_POLL_INTERVAL);
     nifty500Interval = setInterval(pollNifty500, NIFTY500_POLL_INTERVAL);
+    
+    // Start background Option Chain Scanner (7-minute loop)
+    nseOptionService.startPolling();
 
     logger.info('✅ Polling loops started');
   } catch (err) {
