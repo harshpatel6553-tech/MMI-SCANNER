@@ -27,7 +27,7 @@ export interface StockAlert {
   symbol: string;
   name: string;
   /** Type of price alert */
-  alertType: 'DAY_HIGH' | 'DAY_LOW' | 'VOLUME_SPIKE' | 'NEWS';
+  alertType: 'DAY_HIGH' | 'DAY_LOW' | 'VOLUME_SPIKE' | 'NEWS' | 'OPTIONS_CALL_SPIKE' | 'OPTIONS_PUT_SPIKE';
   price: number;
   createdAt: string;
 }
