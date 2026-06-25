@@ -96,7 +96,8 @@ class NseOptionService extends EventEmitter {
   }
 
   private detectSpikes(symbol: string, oldSnap: OptionChainSnapshot, newSnap: OptionChainSnapshot) {
-    const OI_SPIKE_THRESHOLD = 0.20; // 20% jump
+    // For testing and high sensitivity, look for a 1% jump
+    const OI_SPIKE_THRESHOLD = 0.01;
 
     for (const strike in newSnap.calls) {
       const oldCall = oldSnap.calls[strike];

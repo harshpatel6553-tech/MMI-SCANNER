@@ -42,7 +42,7 @@ const NIFTY50_POLL_INTERVAL = parseInt(
   10
 );
 const NIFTY500_POLL_INTERVAL = parseInt(
-  process.env.NIFTY500_POLL_INTERVAL || '30000',
+  process.env.NIFTY500_POLL_INTERVAL || '10000',
   10
 );
 
