@@ -197,8 +197,8 @@ class StockService {
 
           const relativeVolume: number =
             averageVolume > 0 ? volume / averageVolume : 0;
-          // Trigger spike if sudden 1h volume is 1.5x higher than average 1h volume (Fast mode)
-          const volumeSpike: boolean = relativeVolume >= 1.5;
+          // Trigger spike if sudden 1h volume is 2.0x higher than average 1h volume
+          const volumeSpike: boolean = relativeVolume >= 2.0;
 
           // Market cap: price × shares outstanding (estimate from volume data if not in meta)
           const marketCap: number = meta.marketCap ?? 0;
