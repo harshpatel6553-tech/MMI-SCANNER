@@ -285,6 +285,84 @@ class StockService {
     return this.fetchQuotes(additionalStocks, 'NIFTY500');
   }
 
+  /**
+   * Fetch NIFTY 50 and Bank NIFTY index data for Day High/Low alerts.
+   * Uses Yahoo Finance symbols ^NSEI and ^NSEBANK.
+   */
+  async fetchIndices(): Promise<StockData[]> {
+    const indices = [
+      { yahooSymbol: '^NSEI', displaySymbol: 'NIFTY50', name: 'NIFTY 50 Index' },
+      { yahooSymbol: '^NSEBANK', displaySymbol: 'BANKNIFTY', name: 'Bank NIFTY Index' },
+    ];
+
+    const results: StockData[] = [];
+
+    for (const idx of indices) {
+      try {
+        const chartData = await fetchChartQuote(idx.yahooSymbol);
+
+        if (!chartData || chartData.meta.regularMarketPrice == null) {
+          logger.warn(`No data returned for index ${idx.yahooSymbol}`);
+          continue;
+        }
+
+        const { meta } = chartData;
+        const price: number = meta.regularMarketPrice ?? 0;
+        const dayHigh: number = meta.regularMarketDayHigh ?? price;
+        const dayLow: number = meta.regularMarketDayLow ?? price;
+        const prevClose: number = meta.previousClose ?? meta.chartPreviousClose ?? price;
+        const change = price - prevClose;
+        const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
+
+        const atDayHigh =
+          dayHigh > 0 &&
+          price > 0 &&
+          Math.abs(price - dayHigh) / dayHigh <= HIGH_LOW_TOLERANCE;
+
+        const atDayLow =
+          dayLow > 0 &&
+          price > 0 &&
+          Math.abs(price - dayLow) / dayLow <= HIGH_LOW_TOLERANCE;
+
+        const indexData: StockData = {
+          symbol: idx.displaySymbol,
+          name: idx.name,
+          price,
+          previousClose: prevClose,
+          open: meta.regularMarketOpen ?? price,
+          dayHigh,
+          dayLow,
+          change,
+          changePercent,
+          volume: meta.regularMarketVolume ?? 0,
+          sector: 'Index',
+          averageVolume: 0,
+          relativeVolume: 0,
+          volumeSpike: false,
+          indexName: 'INDEX',
+          lastUpdated: new Date().toISOString(),
+          atDayHigh,
+          atDayLow,
+          fiftyTwoWeekHigh: meta.fiftyTwoWeekHigh ?? 0,
+          fiftyTwoWeekLow: meta.fiftyTwoWeekLow ?? 0,
+          marketCap: 0,
+        };
+
+        results.push(indexData);
+        this.stockCache.set(idx.displaySymbol, indexData);
+
+        logger.info(
+          `📈 ${idx.name}: ₹${price.toFixed(2)} | High: ₹${dayHigh.toFixed(2)} | Low: ₹${dayLow.toFixed(2)} | ${changePercent >= 0 ? '+' : ''}${changePercent.toFixed(2)}%`
+        );
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        logger.error(`Failed to fetch index ${idx.yahooSymbol}: ${message}`);
+      }
+    }
+
+    return results;
+  }
+
   /** Get all cached stock data. */
   getCachedStocks(): StockData[] {
     return Array.from(this.stockCache.values());

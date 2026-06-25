@@ -205,8 +205,13 @@ async function pollNifty50(): Promise<void> {
     // 1. Fetch quotes from Yahoo Finance
     const stocks = await stockService.fetchNifty50();
 
-    // 2. Check for day-high/low alerts
-    const alerts = alertService.checkAndGenerateAlerts(stocks);
+    // 1b. Fetch NIFTY 50 & Bank NIFTY index data for Day High/Low alerts
+    const indexData = await stockService.fetchIndices();
+
+    // 2. Check for day-high/low alerts (stocks + indices)
+    const stockAlerts = alertService.checkAndGenerateAlerts(stocks);
+    const indexAlerts = alertService.checkAndGenerateAlerts(indexData);
+    const alerts = [...stockAlerts, ...indexAlerts];
 
     // 3. Upsert to Supabase (fire-and-forget)
     upsertStocksToSupabase(stocks);

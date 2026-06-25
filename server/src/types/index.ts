@@ -43,7 +43,7 @@ export interface StockData {
   /** Whether volume is spiking (relativeVolume >= 2.0) */
   volumeSpike: boolean;
   /** Index membership */
-  indexName: 'NIFTY50' | 'NIFTY500';
+  indexName: 'NIFTY50' | 'NIFTY500' | 'INDEX';
   /** Last update timestamp in ISO 8601 format */
   lastUpdated: string;
   /** Whether current price is at or near the day's high */
