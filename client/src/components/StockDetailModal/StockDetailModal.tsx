@@ -180,7 +180,7 @@ export function StockDetailModal({ stock, onClose }: StockDetailModalProps) {
           <div className="modal-chart-wrapper">
             <iframe
               key={displayStock.symbol}
-              src={`https://s.tradingview.com/embed-widget/advanced-chart/?symbol=NSE%3A${encodeURIComponent(displayStock.symbol.replace(/\.NS$/, '').replace(/\.BO$/, ''))}&interval=D&theme=dark&style=1&locale=en&timezone=Asia%2FKolkata&hide_side_toolbar=1&allow_symbol_change=0&calendar=false&hide_volume=false&support_host=https%3A%2F%2Fwww.tradingview.com`}
+              src={`https://s.tradingview.com/embed-widget/advanced-chart/?symbol=BSE%3A${encodeURIComponent(displayStock.symbol.replace(/\.NS$/, '').replace(/\.BO$/, ''))}&interval=D&theme=dark&style=1&locale=en&timezone=Asia%2FKolkata&hide_side_toolbar=1&allow_symbol_change=0&calendar=false&hide_volume=false&support_host=https%3A%2F%2Fwww.tradingview.com`}
               style={{ width: '100%', height: '350px', border: 'none', borderRadius: '8px' }}
               title={`${displayStock.symbol} Chart`}
               sandbox="allow-scripts allow-same-origin allow-popups"
