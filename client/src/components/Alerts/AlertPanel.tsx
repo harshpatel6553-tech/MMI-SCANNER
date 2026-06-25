@@ -68,27 +68,15 @@ export function AlertPanel({ alerts, onClearAll }: AlertPanelProps) {
                   <div key={group.title}>
                     <div className="alert-group-title">{group.title}</div>
                     {group.items.map(alert => {
-                      const typeClass = alert.alertType === 'DAY_HIGH' ? 'high' : 
-                                        alert.alertType === 'DAY_LOW' ? 'low' : 
-                                        alert.alertType === 'NEWS' ? 'news' : 
-                                        alert.alertType === 'OPTIONS_CALL_SPIKE' ? 'low' : // Bearish
-                                        alert.alertType === 'OPTIONS_PUT_SPIKE' ? 'high' : // Bullish
-                                        'spike';
-                      const typeLabel = alert.alertType === 'DAY_HIGH' ? 'HIGH' : 
-                                        alert.alertType === 'DAY_LOW' ? 'LOW' : 
-                                        alert.alertType === 'NEWS' ? '📰 NEWS' : 
-                                        alert.alertType === 'OPTIONS_CALL_SPIKE' ? '🔴 CALL SPIKE' : 
-                                        alert.alertType === 'OPTIONS_PUT_SPIKE' ? '🟢 PUT SPIKE' : 
-                                        '⚡ SPIKE';
+                      const typeClass = alert.alertType === 'DAY_HIGH' ? 'high' : alert.alertType === 'DAY_LOW' ? 'low' : alert.alertType === 'NEWS' ? 'news' : 'spike';
+                      const typeLabel = alert.alertType === 'DAY_HIGH' ? 'HIGH' : alert.alertType === 'DAY_LOW' ? 'LOW' : alert.alertType === 'NEWS' ? '📰 NEWS' : '⚡ SPIKE';
 
                       return (
                         <div key={alert.id} className="alert-item">
                           <span className={`alert-item-type ${typeClass}`}>
                             {typeLabel}
                           </span>
-                          <span className="alert-item-symbol">
-                            {alert.alertType.startsWith('OPTIONS') ? alert.name : alert.symbol}
-                          </span>
+                          <span className="alert-item-symbol">{alert.symbol}</span>
                           {alert.alertType === 'NEWS' ? (
                             <span className="alert-item-price" style={{flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontSize: '12px'}} title={alert.name}>
                               {alert.name}
