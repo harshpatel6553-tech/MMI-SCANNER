@@ -104,10 +104,16 @@ export interface ServerToClientEvents {
     stockCount: number;
     lastUpdate: string;
   }) => void;
+  /** Live online users list (admin only) */
+  'admin:online-users': (users: { email: string; connectedAt: string }[]) => void;
 }
 
 /** Socket.IO events emitted from client to server */
 export interface ClientToServerEvents {
   /** Subscribe to updates for a specific index or all */
   'subscribe:index': (index: 'NIFTY50' | 'NIFTY500' | 'ALL') => void;
+  /** Identify the connected user by email */
+  'auth:identify': (data: { email: string; isAdmin?: boolean }) => void;
+  /** Admin requests the current online user list */
+  'admin:request-online-users': () => void;
 }

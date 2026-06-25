@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { io, type Socket } from 'socket.io-client';
+import { useAuth } from './AuthContext';
 
 interface SocketContextType {
   socket: Socket | null;
@@ -14,6 +15,7 @@ const SocketContext = createContext<SocketContextType>({
 export function SocketProvider({ children }: { children: ReactNode }) {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const { user, profile } = useAuth();
 
   useEffect(() => {
     const socketUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
@@ -25,7 +27,18 @@ export function SocketProvider({ children }: { children: ReactNode }) {
       reconnectionDelayMax: 5000,
     });
 
-    newSocket.on('connect', () => setIsConnected(true));
+    newSocket.on('connect', () => {
+      setIsConnected(true);
+
+      // Identify the user to the server for online tracking
+      if (user?.email) {
+        newSocket.emit('auth:identify', {
+          email: user.email,
+          isAdmin: profile?.is_admin || false,
+        });
+      }
+    });
+
     newSocket.on('disconnect', () => setIsConnected(false));
 
     setSocket(newSocket);
@@ -33,7 +46,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     return () => {
       newSocket.close();
     };
-  }, []);
+  }, [user?.email, profile?.is_admin]);
 
   return (
     <SocketContext.Provider value={{ socket, isConnected }}>

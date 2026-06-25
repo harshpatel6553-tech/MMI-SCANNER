@@ -52,6 +52,36 @@ function filterStocksBySubscription(
   return stocks.filter((s) => s.indexName === subscription);
 }
 
+/** Track online users: socketId -> { email, connectedAt } */
+const onlineUsers: Map<string, { email: string; connectedAt: string }> = new Map();
+
+/** Set of admin socket IDs that should receive live user updates */
+const adminSockets: Set<string> = new Set();
+
+/** Helper: get the deduplicated online user list */
+function getOnlineUserList(): { email: string; connectedAt: string }[] {
+  const seen = new Set<string>();
+  const result: { email: string; connectedAt: string }[] = [];
+  for (const user of onlineUsers.values()) {
+    if (!seen.has(user.email)) {
+      seen.add(user.email);
+      result.push(user);
+    }
+  }
+  return result;
+}
+
+/** Broadcast online user list to all admin sockets */
+function broadcastOnlineUsersToAdmins(io: TypedServer): void {
+  const userList = getOnlineUserList();
+  for (const adminId of adminSockets) {
+    const adminSocket = io.sockets.sockets.get(adminId);
+    if (adminSocket) {
+      (adminSocket as TypedSocket).emit('admin:online-users', userList);
+    }
+  }
+}
+
 /**
  * Set up Socket.IO event handlers for the stock screener.
  *
@@ -60,6 +90,7 @@ function filterStocksBySubscription(
  * - Sends an initial snapshot of all cached stock data
  * - Emits a `connection:status` event with server state
  * - Listens for `subscribe:index` to update the client's filter preference
+ * - Listens for `auth:identify` to track the user's email
  * - Logs connection and disconnection events
  *
  * @param io - The Socket.IO server instance
@@ -92,6 +123,33 @@ export function setupSocketHandlers(io: TypedServer): void {
       lastUpdate: new Date().toISOString(),
     });
 
+    // Handle user identification
+    socket.on('auth:identify', (data) => {
+      if (data?.email) {
+        onlineUsers.set(socket.id, {
+          email: data.email,
+          connectedAt: new Date().toISOString(),
+        });
+        logger.info(`👤 User identified: ${data.email} (${socket.id})`);
+
+        // If user is admin, add to admin sockets
+        if (data.isAdmin) {
+          adminSockets.add(socket.id);
+        }
+
+        // Notify all admins about the updated user list
+        broadcastOnlineUsersToAdmins(io);
+      }
+    });
+
+    // Handle admin requesting online users
+    socket.on('admin:request-online-users', () => {
+      if (adminSockets.has(socket.id)) {
+        const userList = getOnlineUserList();
+        socket.emit('admin:online-users', userList);
+      }
+    });
+
     // Handle subscription changes
     socket.on('subscribe:index', (index) => {
       const validIndices = ['NIFTY50', 'NIFTY500', 'ALL'] as const;
@@ -114,7 +172,13 @@ export function setupSocketHandlers(io: TypedServer): void {
 
     // Handle disconnection
     socket.on('disconnect', (reason) => {
-      logger.info(`🔌 Client disconnected: ${socket.id} (${reason})`);
+      const userData = onlineUsers.get(socket.id);
+      onlineUsers.delete(socket.id);
+      adminSockets.delete(socket.id);
+      logger.info(`🔌 Client disconnected: ${socket.id}${userData ? ` (${userData.email})` : ''} (${reason})`);
+
+      // Notify all admins about the updated user list
+      broadcastOnlineUsersToAdmins(io);
     });
   });
 }

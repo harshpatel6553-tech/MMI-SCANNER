@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../supabaseClient';
 import { useAuth } from '../../context/AuthContext';
+import { useSocketContext } from '../../context/SocketContext';
 import './AdminDashboard.css';
 
 interface Profile {
@@ -16,10 +17,29 @@ export function AdminDashboard() {
   const { profile, signOut } = useAuth();
   const [users, setUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [onlineUsers, setOnlineUsers] = useState<{ email: string; connectedAt: string }[]>([]);
+  const { socket } = useSocketContext();
 
   useEffect(() => {
     fetchUsers();
   }, []);
+
+  // Listen for live online user updates from the server
+  useEffect(() => {
+    if (!socket) return;
+
+    // Request the current online user list
+    socket.emit('admin:request-online-users');
+
+    // Listen for real-time updates
+    socket.on('admin:online-users', (users: { email: string; connectedAt: string }[]) => {
+      setOnlineUsers(users);
+    });
+
+    return () => {
+      socket.off('admin:online-users');
+    };
+  }, [socket]);
 
   const fetchUsers = async () => {
     try {
@@ -115,6 +135,38 @@ export function AdminDashboard() {
           <button className="signout-btn" onClick={() => navigate('/')}>Back to Scanner</button>
           <button className="signout-btn" onClick={signOut}>Sign Out</button>
         </div>
+      </div>
+
+      <div className="admin-card glass-card" style={{ marginBottom: '1.5rem' }}>
+        <h3 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', background: '#4ade80', boxShadow: '0 0 8px #4ade80', animation: 'pulse 2s infinite' }}></span>
+          Live Users — {onlineUsers.length} Online
+        </h3>
+        {onlineUsers.length === 0 ? (
+          <p style={{ color: 'var(--text-secondary)', padding: '1rem 0' }}>No users currently online</p>
+        ) : (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '1rem' }}>
+            {onlineUsers.map((u, i) => (
+              <div key={i} style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 14px',
+                borderRadius: '8px',
+                background: 'rgba(74, 222, 128, 0.08)',
+                border: '1px solid rgba(74, 222, 128, 0.2)',
+                fontSize: '0.85rem',
+                color: '#4ade80',
+              }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#4ade80', flexShrink: 0 }}></span>
+                <span style={{ color: 'var(--text-primary)' }}>{u.email}</span>
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
+                  since {new Date(u.connectedAt).toLocaleTimeString()}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="admin-card glass-card">
