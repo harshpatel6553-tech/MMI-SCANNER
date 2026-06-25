@@ -38,11 +38,11 @@ import {
 
 const PORT = parseInt(process.env.PORT || '5000', 10);
 const NIFTY50_POLL_INTERVAL = parseInt(
-  process.env.NIFTY50_POLL_INTERVAL || '5000',
+  process.env.NIFTY50_POLL_INTERVAL || '2000',
   10
 );
 const NIFTY500_POLL_INTERVAL = parseInt(
-  process.env.NIFTY500_POLL_INTERVAL || '10000',
+  process.env.NIFTY500_POLL_INTERVAL || '3000',
   10
 );
 
