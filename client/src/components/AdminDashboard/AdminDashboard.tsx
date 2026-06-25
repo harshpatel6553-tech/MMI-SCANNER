@@ -136,25 +136,52 @@ export function AdminDashboard() {
               <tbody>
                 {users.map(u => {
                   const date = new Date(u.trial_start_date).toLocaleDateString();
+                  
+                  // Calculate trial logic identically to AuthContext
+                  let isTrialExpired = false;
+                  let trialDaysLeft = 0;
+                  let badgeStatus = u.subscription_status;
+
+                  if (u.subscription_status === 'active') {
+                    badgeStatus = 'Lifetime';
+                  } else if (u.subscription_status?.startsWith('monthly:')) {
+                    badgeStatus = 'Monthly';
+                  } else if (u.subscription_status?.startsWith('yearly:')) {
+                    badgeStatus = 'Yearly';
+                  } else {
+                    // It's a trial or expired
+                    const trialStart = new Date(u.trial_start_date).getTime();
+                    const now = new Date().getTime();
+                    const daysElapsed = Math.floor((now - trialStart) / (1000 * 60 * 60 * 24));
+                    trialDaysLeft = Math.max(0, 14 - daysElapsed);
+                    
+                    if (trialDaysLeft === 0 || u.subscription_status === 'expired') {
+                      isTrialExpired = true;
+                      badgeStatus = 'Expired';
+                    } else {
+                      badgeStatus = 'Trialing';
+                    }
+                  }
+
                   return (
                     <tr key={u.id}>
                       <td>{u.email}</td>
                       <td>{date}</td>
                       <td>
                         <div className="status-cell">
-                          <span className={`status-badge ${formatStatus(u.subscription_status).toLowerCase()}`}>
-                            {formatStatus(u.subscription_status)}
+                          <span className={`status-badge ${badgeStatus.toLowerCase()}`}>
+                            {badgeStatus}
                           </span>
-                          {(u.subscription_status.startsWith('monthly:') || u.subscription_status.startsWith('yearly:')) && (
+                          {(badgeStatus === 'Monthly' || badgeStatus === 'Yearly') && u.subscription_status && (
                             <span className="expires-date text-muted" style={{ display: 'block', fontSize: '0.75rem', marginTop: '4px' }}>
                               Exp: {new Date(u.subscription_status.split(':')[1]).toLocaleDateString()}
                             </span>
                           )}
-                          {u.subscription_status === 'trialing' && (
+                          {badgeStatus === 'Trialing' && (
                             <span className="expires-date text-muted" style={{ display: 'block', fontSize: '0.75rem', marginTop: '4px', color: '#60a5fa' }}>
                               Exp: {new Date(new Date(u.trial_start_date).getTime() + 14 * 24 * 60 * 60 * 1000).toLocaleDateString()} 
                               <br/>
-                              ({Math.max(0, 14 - Math.floor((new Date().getTime() - new Date(u.trial_start_date).getTime()) / (1000 * 60 * 60 * 24)))} days left)
+                              ({trialDaysLeft} days left)
                             </span>
                           )}
                         </div>

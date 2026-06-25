@@ -118,8 +118,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const daysElapsed = Math.floor((now - trialStart) / (1000 * 60 * 60 * 24));
       trialDaysLeft = Math.max(0, 14 - daysElapsed);
       
-      if (trialDaysLeft === 0) {
+      if (trialDaysLeft === 0 || profile.subscription_status === 'expired') {
         isTrialExpired = true;
+        trialDaysLeft = 0;
       }
     }
   }
