@@ -1,8 +1,12 @@
 import { useAuth } from '../../context/AuthContext';
+import { Navigate } from 'react-router-dom';
 import './Paywall.css';
 
 export function Paywall() {
-  const { signOut, user } = useAuth();
+  const { signOut, user, isTrialExpired, loading } = useAuth();
+
+  if (loading) return null;
+  if (!isTrialExpired) return <Navigate to="/" replace />;
 
   return (
     <div className="paywall-container">
