@@ -101,7 +101,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   let isTrialExpired = false;
 
   if (profile) {
-    if (profile.subscription_status === 'active') {
+    if (profile.is_admin) {
+      // Master Override: Admins never expire and have full control
+      isTrialExpired = false;
+    } else if (profile.subscription_status === 'active') {
       // Lifetime Access
       isTrialExpired = false;
     } else if (profile.subscription_status === 'expired') {
