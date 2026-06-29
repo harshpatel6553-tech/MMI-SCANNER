@@ -169,6 +169,7 @@
 .stock-table tbody td {
   padding: 10px 14px;
   font-size: 13px;
+  font-family: 'JetBrains Mono', monospace;
   font-variant-numeric: tabular-nums;
   font-feature-settings: 'tnum' 1;
   transition: color 0.3s ease;

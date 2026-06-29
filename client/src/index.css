@@ -6,38 +6,38 @@
 /* ---- CSS Custom Properties ---- */
 :root {
   /* Backgrounds */
-  --bg-primary: #0b0b0d;
-  --bg-secondary: #111114;
-  --bg-card: rgba(17, 17, 20, 0.8);
-  --bg-card-hover: rgba(26, 26, 31, 0.9);
-  --bg-tertiary: #1a1a20;
+  --bg-primary: #030712;
+  --bg-secondary: #09090b;
+  --bg-card: rgba(9, 9, 11, 0.7);
+  --bg-card-hover: rgba(18, 18, 24, 0.9);
+  --bg-tertiary: #121218;
 
   /* Text */
-  --text-primary: #e6e4e0;
-  --text-secondary: #aba69e;
-  --text-muted: #726e68;
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #475569;
 
-  /* Accents */
-  --accent: #da7f63;
-  --accent-glow: rgba(218, 127, 99, 0.3);
-  --accent-subtle: rgba(218, 127, 99, 0.07);
+  /* Accents (Cyber Cyan) */
+  --accent: #00f0ff;
+  --accent-glow: rgba(0, 240, 255, 0.4);
+  --accent-subtle: rgba(0, 240, 255, 0.08);
 
-  /* Positive (Green) */
-  --positive: #10b981;
-  --positive-bg: rgba(16, 185, 129, 0.1);
-  --positive-glow: rgba(16, 185, 129, 0.35);
-  --positive-dim: #059669;
+  /* Positive (Neon Green) */
+  --positive: #00ff66;
+  --positive-bg: rgba(0, 255, 102, 0.1);
+  --positive-glow: rgba(0, 255, 102, 0.4);
+  --positive-dim: #00cc52;
 
-  /* Negative (Red) */
-  --negative: #ef4444;
-  --negative-bg: rgba(239, 68, 68, 0.1);
-  --negative-glow: rgba(239, 68, 68, 0.35);
-  --negative-dim: #dc2626;
+  /* Negative (Hot Pink/Red) */
+  --negative: #ff0055;
+  --negative-bg: rgba(255, 0, 85, 0.1);
+  --negative-glow: rgba(255, 0, 85, 0.4);
+  --negative-dim: #cc0044;
 
-  /* Borders */
-  --border: rgba(171, 166, 158, 0.09);
-  --border-accent: rgba(218, 127, 99, 0.22);
-  --border-light: rgba(171, 166, 158, 0.05);
+  /* Borders (Wireframe feel) */
+  --border: rgba(0, 240, 255, 0.15);
+  --border-accent: rgba(0, 240, 255, 0.4);
+  --border-light: rgba(255, 255, 255, 0.05);
 
   /* Sizing */
   --header-height: 68px;
@@ -70,7 +70,7 @@ html {
 }
 
 body {
-  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background-color: var(--bg-primary);
   color: var(--text-primary);
   line-height: 1.6;
