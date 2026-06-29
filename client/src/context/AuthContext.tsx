@@ -104,6 +104,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (profile.subscription_status === 'active') {
       // Lifetime Access
       isTrialExpired = false;
+    } else if (profile.subscription_status === 'expired') {
+      // Explicitly Revoked or Expired
+      isTrialExpired = true;
+      trialDaysLeft = 0;
     } else if (profile.subscription_status.startsWith('monthly:') || profile.subscription_status.startsWith('yearly:')) {
       // Time-limited Access
       const expiresAt = new Date(profile.subscription_status.split(':')[1]).getTime();
@@ -112,15 +116,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isTrialExpired = true;
       }
     } else {
-      // 14-Day Free Trial Logic (default 'trialing' or 'expired')
+      // 14-Day Free Trial Logic (default 'trialing')
       const trialStart = new Date(profile.trial_start_date).getTime();
       const now = new Date().getTime();
-      const daysElapsed = Math.floor((now - trialStart) / (1000 * 60 * 60 * 24));
-      trialDaysLeft = Math.max(0, 14 - daysElapsed);
       
-      if (trialDaysLeft === 0 || profile.subscription_status === 'expired') {
+      // Protect against invalid dates
+      if (isNaN(trialStart)) {
         isTrialExpired = true;
         trialDaysLeft = 0;
+      } else {
+        const daysElapsed = Math.floor((now - trialStart) / (1000 * 60 * 60 * 24));
+        trialDaysLeft = Math.max(0, 14 - daysElapsed);
+        
+        if (trialDaysLeft === 0) {
+          isTrialExpired = true;
+        }
       }
     }
   }
