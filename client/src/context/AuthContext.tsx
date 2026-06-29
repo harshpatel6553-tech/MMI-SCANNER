@@ -110,9 +110,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       trialDaysLeft = 0;
     } else if (profile.subscription_status.startsWith('monthly:') || profile.subscription_status.startsWith('yearly:')) {
       // Time-limited Access
-      const expiresAt = new Date(profile.subscription_status.split(':')[1]).getTime();
+      const dateString = profile.subscription_status.replace('monthly:', '').replace('yearly:', '');
+      const expiresAt = new Date(dateString).getTime();
       const now = new Date().getTime();
-      if (now >= expiresAt) {
+      
+      if (isNaN(expiresAt) || now >= expiresAt) {
         isTrialExpired = true;
       }
     } else {

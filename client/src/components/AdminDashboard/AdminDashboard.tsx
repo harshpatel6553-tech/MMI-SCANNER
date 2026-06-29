@@ -90,12 +90,18 @@ export function AdminDashboard() {
   const handleRevoke = async (userId: string) => {
     if (!window.confirm("Are you sure you want to revoke this user's access?")) return;
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('profiles')
         .update({ subscription_status: 'expired' })
-        .eq('id', userId);
+        .eq('id', userId)
+        .select();
 
       if (error) throw error;
+      
+      if (!data || data.length === 0) {
+        throw new Error("Permission Denied: Could not update the database. Check Supabase RLS policies.");
+      }
+      
       
       // Update local state
       setUsers(users.map(u => 
@@ -226,7 +232,7 @@ export function AdminDashboard() {
                           </span>
                           {(badgeStatus === 'Monthly' || badgeStatus === 'Yearly') && u.subscription_status && (
                             <span className="expires-date text-muted" style={{ display: 'block', fontSize: '0.75rem', marginTop: '4px' }}>
-                              Exp: {new Date(u.subscription_status.split(':')[1]).toLocaleDateString()}
+                              Exp: {new Date(u.subscription_status.replace('monthly:', '').replace('yearly:', '')).toLocaleDateString()}
                             </span>
                           )}
                           {badgeStatus === 'Trialing' && (
