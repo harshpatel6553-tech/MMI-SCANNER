@@ -12,7 +12,7 @@ export function Paywall() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
           </svg>
           <h2>Your 14-Day Free Trial Has Expired</h2>
-          <p>Unlock lifetime access to the Market Minds Scanner to continue getting real-time breakouts and volume spikes.</p>
+          <p>Unlock premium access to the Market Minds Scanner to continue getting real-time breakouts and volume spikes.</p>
         </div>
 
         <div className="payment-box">
@@ -24,11 +24,11 @@ export function Paywall() {
             <div className="tier-card recommended">
               <div className="recommended-badge">Most Popular</div>
               <h3>Yearly</h3>
-              <div className="price-tag">₹2,999<span>/yr</span></div>
+              <div className="price-tag">₹6,000<span>/yr</span></div>
             </div>
             <div className="tier-card">
-              <h3>Lifetime</h3>
-              <div className="price-tag">₹5,999<span>/one-time</span></div>
+              <h3>3 Years</h3>
+              <div className="price-tag">₹15,000<span>/3 yrs</span></div>
             </div>
           </div>
           

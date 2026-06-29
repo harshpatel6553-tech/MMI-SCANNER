@@ -57,9 +57,9 @@ export function AdminDashboard() {
     }
   };
 
-  const handleGrantAccess = async (userId: string, tier: 'monthly' | 'yearly' | 'lifetime') => {
+  const handleGrantAccess = async (userId: string, tier: 'monthly' | 'yearly' | 'three_years') => {
     try {
-      let statusString = 'active'; // lifetime
+      let statusString = 'active'; // fallback
       if (tier === 'monthly') {
         const expiresAt = new Date();
         expiresAt.setDate(expiresAt.getDate() + 30);
@@ -68,9 +68,13 @@ export function AdminDashboard() {
         const expiresAt = new Date();
         expiresAt.setFullYear(expiresAt.getFullYear() + 1);
         statusString = `yearly:${expiresAt.toISOString()}`;
+      } else if (tier === 'three_years') {
+        const expiresAt = new Date();
+        expiresAt.setFullYear(expiresAt.getFullYear() + 3);
+        statusString = `three_years:${expiresAt.toISOString()}`;
       }
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('profiles')
         .update({ subscription_status: statusString })
         .eq('id', userId);
@@ -114,7 +118,8 @@ export function AdminDashboard() {
   };
 
   const formatStatus = (status: string) => {
-    if (status === 'active') return 'Lifetime';
+    if (status.startsWith('three_years:')) return '3 Years';
+    if (status === 'active') return 'Lifetime'; // Fallback for old lifetime accounts
     if (status.startsWith('monthly:')) return 'Monthly';
     if (status.startsWith('yearly:')) return 'Yearly';
     if (status === 'trialing') return 'Trialing';
@@ -261,10 +266,11 @@ export function AdminDashboard() {
                             + Yearly
                           </button>
                           <button 
-                            className="action-btn approve"
-                            onClick={() => handleGrantAccess(u.id, 'lifetime')}
+                            className="action-btn grant"
+                            onClick={() => handleGrantAccess(u.id, 'three_years')}
+                            style={{ background: 'rgba(245, 158, 11, 0.2)', borderColor: 'rgba(245, 158, 11, 0.4)', color: '#fcd34d' }}
                           >
-                            + Lifetime
+                            + 3 Years
                           </button>
                           <button 
                             className="action-btn revoke"
