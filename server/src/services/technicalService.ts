@@ -5,8 +5,6 @@
  * to calculate MACD signals.
  */
 
-import _yahooFinance from 'yahoo-finance2';
-const yahooFinance = _yahooFinance as any;
 import { MACD } from 'technicalindicators';
 import logger from '../utils/logger.js';
 import { NIFTY_500_STOCKS } from '../data/nifty500.js';
@@ -21,17 +19,31 @@ class TechnicalService {
   async calculateWeeklyMACD(symbol: string): Promise<boolean> {
     try {
       const yahooSymbol = `${symbol}.NS`;
-      // Fetch 1 year of weekly data to ensure we have enough points for EMA 26 + EMA 9
-      const result = await yahooFinance.historical(yahooSymbol, {
-        period1: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000), // 1 year ago
-        interval: '1wk',
+      
+      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?interval=1wk&range=1y`;
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          Accept: 'application/json',
+        },
       });
 
-      if (!result || result.length < 35) {
+      if (!response.ok) {
+        return false;
+      }
+
+      const data = (await response.json()) as any;
+      const result = data?.chart?.result?.[0];
+      const quote = result?.indicators?.quote?.[0];
+
+      if (!quote || !quote.close || quote.close.length < 35) {
         return false; // Not enough data points
       }
 
-      const closePrices = result.map((quote: any) => quote.close);
+      // Filter out null values
+      const closePrices = quote.close.filter((p: number | null) => p !== null);
+
+      if (closePrices.length < 35) return false;
 
       const macdInput = {
         values: closePrices,
