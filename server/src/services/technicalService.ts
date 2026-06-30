@@ -5,7 +5,8 @@
  * to calculate MACD signals.
  */
 
-import yahooFinance from 'yahoo-finance2';
+import _yahooFinance from 'yahoo-finance2';
+const yahooFinance = _yahooFinance as any;
 import { MACD } from 'technicalindicators';
 import logger from '../utils/logger.js';
 import { NIFTY_500_STOCKS } from '../data/nifty500.js';
@@ -30,7 +31,7 @@ class TechnicalService {
         return false; // Not enough data points
       }
 
-      const closePrices = result.map((quote) => quote.close);
+      const closePrices = result.map((quote: any) => quote.close);
 
       const macdInput = {
         values: closePrices,
