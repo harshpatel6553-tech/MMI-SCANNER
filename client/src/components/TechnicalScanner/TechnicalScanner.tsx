@@ -5,8 +5,8 @@ import './TechnicalScanner.css';
 
 interface TechnicalScannerProps {
   stocks: StockData[];
-  priceFlash: Record<string, 'up' | 'down'>;
-  onRowClick?: (stock: StockData) => void;
+  priceFlash: Map<string, 'up' | 'down'>;
+  onRowClick: (stock: StockData) => void;
 }
 
 export function TechnicalScanner({ stocks, priceFlash, onRowClick }: TechnicalScannerProps) {

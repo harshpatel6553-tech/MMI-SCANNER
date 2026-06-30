@@ -14,7 +14,7 @@ const tabs = [
   { key: 'technical', label: '📈 Technical' },
   { key: 'watchlist', label: '⭐ Watchlist' },
   { key: 'news', label: '📰 Live News' }
-];
+] as const;
 
 export function ViewTabs({ activeTab, onTabChange, watchlistCount = 0 }: ViewTabsProps) {
   const tabsRef = useRef<HTMLDivElement>(null);
