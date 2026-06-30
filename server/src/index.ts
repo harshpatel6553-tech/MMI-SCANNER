@@ -312,6 +312,8 @@ function shutdown(): void {
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
 
+import { technicalService } from './services/technicalService.js';
+
 // ── Server Startup ─────────────────────────────────────────────
 
 /**
@@ -339,6 +341,11 @@ async function startServer(): Promise<void> {
       logger.info(`   Nifty 500:  polling every ${NIFTY500_POLL_INTERVAL}ms`);
       logger.info('═══════════════════════════════════════════════');
     });
+    
+    // Start Weekly MACD Calculation Loop (Runs every hour)
+    logger.info('🔄 Starting Technical MACD background calculation...');
+    technicalService.updateAllStocksMACD();
+    setInterval(() => technicalService.updateAllStocksMACD(), 60 * 60 * 1000);
 
     // Initial fetch — run immediately
     logger.info('🔄 Starting initial Nifty 50 data fetch...');

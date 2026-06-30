@@ -56,6 +56,8 @@ export interface StockData {
   fiftyTwoWeekLow: number;
   /** Market capitalization */
   marketCap: number;
+  /** Weekly MACD Buy signal */
+  macdWeeklyBuy?: boolean;
 }
 
 /** Alert generated when a stock hits its intraday high or low */

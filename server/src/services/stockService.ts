@@ -11,6 +11,7 @@ import type { StockQuote, StockData } from '../types/index.js';
 import { NIFTY_50_STOCKS } from '../data/nifty50.js';
 import { NIFTY_500_STOCKS } from '../data/nifty500.js';
 import { SECTOR_MAP } from '../data/sectorMap.js';
+import { technicalService } from './technicalService.js';
 import logger from '../utils/logger.js';
 
 /** Number of concurrent requests per batch */
@@ -226,6 +227,7 @@ class StockService {
             fiftyTwoWeekHigh: meta.fiftyTwoWeekHigh ?? 0,
             fiftyTwoWeekLow: meta.fiftyTwoWeekLow ?? 0,
             marketCap,
+            macdWeeklyBuy: technicalService.getSignal(stock.symbol),
           };
 
           return stockData;

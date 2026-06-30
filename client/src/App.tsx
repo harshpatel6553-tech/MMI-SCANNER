@@ -19,6 +19,7 @@ import { StatusBar } from './components/StatusBar/StatusBar';
 import { AnimatedBackground } from './components/AnimatedBackground/AnimatedBackground';
 import { LoadingScreen } from './components/LoadingScreen/LoadingScreen';
 import { StockDetailModal } from './components/StockDetailModal/StockDetailModal';
+import { TechnicalScanner } from './components/TechnicalScanner/TechnicalScanner';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import { Login } from './components/Login/Login';
@@ -38,7 +39,7 @@ function AppContent() {
   });
   const [sortField, setSortField] = useState<SortField>('symbol');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
-  const [activeTab, setActiveTab] = useState<'table' | 'heatmap' | 'sectors' | 'watchlist' | 'news'>('table');
+  const [activeTab, setActiveTab] = useState<'table' | 'heatmap' | 'sectors' | 'watchlist' | 'news' | 'technical'>('table');
   const [selectedStock, setSelectedStock] = useState<StockData | null>(null);
 
   const { stocks, allStocks, stats, priceFlash, sectorData } = useStocks(filters, sortField, sortOrder);
@@ -132,6 +133,16 @@ function AppContent() {
 
         {activeTab === 'sectors' && (
           <SectorBreakdown sectorData={sectorData} />
+        )}
+
+        {activeTab === 'technical' && (
+          <div className="app-table">
+            <TechnicalScanner 
+              stocks={stocks}
+              priceFlash={priceFlash}
+              onRowClick={setSelectedStock}
+            />
+          </div>
         )}
 
         {activeTab === 'news' && (

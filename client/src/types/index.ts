@@ -20,6 +20,7 @@ export interface StockData {
   fiftyTwoWeekHigh: number;
   fiftyTwoWeekLow: number;
   marketCap: number;
+  macdWeeklyBuy?: boolean;
 }
 
 export interface StockAlert {
