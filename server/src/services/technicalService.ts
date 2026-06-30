@@ -49,8 +49,9 @@ class TechnicalService {
       const previous = macdResult[macdResult.length - 2];
 
       if (latest && previous && latest.MACD !== undefined && latest.signal !== undefined && previous.MACD !== undefined && previous.signal !== undefined) {
-        // Buy signal: MACD line crosses above the Signal line
-        const isBuy = previous.MACD <= previous.signal && latest.MACD > latest.signal;
+        // Buy signal: MACD line is above the Signal line (Bullish Trend)
+        // Also ensuring MACD is positive shows stronger momentum, but just > signal is enough for a basic buy state.
+        const isBuy = latest.MACD > latest.signal;
         return isBuy;
       }
       
