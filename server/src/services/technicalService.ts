@@ -59,12 +59,20 @@ class TechnicalService {
 
       const latest = macdResult[macdResult.length - 1];
       const previous = macdResult[macdResult.length - 2];
+      const previous2 = macdResult[macdResult.length - 3];
 
-      if (latest && previous && latest.MACD !== undefined && latest.signal !== undefined && previous.MACD !== undefined && previous.signal !== undefined) {
-        // Buy signal: MACD line is above the Signal line (Bullish Trend)
-        // Also ensuring MACD is positive shows stronger momentum, but just > signal is enough for a basic buy state.
-        const isBuy = latest.MACD > latest.signal;
-        return isBuy;
+      if (latest && previous && previous2 && 
+          latest.MACD !== undefined && latest.signal !== undefined && 
+          previous.MACD !== undefined && previous.signal !== undefined &&
+          previous2.MACD !== undefined && previous2.signal !== undefined) {
+        
+        // Crossover this week (MACD line crosses above Signal line)
+        const crossoverThisWeek = previous.MACD <= previous.signal && latest.MACD > latest.signal;
+        
+        // Crossover last week (and still holding the buy trend this week)
+        const crossoverLastWeek = previous2.MACD <= previous2.signal && previous.MACD > previous.signal && latest.MACD > latest.signal;
+
+        return crossoverThisWeek || crossoverLastWeek;
       }
       
       return false;
