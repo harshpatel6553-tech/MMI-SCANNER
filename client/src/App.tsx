@@ -146,7 +146,12 @@ function AppContent() {
         )}
 
         {activeTab === 'news' && (
-          <LiveNewsFeed />
+          <LiveNewsFeed 
+            onStockClick={(sym) => {
+              const s = allStocks.find(x => x.symbol === sym);
+              if (s) setSelectedStock(s);
+            }} 
+          />
         )}
       </main>
 

@@ -1,6 +1,7 @@
 import he from 'he';
 import { EventEmitter } from 'events';
 import logger from '../utils/logger.js';
+import { aiService } from './aiService.js';
 
 export interface NewsItem {
   id: string;
@@ -8,6 +9,8 @@ export interface NewsItem {
   link: string;
   pubDate: string;
   source: string;
+  sentiment?: 'Bullish' | 'Bearish' | 'Neutral';
+  affectedStocks?: string[];
 }
 
 class NewsService extends EventEmitter {
@@ -91,8 +94,26 @@ class NewsService extends EventEmitter {
       const isFirstFetch = this.newsCache.length === 0;
       const newTweets = newNews.filter(n => !this.newsCache.find(old => old.id === n.id));
 
-      this.newsCache = newNews;
-      logger.debug(`Fetched ${newNews.length} latest tweets from RedboxIndia via RapidAPI.`);
+      // Process new tweets through AI Sentiment Engine
+      for (const tweet of newTweets) {
+        try {
+          const aiResult = await aiService.analyzeNews(tweet.title);
+          tweet.sentiment = aiResult.sentiment;
+          tweet.affectedStocks = aiResult.affectedStocks;
+          
+          // Add a small delay to avoid hitting Gemini free tier rate limits (15 RPM)
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        } catch (e) {
+          logger.error(`Failed to process sentiment for tweet ${tweet.id}:`, e);
+          tweet.sentiment = 'Neutral';
+          tweet.affectedStocks = [];
+        }
+      }
+
+      // Combine old cache with new AI-processed tweets, keeping the top 20 latest
+      const combinedNews = [...newTweets, ...this.newsCache].slice(0, 20);
+      this.newsCache = combinedNews;
+      logger.debug(`Fetched and processed ${newTweets.length} new tweets from RedboxIndia.`);
 
       // Emit news alerts for new tweets (skip on first boot to avoid spamming alerts)
       if (!isFirstFetch && newTweets.length > 0) {
