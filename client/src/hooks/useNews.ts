@@ -43,8 +43,8 @@ export function useNews() {
 
     fetchNews();
 
-    // Poll for new news every 10 seconds for ultra-fast updates
-    const interval = setInterval(fetchNews, 10000);
+    // Poll for new news every 60 seconds
+    const interval = setInterval(fetchNews, 60000);
 
     return () => {
       isMounted = false;
