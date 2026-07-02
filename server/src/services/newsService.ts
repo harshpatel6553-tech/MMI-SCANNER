@@ -1,7 +1,6 @@
 import he from 'he';
 import { EventEmitter } from 'events';
 import logger from '../utils/logger.js';
-import { aiService } from './aiService.js';
 
 export interface NewsItem {
   id: string;
@@ -9,8 +8,6 @@ export interface NewsItem {
   link: string;
   pubDate: string;
   source: string;
-  sentiment?: 'Bullish' | 'Bearish' | 'Neutral';
-  affectedStocks?: string[];
 }
 
 class NewsService extends EventEmitter {
@@ -94,31 +91,10 @@ class NewsService extends EventEmitter {
       const isFirstFetch = this.newsCache.length === 0;
       let newTweets = newNews.filter(n => !this.newsCache.find(old => old.id === n.id));
       
-      // Prevent Gemini 15 RPM Rate Limit: Only process the 5 most recent tweets on startup
-      if (isFirstFetch && newTweets.length > 5) {
-        newTweets = newTweets.slice(0, 5);
-      }
-
-      // Process new tweets through AI Sentiment Engine
-      for (const tweet of newTweets) {
-        try {
-          const aiResult = await aiService.analyzeNews(tweet.title);
-          tweet.sentiment = aiResult.sentiment;
-          tweet.affectedStocks = aiResult.affectedStocks;
-          
-          // 4000ms delay = 15 requests per minute, exactly the free tier limit
-          await new Promise(resolve => setTimeout(resolve, 4000));
-        } catch (e) {
-          logger.error(`Failed to process sentiment for tweet ${tweet.id}:`, e);
-          tweet.sentiment = 'Neutral';
-          tweet.affectedStocks = [];
-        }
-      }
-
-      // Combine old cache with new AI-processed tweets, keeping the top 20 latest
+      // Combine old cache with new tweets, keeping the top 20 latest
       const combinedNews = [...newTweets, ...this.newsCache].slice(0, 20);
       this.newsCache = combinedNews;
-      logger.debug(`Fetched and processed ${newTweets.length} new tweets from RedboxIndia.`);
+      logger.debug(`Fetched ${newTweets.length} new tweets from RedboxIndia.`);
 
       // Emit news alerts for new tweets (skip on first boot to avoid spamming alerts)
       if (!isFirstFetch && newTweets.length > 0) {

@@ -6,8 +6,6 @@ export interface NewsItem {
   link: string;
   pubDate: string;
   source: string;
-  sentiment?: 'Bullish' | 'Bearish' | 'Neutral';
-  affectedStocks?: string[];
 }
 
 const API_URL = (import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000') + '/api';
