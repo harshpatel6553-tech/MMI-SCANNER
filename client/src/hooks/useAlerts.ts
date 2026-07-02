@@ -46,6 +46,17 @@ export function useAlerts() {
 
       setAlertHistory(prev => [alert, ...prev].slice(0, 200));
 
+      // Play fun meme sounds!
+      if (alert.alertType === 'DAY_HIGH') {
+        const audio = new Audio('/high.m4a');
+        audio.volume = 0.8;
+        audio.play().catch(e => console.log('Autoplay blocked:', e));
+      } else if (alert.alertType === 'DAY_LOW') {
+        const audio = new Audio('/low.m4a');
+        audio.volume = 0.8;
+        audio.play().catch(e => console.log('Autoplay blocked:', e));
+      }
+
       // Auto-dismiss after 5 seconds
       const timer = setTimeout(() => {
         setToasts(prev => prev.filter(t => t.id !== alert.id));
