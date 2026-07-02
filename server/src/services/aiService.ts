@@ -36,63 +36,72 @@ class AIService {
 
     if (headlines.length === 0) return [];
 
-    try {
-      const responseSchema: Schema = {
-        type: Type.ARRAY,
-        description: "An array of sentiment analysis results, mapping 1-to-1 to the provided headlines array.",
-        items: {
-          type: Type.OBJECT,
-          properties: {
-            sentiment: {
-              type: Type.STRING,
-              description: "The market sentiment of the headline: Bullish, Bearish, or Neutral",
-              enum: ['Bullish', 'Bearish', 'Neutral']
+    let lastError = null;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const responseSchema: Schema = {
+          type: Type.ARRAY,
+          description: "An array of sentiment analysis results, mapping 1-to-1 to the provided headlines array.",
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              sentiment: {
+                type: Type.STRING,
+                description: "The market sentiment of the headline: Bullish, Bearish, or Neutral",
+                enum: ['Bullish', 'Bearish', 'Neutral']
+              },
+              affectedStocks: {
+                type: Type.ARRAY,
+                description: "Array of matching Indian NSE stock symbols affected by this news.",
+                items: { type: Type.STRING }
+              }
             },
-            affectedStocks: {
-              type: Type.ARRAY,
-              description: "Array of matching Indian NSE stock symbols affected by this news.",
-              items: { type: Type.STRING }
-            }
-          },
-          required: ["sentiment", "affectedStocks"],
+            required: ["sentiment", "affectedStocks"],
+          }
+        };
+
+        const prompt = `Analyze this list of financial news headlines from the Indian Stock Market. For each headline, determine if it is Bullish, Bearish, or Neutral for the market or specific companies, and extract affected Indian NSE stock symbols.
+        
+        You must return a JSON array containing EXACTLY ${headlines.length} items, matching the order of the provided headlines.
+        
+        Headlines:
+        ${headlines.map((h, i) => `[${i}] ${h}`).join('\n')}`;
+
+        const response = await this.ai.models.generateContent({
+          model: 'gemini-2.5-flash-lite',
+          contents: prompt,
+          config: {
+            responseMimeType: "application/json",
+            responseSchema: responseSchema,
+            temperature: 0.1, // Keep it deterministic
+          }
+        });
+
+        if (!response.text) {
+          throw new Error("Empty response from AI");
         }
-      };
 
-      const prompt = `Analyze this list of financial news headlines from the Indian Stock Market. For each headline, determine if it is Bullish, Bearish, or Neutral for the market or specific companies, and extract affected Indian NSE stock symbols.
-      
-      You must return a JSON array containing EXACTLY ${headlines.length} items, matching the order of the provided headlines.
-      
-      Headlines:
-      ${headlines.map((h, i) => `[${i}] ${h}`).join('\n')}`;
+        const results: AISentimentResult[] = JSON.parse(response.text);
 
-      const response = await this.ai.models.generateContent({
-        model: 'gemini-2.5-flash-lite',
-        contents: prompt,
-        config: {
-          responseMimeType: "application/json",
-          responseSchema: responseSchema,
-          temperature: 0.1, // Keep it deterministic
+        if (results.length !== headlines.length) {
+          throw new Error(`AI returned ${results.length} results, expected ${headlines.length}`);
         }
-      });
 
-      if (!response.text) {
-        throw new Error("Empty response from AI");
+        return results;
+
+      } catch (err: any) {
+        lastError = err;
+        logger.warn(`AI Batch Analysis attempt ${attempt} failed: ${err.message}. Retrying...`);
+        if (attempt < 3) {
+          // Wait 2 seconds before retrying
+          await new Promise(res => setTimeout(res, 2000));
+        }
       }
-
-      const results: AISentimentResult[] = JSON.parse(response.text);
-
-      if (results.length !== headlines.length) {
-        throw new Error(`AI returned ${results.length} results, expected ${headlines.length}`);
-      }
-
-      return results;
-
-    } catch (err) {
-      const errMsg = err instanceof Error ? err.message : String(err);
-      logger.error(`AI Batch Analysis failed: ${errMsg}`);
-      // Fallback with error in affectedStocks for debugging
-      return headlines.map(() => ({ sentiment: 'Neutral', affectedStocks: [`ERROR: ${errMsg}`] }));
     }
+    
+    logger.error(`AI Batch Analysis failed after 3 attempts: ${lastError instanceof Error ? lastError.message : String(lastError)}`);
+    // Fallback after all retries fail
+    return headlines.map(() => ({ sentiment: 'Neutral', affectedStocks: [] }));
   }
 }
 
