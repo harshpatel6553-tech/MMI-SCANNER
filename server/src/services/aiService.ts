@@ -66,7 +66,7 @@ class AIService {
       ${headlines.map((h, i) => `[${i}] ${h}`).join('\n')}`;
 
       const response = await this.ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-2.5-flash-lite',
         contents: prompt,
         config: {
           responseMimeType: "application/json",
@@ -88,10 +88,9 @@ class AIService {
       return results;
 
     } catch (err) {
-      const errMsg = err instanceof Error ? err.message : String(err);
-      logger.error(`AI Batch Analysis failed: ${errMsg}`);
-      // Fallback with error in affectedStocks for debugging
-      return headlines.map(() => ({ sentiment: 'Neutral', affectedStocks: [`ERROR: ${errMsg}`] }));
+      logger.error(`AI Batch Analysis failed: ${err instanceof Error ? err.message : String(err)}`);
+      // Fallback
+      return headlines.map(() => ({ sentiment: 'Neutral', affectedStocks: [] }));
     }
   }
 }
