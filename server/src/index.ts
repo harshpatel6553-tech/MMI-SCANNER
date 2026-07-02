@@ -14,7 +14,7 @@
 
 import 'dotenv/config';
 
-import express from 'express';
+import express, { Request, Response } from 'express';
 import cors from 'cors';
 import http from 'node:http';
 import { Server as SocketIOServer } from 'socket.io';
@@ -29,6 +29,8 @@ import stockRoutes from './routes/stockRoutes.js';
 import { newsRoutes } from './routes/newsRoutes.js';
 import { stockService } from './services/stockService.js';
 import { alertService } from './services/alertService.js';
+import { newsService } from './services/newsService.js';
+import { screenerService } from './services/screenerService.js';
 import {
   setupSocketHandlers,
   broadcastStockUpdate,
@@ -97,7 +99,6 @@ app.use('/api/stocks', stockRoutes);
 app.use('/api/news', newsRoutes);
 
 // ── News Alerts ────────────────────────────────────────────────
-import { newsService } from './services/newsService.js';
 
 newsService.on('news:alert', (news) => {
   io.emit('alert:new', {
@@ -108,6 +109,38 @@ newsService.on('news:alert', (news) => {
     price: 0,
     createdAt: new Date().toISOString()
   });
+});
+
+app.get('/api/health', (req: Request, res: Response) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// News Feed API
+app.get('/api/news', (req: Request, res: Response) => {
+  try {
+    const latestNews = newsService.getLatestNews();
+    res.json(latestNews);
+  } catch (err) {
+    logger.error('Error fetching news from cache:', err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// Fundamental Data API
+app.get('/api/stocks/:symbol/fundamentals', async (req: Request, res: Response) => {
+  try {
+    const symbol = req.params.symbol;
+    if (!symbol) return res.status(400).json({ error: 'Symbol required' });
+    
+    const fundamentals = await screenerService.getFundamentals(symbol);
+    if (!fundamentals) {
+      return res.status(404).json({ error: 'Fundamentals not found' });
+    }
+    res.json(fundamentals);
+  } catch (err) {
+    logger.error(`Error fetching fundamentals for ${req.params.symbol}:`, err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
 });
 
 // ── Root endpoint ──────────────────────────────────────────────

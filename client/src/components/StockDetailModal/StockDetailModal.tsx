@@ -8,9 +8,20 @@ interface StockDetailModalProps {
   onClose: () => void;
 }
 
+interface Fundamentals {
+  peRatio: string;
+  roce: string;
+  roe: string;
+  bookValue: string;
+  dividendYield: string;
+  faceValue: string;
+}
+
 export function StockDetailModal({ stock, onClose }: StockDetailModalProps) {
   const [isClosing, setIsClosing] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
+  const [fundamentals, setFundamentals] = useState<Fundamentals | null>(null);
+  const [loadingFunds, setLoadingFunds] = useState(false);
   const prevStock = useRef<StockData | null>(null);
 
   const handleClose = useCallback(() => {
@@ -28,6 +39,17 @@ export function StockDetailModal({ stock, onClose }: StockDetailModalProps) {
       setIsVisible(true);
       setIsClosing(false);
       document.body.style.overflow = 'hidden';
+      
+      // Fetch Fundamentals
+      setLoadingFunds(true);
+      setFundamentals(null);
+      const apiUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
+      fetch(`${apiUrl}/api/stocks/${stock.symbol}/fundamentals`)
+        .then(res => res.ok ? res.json() : null)
+        .then(data => setFundamentals(data))
+        .catch(err => console.error("Failed to fetch fundamentals", err))
+        .finally(() => setLoadingFunds(false));
+
     } else if (!stock && isVisible && !isClosing) {
       // Reset if externally closed
       setIsVisible(false);
@@ -175,16 +197,47 @@ export function StockDetailModal({ stock, onClose }: StockDetailModalProps) {
           </div>
         </div>
 
-        <div className="modal-section modal-chart-section">
-          <h3 className="modal-section-title">Chart</h3>
-          <div className="modal-chart-wrapper">
-            <iframe
-              key={displayStock.symbol}
-              src={`https://s.tradingview.com/embed-widget/advanced-chart/?symbol=BSE%3A${encodeURIComponent(displayStock.symbol.replace(/\.NS$/, '').replace(/\.BO$/, ''))}&interval=D&theme=dark&style=1&locale=en&timezone=Asia%2FKolkata&hide_side_toolbar=1&allow_symbol_change=0&calendar=false&hide_volume=false&support_host=https%3A%2F%2Fwww.tradingview.com`}
-              style={{ width: '100%', height: '350px', border: 'none', borderRadius: '8px' }}
-              title={`${displayStock.symbol} Chart`}
-              sandbox="allow-scripts allow-same-origin allow-popups"
-            />
+        {/* Fundamental Scorecard */}
+        <div className="modal-section">
+          <h3 className="modal-section-title">Fundamental Scorecard</h3>
+          <div className="modal-fundamentals-wrapper">
+            {loadingFunds ? (
+              <div className="fundamentals-loading">
+                <div className="spinner"></div>
+                <span>Fetching live fundamentals from Screener...</span>
+              </div>
+            ) : fundamentals ? (
+              <div className="fundamentals-grid">
+                <div className="fund-item">
+                  <span className="fund-label">P/E Ratio</span>
+                  <span className="fund-value">{fundamentals.peRatio}</span>
+                </div>
+                <div className="fund-item">
+                  <span className="fund-label">ROCE</span>
+                  <span className="fund-value">{fundamentals.roce}</span>
+                </div>
+                <div className="fund-item">
+                  <span className="fund-label">ROE</span>
+                  <span className="fund-value">{fundamentals.roe}</span>
+                </div>
+                <div className="fund-item">
+                  <span className="fund-label">Book Value</span>
+                  <span className="fund-value">{fundamentals.bookValue}</span>
+                </div>
+                <div className="fund-item">
+                  <span className="fund-label">Div. Yield</span>
+                  <span className="fund-value">{fundamentals.dividendYield}</span>
+                </div>
+                <div className="fund-item">
+                  <span className="fund-label">Face Value</span>
+                  <span className="fund-value">{fundamentals.faceValue}</span>
+                </div>
+              </div>
+            ) : (
+              <div className="fundamentals-error">
+                Failed to load fundamentals for this stock.
+              </div>
+            )}
           </div>
         </div>
       </div>
