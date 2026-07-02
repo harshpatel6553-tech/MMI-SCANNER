@@ -92,7 +92,12 @@ class NewsService extends EventEmitter {
       });
 
       const isFirstFetch = this.newsCache.length === 0;
-      const newTweets = newNews.filter(n => !this.newsCache.find(old => old.id === n.id));
+      let newTweets = newNews.filter(n => !this.newsCache.find(old => old.id === n.id));
+      
+      // Prevent Gemini 15 RPM Rate Limit: Only process the 5 most recent tweets on startup
+      if (isFirstFetch && newTweets.length > 5) {
+        newTweets = newTweets.slice(0, 5);
+      }
 
       // Process new tweets through AI Sentiment Engine
       for (const tweet of newTweets) {
@@ -101,8 +106,8 @@ class NewsService extends EventEmitter {
           tweet.sentiment = aiResult.sentiment;
           tweet.affectedStocks = aiResult.affectedStocks;
           
-          // Add a small delay to avoid hitting Gemini free tier rate limits (15 RPM)
-          await new Promise(resolve => setTimeout(resolve, 2000));
+          // 4000ms delay = 15 requests per minute, exactly the free tier limit
+          await new Promise(resolve => setTimeout(resolve, 4000));
         } catch (e) {
           logger.error(`Failed to process sentiment for tweet ${tweet.id}:`, e);
           tweet.sentiment = 'Neutral';

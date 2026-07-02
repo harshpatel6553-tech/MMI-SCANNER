@@ -115,16 +115,7 @@ app.get('/api/health', (req: Request, res: Response) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// News Feed API
-app.get('/api/news', (req: Request, res: Response) => {
-  try {
-    const latestNews = newsService.getLatestNews();
-    res.json(latestNews);
-  } catch (err) {
-    logger.error('Error fetching news from cache:', err);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
-});
+
 
 // Fundamental Data API
 app.get('/api/stocks/:symbol/fundamentals', async (req: Request, res: Response) => {
