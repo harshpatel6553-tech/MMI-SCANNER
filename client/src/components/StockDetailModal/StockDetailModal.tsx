@@ -9,6 +9,9 @@ interface StockDetailModalProps {
 }
 
 interface Fundamentals {
+  marketCap: string;
+  currentPrice: string;
+  highLow: string;
   peRatio: string;
   roce: string;
   roe: string;
@@ -180,7 +183,11 @@ export function StockDetailModal({ stock, onClose }: StockDetailModalProps) {
           </div>
           <div className="modal-stat-card">
             <span className="stat-card-label">Market Cap</span>
-            <span className="stat-card-value">{displayStock.marketCap > 0 ? formatMarketCap(displayStock.marketCap) : 'N/A'}</span>
+            <span className="stat-card-value">
+              {fundamentals && fundamentals.marketCap !== 'N/A' 
+                ? fundamentals.marketCap 
+                : (displayStock.marketCap > 0 ? formatMarketCap(displayStock.marketCap) : 'N/A')}
+            </span>
           </div>
           <div className="modal-stat-card">
             <span className="stat-card-label">Rel. Volume</span>

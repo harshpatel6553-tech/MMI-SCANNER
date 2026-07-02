@@ -2,6 +2,9 @@ import * as cheerio from 'cheerio';
 import logger from '../utils/logger.js';
 
 export interface Fundamentals {
+  marketCap: string;
+  currentPrice: string;
+  highLow: string;
   peRatio: string;
   roce: string;
   roe: string;
@@ -10,14 +13,26 @@ export interface Fundamentals {
   faceValue: string;
 }
 
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
 class ScreenerService {
+  private cache: Map<string, { data: Fundamentals; timestamp: number }> = new Map();
+
   /**
    * Fetches fundamental data from Screener.in for a given NSE symbol.
+   * Utilizes a 24-hour cache to prevent rate-limiting.
    */
   async getFundamentals(symbol: string): Promise<Fundamentals | null> {
+    const cleanSymbol = symbol.replace('.NS', '').toUpperCase();
+
+    // Check cache
+    const cached = this.cache.get(cleanSymbol);
+    if (cached && (Date.now() - cached.timestamp < CACHE_TTL_MS)) {
+      logger.debug(`Serving fundamentals for ${cleanSymbol} from cache.`);
+      return cached.data;
+    }
+
     try {
-      // Clean up symbol for Screener (e.g. remove .NS if present)
-      const cleanSymbol = symbol.replace('.NS', '').toUpperCase();
       const url = `https://www.screener.in/company/${cleanSymbol}/consolidated/`;
       
       const response = await fetch(url, {
@@ -25,11 +40,9 @@ class ScreenerService {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
           'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
         },
-        // A timeout prevents hanging the API if screener is slow
         signal: AbortSignal.timeout(5000)
       });
 
-      // Some companies don't have consolidated data, fallback to standalone
       if (response.status === 404) {
          return await this.getStandaloneFundamentals(cleanSymbol);
       }
@@ -40,7 +53,11 @@ class ScreenerService {
       }
 
       const html = await response.text();
-      return this.parseHtml(html);
+      const fundamentals = this.parseHtml(html);
+      
+      // Save to cache
+      this.cache.set(cleanSymbol, { data: fundamentals, timestamp: Date.now() });
+      return fundamentals;
       
     } catch (error) {
       logger.error(`Error fetching Screener data for ${symbol}:`, error);
@@ -61,7 +78,9 @@ class ScreenerService {
         if (!response.ok) return null;
         
         const html = await response.text();
-        return this.parseHtml(html);
+        const fundamentals = this.parseHtml(html);
+        this.cache.set(cleanSymbol, { data: fundamentals, timestamp: Date.now() });
+        return fundamentals;
     } catch (e) {
         return null;
     }
@@ -73,13 +92,21 @@ class ScreenerService {
     
     $('ul#top-ratios li').each((_, el) => {
       const name = $(el).find('span.name').text().trim();
-      const value = $(el).find('span.number').text().trim();
-      if (name && value) {
-        results[name] = value;
+      const valueSpan = $(el).find('span.value');
+      
+      // Handle the High / Low which has two numbers
+      const numbers = valueSpan.find('span.number');
+      if (numbers.length === 2) {
+         results[name] = numbers.eq(0).text().trim() + ' / ' + numbers.eq(1).text().trim();
+      } else {
+         results[name] = valueSpan.find('span.number').text().trim();
       }
     });
 
     return {
+      marketCap: results['Market Cap'] ? '₹' + results['Market Cap'] + ' Cr.' : 'N/A',
+      currentPrice: results['Current Price'] ? '₹' + results['Current Price'] : 'N/A',
+      highLow: results['High / Low'] ? '₹' + results['High / Low'] : 'N/A',
       peRatio: results['Stock P/E'] || 'N/A',
       roce: results['ROCE'] ? results['ROCE'] + '%' : 'N/A',
       roe: results['ROE'] ? results['ROE'] + '%' : 'N/A',
