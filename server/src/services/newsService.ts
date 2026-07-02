@@ -1,6 +1,7 @@
 import he from 'he';
 import { EventEmitter } from 'events';
 import logger from '../utils/logger.js';
+import { aiService } from './aiService.js';
 
 export interface NewsItem {
   id: string;
@@ -8,6 +9,8 @@ export interface NewsItem {
   link: string;
   pubDate: string;
   source: string;
+  sentiment?: 'Bullish' | 'Bearish' | 'Neutral';
+  affectedStocks?: string[];
 }
 
 class NewsService extends EventEmitter {
@@ -90,7 +93,22 @@ class NewsService extends EventEmitter {
 
       const isFirstFetch = this.newsCache.length === 0;
       let newTweets = newNews.filter(n => !this.newsCache.find(old => old.id === n.id));
-      
+
+      if (newTweets.length > 0 && aiService.hasValidKey) {
+        try {
+          const headlines = newTweets.map(t => t.title);
+          const aiResults = await aiService.analyzeNewsBatch(headlines);
+          
+          newTweets = newTweets.map((tweet, index) => {
+            tweet.sentiment = aiResults[index].sentiment;
+            tweet.affectedStocks = aiResults[index].affectedStocks;
+            return tweet;
+          });
+        } catch (e) {
+          logger.error("Failed to process batch sentiment:", e);
+        }
+      }
+
       // Combine old cache with new tweets, keeping the top 20 latest
       const combinedNews = [...newTweets, ...this.newsCache].slice(0, 20);
       this.newsCache = combinedNews;
