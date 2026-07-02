@@ -88,9 +88,10 @@ class AIService {
       return results;
 
     } catch (err) {
-      logger.error(`AI Batch Analysis failed: ${err instanceof Error ? err.message : String(err)}`);
-      // Fallback
-      return headlines.map(() => ({ sentiment: 'Neutral', affectedStocks: [] }));
+      const errMsg = err instanceof Error ? err.message : String(err);
+      logger.error(`AI Batch Analysis failed: ${errMsg}`);
+      // Fallback with error in affectedStocks for debugging
+      return headlines.map(() => ({ sentiment: 'Neutral', affectedStocks: [`ERROR: ${errMsg}`] }));
     }
   }
 }
