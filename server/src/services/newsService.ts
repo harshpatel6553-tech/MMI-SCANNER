@@ -17,7 +17,7 @@ class NewsService extends EventEmitter {
   private newsCache: NewsItem[] = [];
   private isPolling = false;
   private currentKeyIndex = 0;
-  private readonly POLL_INTERVAL = 90 * 1000; // 90 seconds
+  private readonly POLL_INTERVAL = 20 * 1000; // 20 seconds
 
   constructor() {
     super();
