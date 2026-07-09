@@ -40,7 +40,7 @@ function AppContent() {
   });
   const [sortField, setSortField] = useState<SortField>('symbol');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
-  const [activeTab, setActiveTab] = useState<'table' | 'heatmap' | 'sectors' | 'watchlist' | 'news' | 'technical'>('table');
+  const [activeTab, setActiveTab] = useState<'table' | 'heatmap' | 'sectors' | 'watchlist' | 'news' | 'technical' | 'results'>('table');
   const [selectedStock, setSelectedStock] = useState<StockData | null>(null);
 
   const { stocks, allStocks, stats, priceFlash, sectorData } = useStocks(filters, sortField, sortOrder);
