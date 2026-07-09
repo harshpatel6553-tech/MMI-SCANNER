@@ -1,12 +1,11 @@
 import yahooFinance from 'yahoo-finance2';
 
-async function testYF() {
-    try {
-        const symbol = 'RELIANCE.NS';
-        const result = await yahooFinance.quote(symbol);
-        console.log(JSON.stringify(result, null, 2));
-    } catch (e) {
-        console.error("Error:", e);
-    }
+async function test() {
+  try {
+    const data = await yahooFinance.dailyGainers();
+    console.log(data);
+  } catch (e: any) {
+    console.error(e.message);
+  }
 }
-testYF();
+test();

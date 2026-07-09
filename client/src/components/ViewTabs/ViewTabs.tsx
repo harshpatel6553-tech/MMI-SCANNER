@@ -2,8 +2,8 @@ import { useRef, useEffect, useState } from 'react';
 import './ViewTabs.css';
 
 interface ViewTabsProps {
-  activeTab: 'table' | 'heatmap' | 'sectors' | 'watchlist' | 'news' | 'technical';
-  onTabChange: (tab: 'table' | 'heatmap' | 'sectors' | 'watchlist' | 'news' | 'technical') => void;
+  activeTab: 'table' | 'heatmap' | 'sectors' | 'watchlist' | 'news' | 'technical' | 'results';
+  onTabChange: (tab: 'table' | 'heatmap' | 'sectors' | 'watchlist' | 'news' | 'technical' | 'results') => void;
   watchlistCount?: number;
 }
 
@@ -13,7 +13,8 @@ const tabs = [
   { key: 'sectors', label: '📊 Sectors' },
   { key: 'technical', label: '📈 Technical' },
   { key: 'watchlist', label: '⭐ Watchlist' },
-  { key: 'news', label: '📰 Live News' }
+  { key: 'news', label: '📰 Live News' },
+  { key: 'results', label: '📊 Results' }
 ] as const;
 
 export function ViewTabs({ activeTab, onTabChange, watchlistCount = 0 }: ViewTabsProps) {

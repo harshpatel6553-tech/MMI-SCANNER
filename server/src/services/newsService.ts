@@ -11,6 +11,7 @@ export interface NewsItem {
   source: string;
   sentiment?: 'Bullish' | 'Bearish' | 'Neutral';
   affectedStocks?: string[];
+  isEarningsResult?: boolean;
 }
 
 class NewsService extends EventEmitter {
@@ -82,12 +83,15 @@ class NewsService extends EventEmitter {
         const textContent = item.full_text || item.retweeted_status?.full_text || item.retweeted_status?.text || item.text || 'Breaking News';
         const cleanTitle = he.decode(textContent);
         
+        const earningsRegex = /\b(Q[1-4]|FY\d{2}|Quarterly Results|Net Profit|Revenue|EBITDA|PAT)\b/i;
+        
         return {
           id: item.tweet_id || `${Date.now()}-${index}`,
           title: cleanTitle,
           link: `https://x.com/RedboxIndia/status/${item.tweet_id}`,
           pubDate: item.created_at || new Date().toUTCString(),
-          source: 'RedboxIndia'
+          source: 'RedboxIndia',
+          isEarningsResult: earningsRegex.test(cleanTitle)
         };
       });
 

@@ -30,36 +30,19 @@ class AIService {
   }
 
   public async analyzeNewsBatch(headlines: string[]): Promise<AISentimentResult[]> {
-    if (!this.hasValidKey || !this.ai) {
+    if (headlines.length === 0) return [];
+    
+    // Determine if we are using Groq or Gemini
+    const groqKey = process.env.GROQ_API_KEY;
+    const isUsingGroq = !!groqKey;
+
+    if (!isUsingGroq && (!this.hasValidKey || !this.ai)) {
       return headlines.map(() => ({ sentiment: 'Neutral', affectedStocks: [] }));
     }
-
-    if (headlines.length === 0) return [];
 
     let lastError = null;
     for (let attempt = 1; attempt <= 3; attempt++) {
       try {
-        const responseSchema: Schema = {
-          type: Type.ARRAY,
-          description: "An array of sentiment analysis results, mapping 1-to-1 to the provided headlines array.",
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              sentiment: {
-                type: Type.STRING,
-                description: "The market sentiment of the headline: Bullish, Bearish, or Neutral",
-                enum: ['Bullish', 'Bearish', 'Neutral']
-              },
-              affectedStocks: {
-                type: Type.ARRAY,
-                description: "Array of matching Indian NSE stock symbols affected by this news.",
-                items: { type: Type.STRING }
-              }
-            },
-            required: ["sentiment", "affectedStocks"],
-          }
-        };
-
         const prompt = `Analyze this list of financial news headlines from the Indian Stock Market. For each headline, determine if it is Bullish, Bearish, or Neutral for the market or specific companies, and extract affected Indian NSE stock symbols.
         
         CRITICAL RULES FOR SENTIMENT:
@@ -67,29 +50,76 @@ class AIService {
         - Revenue growth, order wins, and positive earnings MUST be classified as Bullish.
         - Procedural updates without immediate financial impact MUST be classified as Neutral.
         
-        You must return a JSON array containing EXACTLY ${headlines.length} items, matching the order of the provided headlines.
+        You must return a JSON object with a single key "results" which is an array containing EXACTLY ${headlines.length} items, matching the order of the provided headlines. Each item must have "sentiment" (Bullish/Bearish/Neutral) and "affectedStocks" (array of strings).
         
         Headlines:
         ${headlines.map((h, i) => `[${i}] ${h}`).join('\n')}`;
 
-        const response = await this.ai.models.generateContent({
-          model: 'gemini-2.5-flash-lite',
-          contents: prompt,
-          config: {
-            responseMimeType: "application/json",
-            responseSchema: responseSchema,
-            temperature: 0.1, // Keep it deterministic
-          }
-        });
+        let results: AISentimentResult[] = [];
 
-        if (!response.text) {
-          throw new Error("Empty response from AI");
+        if (isUsingGroq) {
+          // Use Groq API (Llama 3)
+          const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${groqKey}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              model: 'llama3-8b-8192',
+              messages: [{ role: 'user', content: prompt }],
+              temperature: 0.1,
+              response_format: { type: 'json_object' }
+            })
+          });
+
+          if (!groqRes.ok) {
+            throw new Error(`Groq API Error: ${groqRes.statusText}`);
+          }
+
+          const jsonResponse = await groqRes.json();
+          const parsed = JSON.parse(jsonResponse.choices[0].message.content);
+          results = parsed.results;
+
+        } else {
+          // Use Google Gemini API
+          const responseSchema: Schema = {
+            type: Type.OBJECT,
+            properties: {
+              results: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    sentiment: { type: Type.STRING, enum: ['Bullish', 'Bearish', 'Neutral'] },
+                    affectedStocks: { type: Type.ARRAY, items: { type: Type.STRING } }
+                  },
+                  required: ["sentiment", "affectedStocks"],
+                }
+              }
+            }
+          };
+
+          const response = await this.ai!.models.generateContent({
+            model: 'gemini-2.5-flash-lite',
+            contents: prompt,
+            config: {
+              responseMimeType: "application/json",
+              responseSchema: responseSchema,
+              temperature: 0.1,
+            }
+          });
+
+          if (!response.text) {
+            throw new Error("Empty response from Gemini AI");
+          }
+
+          const parsed = JSON.parse(response.text);
+          results = parsed.results;
         }
 
-        const results: AISentimentResult[] = JSON.parse(response.text);
-
-        if (results.length !== headlines.length) {
-          throw new Error(`AI returned ${results.length} results, expected ${headlines.length}`);
+        if (!results || results.length !== headlines.length) {
+          throw new Error(`AI returned ${results?.length} results, expected ${headlines.length}`);
         }
 
         return results;
@@ -98,14 +128,12 @@ class AIService {
         lastError = err;
         logger.warn(`AI Batch Analysis attempt ${attempt} failed: ${err.message}. Retrying...`);
         if (attempt < 3) {
-          // Wait 2 seconds before retrying
           await new Promise(res => setTimeout(res, 2000));
         }
       }
     }
     
     logger.error(`AI Batch Analysis failed after 3 attempts: ${lastError instanceof Error ? lastError.message : String(lastError)}`);
-    // Fallback after all retries fail
     return headlines.map(() => ({ sentiment: 'Neutral', affectedStocks: [] }));
   }
 }

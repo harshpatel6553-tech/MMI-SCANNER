@@ -12,6 +12,7 @@ import { ViewTabs } from './components/ViewTabs/ViewTabs';
 import { Heatmap } from './components/Heatmap/Heatmap';
 import { SectorBreakdown } from './components/SectorBreakdown/SectorBreakdown';
 import { LiveNewsFeed } from './components/LiveNewsFeed/LiveNewsFeed';
+import { EarningsResults } from './components/EarningsResults/EarningsResults';
 import { NewsTicker } from './components/NewsTicker/NewsTicker';
 import { AlertToast } from './components/Alerts/AlertToast';
 import { AlertPanel } from './components/Alerts/AlertPanel';
@@ -152,6 +153,10 @@ function AppContent() {
               if (s) setSelectedStock(s);
             }} 
           />
+        )}
+
+        {activeTab === 'results' && (
+          <EarningsResults />
         )}
       </main>
 
