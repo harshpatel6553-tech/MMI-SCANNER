@@ -18,6 +18,9 @@
   padding: 20px;
   display: flex;
   flex-direction: column;
+  height: fit-content;
+  max-height: calc(100vh - 250px);
+  overflow-y: auto;
 }
 
 .section-title {
@@ -77,4 +80,79 @@
   text-align: center;
   padding: 40px;
   font-size: 0.9rem;
+}
+
+/* Missing News Card Styles */
+.news-card {
+  display: flex;
+  flex-direction: column;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  text-decoration: none;
+  transition: all 0.2s ease;
+  gap: 8px;
+}
+
+.news-card:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.1);
+  transform: translateY(-1px);
+}
+
+.news-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.news-time {
+  color: var(--accent);
+  font-family: var(--font-mono, monospace);
+  font-size: 0.85rem;
+}
+
+.news-title {
+  color: #fff;
+  font-size: 1rem;
+  line-height: 1.5;
+  font-weight: 500;
+}
+
+.news-stocks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.news-stock-tag {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.news-sentiment-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+}
+
+.news-sentiment-badge.bullish {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.news-sentiment-badge.bearish {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
 }
