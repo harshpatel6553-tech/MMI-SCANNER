@@ -74,10 +74,10 @@ class CalendarService {
         }
       }
 
-      // Keep the temporary fallback for today just in case NSE doesn't have the BSE specific stocks
+      // Merge the temporary fallback for today to ensure BSE-exclusive stocks are not missing
       const isoDateStr = today.toISOString().split('T')[0];
-      if (results.length === 0 && isoDateStr === '2026-07-09') {
-        results.push(
+      if (isoDateStr === '2026-07-09') {
+        const bseFallbacks = [
           { symbol: 'TCS', name: 'Tata Consultancy Services', date: isoDateStr },
           { symbol: 'GMBREW', name: 'GM Breweries', date: isoDateStr },
           { symbol: 'ANANDRATHI', name: 'Anand Rathi Wealth', date: isoDateStr },
@@ -88,7 +88,14 @@ class CalendarService {
           { symbol: 'GUJHOTE', name: 'Gujarat Hotels', date: isoDateStr },
           { symbol: 'SIDH', name: 'Sidh Automobiles', date: isoDateStr },
           { symbol: 'SUPREMEINF', name: 'Supreme Infrastructure', date: isoDateStr }
-        );
+        ];
+        
+        for (const fb of bseFallbacks) {
+          if (!seen.has(fb.symbol)) {
+            seen.add(fb.symbol);
+            results.push(fb);
+          }
+        }
       }
 
       this.cache = results;
