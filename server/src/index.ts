@@ -31,6 +31,7 @@ import { stockService } from './services/stockService.js';
 import { alertService } from './services/alertService.js';
 import { newsService } from './services/newsService.js';
 import { screenerService } from './services/screenerService.js';
+import { calendarService } from './services/calendarService.js';
 import {
   setupSocketHandlers,
   broadcastStockUpdate,
@@ -131,6 +132,18 @@ app.get('/api/stocks/:symbol/fundamentals', async (req: Request, res: Response) 
   } catch (err) {
     logger.error(`Error fetching fundamentals for ${req.params.symbol}:`, err);
     res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// ── Earnings Calendar ───────────────────────────────────────────
+
+app.get('/api/calendar/today', async (req: Request, res: Response) => {
+  try {
+    const calendar = await calendarService.getExpectedToday();
+    res.json({ success: true, data: calendar });
+  } catch (err) {
+    logger.error('Error fetching calendar:', err);
+    res.status(500).json({ success: false, error: 'Internal Server Error' });
   }
 });
 

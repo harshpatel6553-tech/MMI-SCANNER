@@ -1,20 +1,39 @@
+import { useState, useEffect } from 'react';
 import { useNews } from '../../hooks/useNews';
 import './EarningsResults.css';
 
-// Mock list of today's expected earnings (since no free API exists)
-const EXPECTED_TODAY = [
-  { symbol: 'TCS', name: 'Tata Consultancy Services' },
-  { symbol: 'INFY', name: 'Infosys Limited' },
-  { symbol: 'HDFCBANK', name: 'HDFC Bank Ltd' },
-  { symbol: 'RELIANCE', name: 'Reliance Industries' },
-  { symbol: 'WIPRO', name: 'Wipro Limited' }
-];
+interface CalendarEvent {
+  symbol: string;
+  name: string;
+  date: string;
+}
+
+const API_URL = (import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000') + '/api';
 
 export function EarningsResults() {
   const { news, loading } = useNews();
+  const [calendar, setCalendar] = useState<CalendarEvent[]>([]);
+  const [calendarLoading, setCalendarLoading] = useState(true);
   
   // Filter for earnings reports
   const earningsNews = news.filter(n => n.isEarningsResult);
+
+  useEffect(() => {
+    const fetchCalendar = async () => {
+      try {
+        const response = await fetch(`${API_URL}/calendar/today`);
+        const data = await response.json();
+        if (data.success) {
+          setCalendar(data.data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch earnings calendar:", err);
+      } finally {
+        setCalendarLoading(false);
+      }
+    };
+    fetchCalendar();
+  }, []);
 
   const getSentimentBadge = (sentiment?: string) => {
     if (!sentiment || sentiment === 'Neutral') return null;
@@ -68,12 +87,18 @@ export function EarningsResults() {
         <h2 className="section-title">📅 Expected Today</h2>
         <div className="calendar-list">
           <p className="calendar-subtext">Companies scheduled to announce quarterly results today.</p>
-          {EXPECTED_TODAY.map(co => (
-            <div key={co.symbol} className="calendar-item">
-              <div className="calendar-symbol">${co.symbol}</div>
-              <div className="calendar-name">{co.name}</div>
-            </div>
-          ))}
+          {calendarLoading ? (
+            <div className="news-loading">Fetching calendar...</div>
+          ) : calendar.length === 0 ? (
+            <div className="news-empty">No major Indian companies are scheduled to report earnings today.</div>
+          ) : (
+            calendar.map(co => (
+              <div key={co.symbol} className="calendar-item">
+                <div className="calendar-symbol">${co.symbol}</div>
+                <div className="calendar-name">{co.name}</div>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>
