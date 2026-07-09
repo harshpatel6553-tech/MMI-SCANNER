@@ -46,7 +46,7 @@ class NewsService extends EventEmitter {
       for (let i = 0; i < keys.length; i++) {
         const apiKey = keys[this.currentKeyIndex % keys.length];
         try {
-          response = await fetch('https://twitter-search-only.p.rapidapi.com/timeline.php?screenname=RedboxIndia&tweet_mode=extended', {
+          response = await fetch('https://twitter-search-only.p.rapidapi.com/timeline.php?screenname=RedboxIndia&tweet_mode=extended&count=20', {
             headers: {
               'x-rapidapi-key': apiKey,
               'x-rapidapi-host': 'twitter-search-only.p.rapidapi.com'
