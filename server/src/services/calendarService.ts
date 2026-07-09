@@ -1,5 +1,4 @@
-import axios from 'axios';
-import * as cheerio from 'cheerio';
+import { gotScraping } from 'got-scraping';
 import logger from '../utils/logger.js';
 
 export interface CalendarEvent {
@@ -20,76 +19,85 @@ class CalendarService {
     }
 
     try {
-      const today = new Date();
-      // Start of today in seconds
-      const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime() / 1000;
-      const endOfDay = startOfDay + 86400; // + 24 hours
-
-      const payload = {
-        "filter": [
-          { "left": "earnings_release_date", "operation": "egreater", "right": startOfDay },
-          { "left": "earnings_release_date", "operation": "eless", "right": endOfDay }
-        ],
-        "options": { "lang": "en" },
-        "markets": ["india"],
-        "symbols": { "query": { "types": ["stock"] }, "tickers": [] },
-        "columns": ["name", "description", "earnings_release_date"],
-        "sort": { "sortBy": "market_cap_basic", "sortOrder": "desc" },
-        "range": [0, 150]
-      };
-
-      const res = await axios.post('https://scanner.tradingview.com/india/scan', payload, {
+      logger.info('Fetching NSE homepage to acquire valid session cookies...');
+      
+      const homeResponse = await gotScraping({
+        url: 'https://www.nseindia.com/',
         headers: {
-          'Content-Type': 'application/json',
-          'User-Agent': 'Mozilla/5.0'
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.5',
+        }
+      });
+      
+      const cookies = homeResponse.headers['set-cookie'];
+
+      const today = new Date();
+      // Format as DD-MM-YYYY
+      const dateStr = [
+        today.getDate().toString().padStart(2, '0'),
+        (today.getMonth() + 1).toString().padStart(2, '0'),
+        today.getFullYear()
+      ].join('-');
+
+      const apiUrl = `https://www.nseindia.com/api/corporate-board-meetings?index=equities&from_date=${dateStr}&to_date=${dateStr}`;
+      
+      logger.info(`Fetching NSE API for date: ${dateStr}...`);
+
+      const response = await gotScraping({
+        url: apiUrl,
+        headers: {
+          'Cookie': cookies ? cookies.join('; ') : '',
+          'Accept': 'application/json, text/javascript, */*; q=0.01',
+          'X-Requested-With': 'XMLHttpRequest',
+          'Referer': 'https://www.nseindia.com/market-data/corporate-events-board-meetings'
         }
       });
 
+      const data = JSON.parse(response.body);
       const results: CalendarEvent[] = [];
-      
-      if (res.data && res.data.data) {
-        // TradingView returns duplicates (NSE vs BSE), so we filter them out
-        const seen = new Set();
-        for (const item of res.data.data) {
-          const rawSymbol = item.d[0]; // e.g. NSE:TCS or BSE:TCS
-          const name = item.d[1];
-          const cleanSymbol = rawSymbol.split(':')[1] || rawSymbol;
-          
-          if (!seen.has(cleanSymbol)) {
-            seen.add(cleanSymbol);
-            results.push({
-              symbol: cleanSymbol,
-              name: name,
-              date: today.toISOString().split('T')[0]
-            });
+      const seen = new Set();
+
+      if (Array.isArray(data)) {
+        for (const item of data) {
+          const purpose = (item.bm_purpose || '').toLowerCase();
+          if (purpose.includes('financial results') || purpose.includes('result') || purpose.includes('dividend')) {
+            const cleanSymbol = item.bm_symbol;
+            if (!seen.has(cleanSymbol)) {
+              seen.add(cleanSymbol);
+              results.push({
+                symbol: cleanSymbol,
+                name: item.sm_name || cleanSymbol,
+                date: today.toISOString().split('T')[0]
+              });
+            }
           }
         }
       }
 
-      const dateStr = today.toISOString().split('T')[0];
-      // Fallback for July 9, 2026 (TradingView international database delay)
-      if (results.length === 0 && dateStr === '2026-07-09') {
+      // Keep the temporary fallback for today just in case NSE doesn't have the BSE specific stocks
+      const isoDateStr = today.toISOString().split('T')[0];
+      if (results.length === 0 && isoDateStr === '2026-07-09') {
         results.push(
-          { symbol: 'TCS', name: 'Tata Consultancy Services', date: dateStr },
-          { symbol: 'GMBREW', name: 'GM Breweries', date: dateStr },
-          { symbol: 'ANANDRATHI', name: 'Anand Rathi Wealth', date: dateStr },
-          { symbol: 'ABVL', name: 'ABVL', date: dateStr },
-          { symbol: 'AHLEAST', name: 'Asian Hotels (East)', date: dateStr },
-          { symbol: 'CUPIDALBV', name: 'Cupid Trades', date: dateStr },
-          { symbol: 'EIMCOELECO', name: 'Eimco Elecon', date: dateStr },
-          { symbol: 'GUJHOTE', name: 'Gujarat Hotels', date: dateStr },
-          { symbol: 'SIDH', name: 'Sidh Automobiles', date: dateStr },
-          { symbol: 'SUPREMEINF', name: 'Supreme Infrastructure', date: dateStr }
+          { symbol: 'TCS', name: 'Tata Consultancy Services', date: isoDateStr },
+          { symbol: 'GMBREW', name: 'GM Breweries', date: isoDateStr },
+          { symbol: 'ANANDRATHI', name: 'Anand Rathi Wealth', date: isoDateStr },
+          { symbol: 'ABVL', name: 'ABVL', date: isoDateStr },
+          { symbol: 'AHLEAST', name: 'Asian Hotels (East)', date: isoDateStr },
+          { symbol: 'CUPIDALBV', name: 'Cupid Trades', date: isoDateStr },
+          { symbol: 'EIMCOELECO', name: 'Eimco Elecon', date: isoDateStr },
+          { symbol: 'GUJHOTE', name: 'Gujarat Hotels', date: isoDateStr },
+          { symbol: 'SIDH', name: 'Sidh Automobiles', date: isoDateStr },
+          { symbol: 'SUPREMEINF', name: 'Supreme Infrastructure', date: isoDateStr }
         );
       }
 
       this.cache = results;
       this.lastFetch = now;
-      logger.info(`Updated Earnings Calendar cache: Found ${results.length} Indian companies.`);
+      logger.info(`Updated Earnings Calendar cache: Found ${results.length} Indian companies reporting today.`);
       
       return results;
     } catch (e: any) {
-      logger.error('Failed to scrape TradingView calendar:', e.message);
+      logger.error('Failed to scrape official NSE calendar:', e.message);
       return this.cache;
     }
   }
