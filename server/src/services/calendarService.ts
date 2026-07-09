@@ -40,7 +40,7 @@ class CalendarService {
 
       const res = await axios.post('https://scanner.tradingview.com/india/scan', payload, {
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
+          'Content-Type': 'application/json',
           'User-Agent': 'Mozilla/5.0'
         }
       });
