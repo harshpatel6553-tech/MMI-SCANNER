@@ -75,7 +75,11 @@ class CalendarService {
           { symbol: 'ANANDRATHI', name: 'Anand Rathi Wealth', date: dateStr },
           { symbol: 'ABVL', name: 'ABVL', date: dateStr },
           { symbol: 'AHLEAST', name: 'Asian Hotels (East)', date: dateStr },
-          { symbol: 'CUPIDALBV', name: 'Cupid Trades', date: dateStr }
+          { symbol: 'CUPIDALBV', name: 'Cupid Trades', date: dateStr },
+          { symbol: 'EIMCOELECO', name: 'Eimco Elecon', date: dateStr },
+          { symbol: 'GUJHOTE', name: 'Gujarat Hotels', date: dateStr },
+          { symbol: 'SIDH', name: 'Sidh Automobiles', date: dateStr },
+          { symbol: 'SUPREMEINF', name: 'Supreme Infrastructure', date: dateStr }
         );
       }
 
