@@ -21,54 +21,58 @@ class CalendarService {
 
     try {
       const today = new Date();
-      const dateStr = today.toISOString().split('T')[0];
-      const url = `https://finance.yahoo.com/calendar/earnings?day=${dateStr}`;
-      
-      const { data } = await axios.get(url, {
+      // Start of today in seconds
+      const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime() / 1000;
+      const endOfDay = startOfDay + 86400; // + 24 hours
+
+      const payload = {
+        "filter": [
+          { "left": "earnings_release_date", "operation": "egreater", "right": startOfDay },
+          { "left": "earnings_release_date", "operation": "eless", "right": endOfDay }
+        ],
+        "options": { "lang": "en" },
+        "markets": ["india"],
+        "symbols": { "query": { "types": ["stock"] }, "tickers": [] },
+        "columns": ["name", "description", "earnings_release_date"],
+        "sort": { "sortBy": "market_cap_basic", "sortOrder": "desc" },
+        "range": [0, 150]
+      };
+
+      const res = await axios.post('https://scanner.tradingview.com/india/scan', payload, {
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'User-Agent': 'Mozilla/5.0'
         }
       });
 
-      const $ = cheerio.load(data);
       const results: CalendarEvent[] = [];
-
-      $('table tbody tr').each((i, el) => {
-        const cols = $(el).find('td');
-        if (cols.length >= 3) {
-          const rawSymbol = $(cols[0]).text().trim();
-          const name = $(cols[1]).text().trim();
+      
+      if (res.data && res.data.data) {
+        // TradingView returns duplicates (NSE vs BSE), so we filter them out
+        const seen = new Set();
+        for (const item of res.data.data) {
+          const rawSymbol = item.d[0]; // e.g. NSE:TCS or BSE:TCS
+          const name = item.d[1];
+          const cleanSymbol = rawSymbol.split(':')[1] || rawSymbol;
           
-          if (rawSymbol.endsWith('.NS') || rawSymbol.endsWith('.BO')) {
-            const cleanSymbol = rawSymbol.replace('.NS', '').replace('.BO', '');
-            // Prevent duplicates (some stocks are listed on both NSE and BSE)
-            if (!results.find(r => r.symbol === cleanSymbol)) {
-              results.push({ symbol: cleanSymbol, name, date: dateStr });
-            }
+          if (!seen.has(cleanSymbol)) {
+            seen.add(cleanSymbol);
+            results.push({
+              symbol: cleanSymbol,
+              name: name,
+              date: today.toISOString().split('T')[0]
+            });
           }
         }
-      });
-
-      // Fallback for July 9, 2026 (Yahoo Finance international delay)
-      if (results.length === 0 && dateStr === '2026-07-09') {
-        results.push(
-          { symbol: 'TCS', name: 'Tata Consultancy Services', date: dateStr },
-          { symbol: 'GMBREW', name: 'GM Breweries', date: dateStr },
-          { symbol: 'ANANDRATHI', name: 'Anand Rathi Wealth', date: dateStr },
-          { symbol: 'ABVL', name: 'ABVL', date: dateStr },
-          { symbol: 'AHLEAST', name: 'Asian Hotels (East)', date: dateStr },
-          { symbol: 'CUPIDALBV', name: 'Cupid Trades', date: dateStr }
-        );
       }
 
       this.cache = results;
       this.lastFetch = now;
-      logger.info(`Updated Earnings Calendar cache for ${dateStr}: Found ${results.length} Indian companies.`);
+      logger.info(`Updated Earnings Calendar cache: Found ${results.length} Indian companies.`);
       
       return results;
     } catch (e: any) {
-      logger.error('Failed to scrape Yahoo Finance calendar:', e.message);
-      // Return stale cache if available
+      logger.error('Failed to scrape TradingView calendar:', e.message);
       return this.cache;
     }
   }

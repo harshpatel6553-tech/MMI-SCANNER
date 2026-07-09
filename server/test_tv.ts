@@ -1,15 +1,11 @@
 async function testTradingView() {
   try {
-    const today = new Date();
-    const dateStr = today.toISOString().split('T')[0];
-    
-    // TradingView scanner query for earnings today in India
     const payload = {
       "filter": [
         {
-          "left": "earnings_release_date",
-          "operation": "equal",
-          "right": dateStr
+          "left": "type",
+          "operation": "in_range",
+          "right": ["stock"]
         }
       ],
       "options": {
@@ -37,7 +33,7 @@ async function testTradingView() {
     const res = await fetch('https://scanner.tradingview.com/india/scan', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded', // TradingView sometimes wants this or no content-type check
+        'Content-Type': 'application/x-www-form-urlencoded',
         'User-Agent': 'Mozilla/5.0'
       },
       body: JSON.stringify(payload)
@@ -45,12 +41,18 @@ async function testTradingView() {
     
     if (!res.ok) {
       console.log(`Failed: ${res.status} ${res.statusText}`);
-      const text = await res.text();
-      console.log(text);
+      console.log(await res.text());
       return;
     }
     const data = await res.json();
     console.log(`Successfully fetched from TradingView! Found ${data.totalCount} results.`);
+    if (data.data) {
+      console.log(data.data.slice(0, 5).map((d: any) => ({
+        symbol: d.d[0],
+        name: d.d[1],
+        date: d.d[2]
+      })));
+    }
   } catch (e: any) {
     console.error("TradingView Fetch Error:", e.message);
   }
