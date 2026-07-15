@@ -40,6 +40,11 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     });
 
     newSocket.on('disconnect', () => setIsConnected(false));
+    
+    newSocket.on('server:force_refresh', () => {
+      console.log('Server commanded a forced refresh!');
+      window.location.reload();
+    });
 
     setSocket(newSocket);
 
