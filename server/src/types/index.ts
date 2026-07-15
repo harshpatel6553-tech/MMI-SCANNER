@@ -108,6 +108,8 @@ export interface ServerToClientEvents {
   }) => void;
   /** Live online users list (admin only) */
   'admin:online-users': (users: { email: string; connectedAt: string }[]) => void;
+  /** Force all clients to immediately refresh their browser */
+  'server:force_refresh': () => void;
 }
 
 /** Socket.IO events emitted from client to server */
