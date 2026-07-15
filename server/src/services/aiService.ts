@@ -119,8 +119,18 @@ class AIService {
           results = parsed.results;
         }
 
-        if (!results || results.length !== headlines.length) {
-          throw new Error(`AI returned ${results?.length} results, expected ${headlines.length}`);
+        if (!results || !Array.isArray(results)) {
+          throw new Error('AI did not return a valid results array');
+        }
+
+        // Llama 3 (8B) sometimes hallucinates extra items at the end of the array or stops early.
+        // Instead of completely failing the batch, we gracefully align the array length.
+        if (results.length > headlines.length) {
+          results = results.slice(0, headlines.length);
+        } else if (results.length < headlines.length) {
+          while (results.length < headlines.length) {
+            results.push({ sentiment: 'Neutral', affectedStocks: [] });
+          }
         }
 
         return results;
