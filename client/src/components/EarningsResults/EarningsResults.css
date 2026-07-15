@@ -156,3 +156,16 @@
   color: #ef4444;
   border: 1px solid rgba(239, 68, 68, 0.3);
 }
+
+/* ---- Mobile Responsiveness ---- */
+@media (max-width: 768px) {
+  .earnings-results-container {
+    flex-direction: column;
+    height: auto;
+    overflow-y: auto;
+  }
+  
+  .earnings-calendar {
+    max-height: 400px; /* Limit height when stacked */
+  }
+}

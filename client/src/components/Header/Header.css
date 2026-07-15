@@ -231,3 +231,23 @@
   color: #f87171;
   border-color: rgba(239, 68, 68, 0.3);
 }
+
+/* ---- Mobile Responsiveness ---- */
+@media (max-width: 768px) {
+  .header {
+    height: auto;
+    padding: 10px 0;
+  }
+  .header-content {
+    flex-direction: column;
+    gap: 12px;
+    padding: 0 12px;
+  }
+  .header-center {
+    display: none; /* Hide market open/close badge on mobile to save space */
+  }
+  .header-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+}

@@ -37,3 +37,11 @@
   flex-direction: column;
   min-height: 0;
 }
+
+/* ---- Mobile Responsiveness ---- */
+@media (max-width: 768px) {
+  .app-main {
+    padding: 8px;
+    gap: 8px;
+  }
+}

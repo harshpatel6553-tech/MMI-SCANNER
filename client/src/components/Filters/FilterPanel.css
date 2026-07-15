@@ -164,3 +164,42 @@
 .filter-input[type='number'] {
   -moz-appearance: textfield;
 }
+
+/* ---- Mobile Responsiveness ---- */
+@media (max-width: 768px) {
+  .filter-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  
+  .filter-group {
+    width: 100%;
+  }
+
+  .range-inputs {
+    width: 100%;
+  }
+
+  .input-with-prefix {
+    flex: 1;
+  }
+
+  .filter-input {
+    width: 100%;
+  }
+  
+  .filter-actions {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .btn-reset {
+    width: 100%;
+  }
+  
+  .stats-row {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+}

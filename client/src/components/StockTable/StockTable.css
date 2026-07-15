@@ -353,3 +353,15 @@
 .skeleton-cell.sk-high { width: 90px; }
 .skeleton-cell.sk-low { width: 90px; }
 .skeleton-cell.sk-vol { width: 70px; }
+
+/* ---- Mobile Responsiveness ---- */
+@media (max-width: 768px) {
+  .stock-table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .stock-table {
+    min-width: 900px; /* Force table to maintain width so it scrolls horizontally instead of squishing */
+  }
+}

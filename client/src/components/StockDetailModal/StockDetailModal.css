@@ -487,4 +487,8 @@
   .modal-stats-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+  
+  .fundamentals-grid {
+    grid-template-columns: 1fr;
+  }
 }

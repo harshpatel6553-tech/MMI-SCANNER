@@ -103,3 +103,18 @@
     font-size: 12px;
   }
 }
+
+@media (max-width: 768px) {
+  .view-tabs-wrapper {
+    max-width: 100vw;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px; /* Space for scrollbar */
+  }
+  
+  .view-tabs {
+    white-space: nowrap;
+    display: inline-flex;
+    min-width: min-content;
+  }
+}
