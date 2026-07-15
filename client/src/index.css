@@ -612,3 +612,15 @@ h1, h2, h3, h4, h5, h6 {
     font-size: 13px;
   }
 }
+
+@media (max-width: 768px) {
+  body {
+    overflow: visible;
+    overflow-x: hidden;
+    min-height: 100dvh;
+  }
+  
+  #root {
+    min-height: 100dvh;
+  }
+}

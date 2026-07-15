@@ -40,8 +40,19 @@
 
 /* ---- Mobile Responsiveness ---- */
 @media (max-width: 768px) {
+  .app {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+  
   .app-main {
     padding: 8px;
     gap: 8px;
+    overflow: visible;
+  }
+  
+  .app-table {
+    overflow: visible;
   }
 }

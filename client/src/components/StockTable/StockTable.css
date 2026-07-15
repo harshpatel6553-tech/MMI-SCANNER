@@ -359,6 +359,11 @@
   .stock-table-wrapper {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+    overflow-y: visible;
+  }
+  
+  .stock-table-body {
+    overflow-y: visible;
   }
   
   .stock-table {
