@@ -120,8 +120,8 @@ export function AdminDashboard() {
   const handleForceRefresh = async () => {
     if (!window.confirm("Are you sure you want to force ALL online users to instantly refresh their browsers?")) return;
     try {
-      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-      const response = await fetch(`${baseUrl}/admin/force-refresh`, { method: 'POST' });
+      const socketUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
+      const response = await fetch(`${socketUrl}/api/admin/force-refresh`, { method: 'POST' });
       if (!response.ok) throw new Error('Failed to broadcast refresh command');
       alert('Force-refresh command sent successfully!');
     } catch (err) {
