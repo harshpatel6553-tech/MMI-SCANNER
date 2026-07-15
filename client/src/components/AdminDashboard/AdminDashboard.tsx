@@ -117,6 +117,19 @@ export function AdminDashboard() {
     }
   };
 
+  const handleForceRefresh = async () => {
+    if (!window.confirm("Are you sure you want to force ALL online users to instantly refresh their browsers?")) return;
+    try {
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const response = await fetch(`${baseUrl}/admin/force-refresh`, { method: 'POST' });
+      if (!response.ok) throw new Error('Failed to broadcast refresh command');
+      alert('Force-refresh command sent successfully!');
+    } catch (err) {
+      console.error(err);
+      alert('Error sending force-refresh command');
+    }
+  };
+
   const formatStatus = (status: string) => {
     if (status.startsWith('three_years:')) return '3 Years';
     if (status === 'active') return 'Lifetime'; // Fallback for old lifetime accounts
@@ -149,10 +162,19 @@ export function AdminDashboard() {
       </div>
 
       <div className="admin-card glass-card" style={{ marginBottom: '1.5rem' }}>
-        <h3 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', background: '#4ade80', boxShadow: '0 0 8px #4ade80', animation: 'pulse 2s infinite' }}></span>
-          Live Users — {onlineUsers.length} Online
-        </h3>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <h3 style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: 0 }}>
+            <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', background: '#4ade80', boxShadow: '0 0 8px #4ade80', animation: 'pulse 2s infinite' }}></span>
+            Live Users — {onlineUsers.length} Online
+          </h3>
+          <button 
+            className="action-btn revoke" 
+            onClick={handleForceRefresh}
+            style={{ background: 'rgba(239, 68, 68, 0.15)', borderColor: 'rgba(239, 68, 68, 0.4)', padding: '6px 14px' }}
+          >
+            ⚠️ Force Refresh All Users
+          </button>
+        </div>
         {onlineUsers.length === 0 ? (
           <p style={{ color: 'var(--text-secondary)', padding: '1rem 0' }}>No users currently online</p>
         ) : (
