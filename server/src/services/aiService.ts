@@ -66,7 +66,7 @@ class AIService {
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-              model: 'llama3-8b-8192',
+              model: 'llama-3.1-8b-instant',
               messages: [{ role: 'user', content: prompt }],
               temperature: 0.1,
               response_format: { type: 'json_object' }
@@ -74,7 +74,8 @@ class AIService {
           });
 
           if (!groqRes.ok) {
-            throw new Error(`Groq API Error: ${groqRes.statusText}`);
+            const errBody = await groqRes.text();
+            throw new Error(`Groq API Error: ${groqRes.status} - ${errBody}`);
           }
 
           const jsonResponse = await groqRes.json();
