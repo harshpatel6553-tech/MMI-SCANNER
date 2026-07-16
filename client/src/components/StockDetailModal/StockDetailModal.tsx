@@ -1,6 +1,7 @@
 import { useEffect, useCallback, useState, useRef } from 'react';
 import type { StockData } from '../../types';
 import { formatPrice, formatVolume, formatMarketCap, formatPercent, getChangeClass } from '../../utils/formatters';
+import { TradeModal } from '../PaperTrading/TradeModal';
 import './StockDetailModal.css';
 
 interface StockDetailModalProps {
@@ -25,6 +26,7 @@ export function StockDetailModal({ stock, onClose }: StockDetailModalProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [fundamentals, setFundamentals] = useState<Fundamentals | null>(null);
   const [loadingFunds, setLoadingFunds] = useState(false);
+  const [isTradeModalOpen, setIsTradeModalOpen] = useState(false);
   const prevStock = useRef<StockData | null>(null);
 
   const handleClose = useCallback(() => {
@@ -65,13 +67,13 @@ export function StockDetailModal({ stock, onClose }: StockDetailModalProps) {
 
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isVisible) {
+      if (e.key === 'Escape' && isVisible && !isTradeModalOpen) {
         handleClose();
       }
     };
     window.addEventListener('keydown', handleEsc);
     return () => window.removeEventListener('keydown', handleEsc);
-  }, [isVisible, handleClose]);
+  }, [isVisible, handleClose, isTradeModalOpen]);
 
   if (!isVisible) return null;
 
@@ -85,14 +87,15 @@ export function StockDetailModal({ stock, onClose }: StockDetailModalProps) {
     : 50;
 
   return (
-    <div
-      className={`modal-overlay ${isClosing ? 'closing' : ''}`}
-      onClick={handleClose}
-    >
+    <>
       <div
-        className={`modal-container ${isClosing ? 'closing' : ''}`}
-        onClick={(e) => e.stopPropagation()}
+        className={`modal-overlay ${isClosing ? 'closing' : ''}`}
+        onClick={handleClose}
       >
+        <div
+          className={`modal-container ${isClosing ? 'closing' : ''}`}
+          onClick={(e) => e.stopPropagation()}
+        >
         {/* Close button */}
         <button className="modal-close" onClick={handleClose} aria-label="Close">
           ✕
@@ -108,7 +111,15 @@ export function StockDetailModal({ stock, onClose }: StockDetailModalProps) {
                 <span className="modal-sector-badge">{displayStock.sector}</span>
               )}
               <span className="modal-index-badge">{displayStock.indexName}</span>
+              <button 
+                className="modal-trade-btn" 
+                onClick={() => setIsTradeModalOpen(true)}
+                style={{ marginLeft: '10px', background: '#3b82f6', color: '#fff', border: 'none', padding: '4px 12px', borderRadius: '4px', cursor: 'pointer', fontWeight: 600 }}
+              >
+                TRADE
+              </button>
             </div>
+          </div>
           </div>
           <div className="modal-header-right">
             <div className={`modal-price ${changeClass}`}>
@@ -248,6 +259,11 @@ export function StockDetailModal({ stock, onClose }: StockDetailModalProps) {
           </div>
         </div>
       </div>
-    </div>
+      <TradeModal 
+        isOpen={isTradeModalOpen} 
+        onClose={() => setIsTradeModalOpen(false)} 
+        stock={displayStock} 
+      />
+    </>
   );
 }

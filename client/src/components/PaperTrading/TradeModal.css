@@ -1,0 +1,130 @@
+.trade-modal {
+  width: 100%;
+  max-width: 400px;
+  background: var(--bg-card);
+}
+
+.trade-body {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.trade-price-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: var(--bg-main);
+  border-radius: 8px;
+}
+
+.live-label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+
+.live-price {
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.trade-sides {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.side-btn {
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--text-primary);
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.side-btn.buy.active {
+  background: rgba(74, 222, 128, 0.2);
+  border-color: var(--text-bullish);
+  color: var(--text-bullish);
+}
+
+.side-btn.sell.active {
+  background: rgba(248, 113, 113, 0.2);
+  border-color: var(--text-bearish);
+  color: var(--text-bearish);
+}
+
+.trade-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.trade-input-group label {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.trade-input-group input {
+  padding: 0.75rem;
+  background: var(--bg-main);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  border-radius: 6px;
+  font-size: 1.1rem;
+}
+
+.trade-summary {
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.execute-btn {
+  width: 100%;
+  padding: 1rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  color: #fff;
+  transition: opacity 0.2s;
+}
+
+.execute-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.execute-btn.buy {
+  background: var(--text-bullish);
+}
+
+.execute-btn.sell {
+  background: var(--text-bearish);
+}
+
+.trade-error {
+  padding: 0.75rem;
+  background: rgba(248, 113, 113, 0.1);
+  color: var(--text-bearish);
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  border-radius: 6px;
+  font-size: 0.9rem;
+  text-align: center;
+}

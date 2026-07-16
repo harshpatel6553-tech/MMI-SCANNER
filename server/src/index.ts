@@ -112,9 +112,16 @@ newsService.on('news:alert', (news) => {
   });
 });
 
+import * as paperTradingController from './controllers/paperTradingController.js';
+
 app.get('/api/health', (req: Request, res: Response) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+
+// ── Paper Trading Gamification ─────────────────────────────────
+app.get('/api/paper-trading/portfolio/:userId', paperTradingController.getPortfolio);
+app.post('/api/paper-trading/trade', paperTradingController.executeTrade);
+app.get('/api/paper-trading/leaderboard', paperTradingController.getLeaderboard);
 
 // ── Admin Tools ────────────────────────────────────────────────
 app.post('/api/admin/force-refresh', (req: Request, res: Response) => {

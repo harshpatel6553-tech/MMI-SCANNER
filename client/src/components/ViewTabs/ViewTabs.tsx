@@ -2,8 +2,8 @@ import { useRef, useEffect, useState } from 'react';
 import './ViewTabs.css';
 
 interface ViewTabsProps {
-  activeTab: 'table' | 'heatmap' | 'sectors' | 'watchlist' | 'news' | 'technical' | 'results';
-  onTabChange: (tab: 'table' | 'heatmap' | 'sectors' | 'watchlist' | 'news' | 'technical' | 'results') => void;
+  activeTab: 'table' | 'heatmap' | 'sectors' | 'watchlist' | 'news' | 'technical' | 'results' | 'paper';
+  onTabChange: (tab: 'table' | 'heatmap' | 'sectors' | 'watchlist' | 'news' | 'technical' | 'results' | 'paper') => void;
   watchlistCount?: number;
 }
 
@@ -14,7 +14,8 @@ const tabs = [
   { key: 'technical', label: '📈 Technical' },
   { key: 'watchlist', label: '⭐ Watchlist' },
   { key: 'news', label: '📰 Live News' },
-  { key: 'results', label: '📊 Results' }
+  { key: 'results', label: '📊 Results' },
+  { key: 'paper', label: '🎮 Paper Trading' }
 ] as const;
 
 export function ViewTabs({ activeTab, onTabChange, watchlistCount = 0 }: ViewTabsProps) {
@@ -41,7 +42,7 @@ export function ViewTabs({ activeTab, onTabChange, watchlistCount = 0 }: ViewTab
             key={tab.key}
             data-tab={tab.key}
             className={`view-tab ${activeTab === tab.key ? 'active' : ''}`}
-            onClick={() => onTabChange(tab.key)}
+            onClick={() => onTabChange(tab.key as any)}
           >
             {tab.label}
             {tab.key === 'watchlist' && watchlistCount > 0 && (
@@ -60,4 +61,3 @@ export function ViewTabs({ activeTab, onTabChange, watchlistCount = 0 }: ViewTab
     </div>
   );
 }
-

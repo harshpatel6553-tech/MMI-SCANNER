@@ -21,6 +21,7 @@ import { AnimatedBackground } from './components/AnimatedBackground/AnimatedBack
 import { LoadingScreen } from './components/LoadingScreen/LoadingScreen';
 import { StockDetailModal } from './components/StockDetailModal/StockDetailModal';
 import { TechnicalScanner } from './components/TechnicalScanner/TechnicalScanner';
+import { PaperTradingDashboard } from './components/PaperTrading/PaperTradingDashboard';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import { Login } from './components/Login/Login';
@@ -40,7 +41,7 @@ function AppContent() {
   });
   const [sortField, setSortField] = useState<SortField>('symbol');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
-  const [activeTab, setActiveTab] = useState<'table' | 'heatmap' | 'sectors' | 'watchlist' | 'news' | 'technical' | 'results'>('table');
+  const [activeTab, setActiveTab] = useState<'table' | 'heatmap' | 'sectors' | 'watchlist' | 'news' | 'technical' | 'results' | 'paper'>('table');
   const [selectedStock, setSelectedStock] = useState<StockData | null>(null);
 
   const { stocks, allStocks, stats, priceFlash, sectorData } = useStocks(filters, sortField, sortOrder);
@@ -157,6 +158,10 @@ function AppContent() {
 
         {activeTab === 'results' && (
           <EarningsResults />
+        )}
+
+        {activeTab === 'paper' && (
+          <PaperTradingDashboard />
         )}
       </main>
 

@@ -1,0 +1,151 @@
+import { Request, Response } from 'express';
+import { supabase } from '../config/supabase.js';
+import logger from '../utils/logger.js';
+
+export const getPortfolio = async (req: Request, res: Response) => {
+  try {
+    const { userId } = req.params;
+
+    const [portfolioRes, positionsRes, tradesRes] = await Promise.all([
+      supabase.from('paper_portfolios').select('*').eq('user_id', userId).single(),
+      supabase.from('paper_positions').select('*').eq('user_id', userId),
+      supabase.from('paper_trades').select('*').eq('user_id', userId).order('timestamp', { ascending: false }).limit(50)
+    ]);
+
+    res.json({
+      success: true,
+      portfolio: portfolioRes.data || { balance: 1000000 },
+      positions: positionsRes.data || [],
+      recentTrades: tradesRes.data || []
+    });
+  } catch (error: any) {
+    logger.error(`Error fetching portfolio: ${error.message}`);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+export const executeTrade = async (req: Request, res: Response) => {
+  try {
+    const { userId, symbol, side, quantity, price } = req.body;
+
+    if (!userId || !symbol || !side || !quantity || !price) {
+      return res.status(400).json({ success: false, error: 'Missing required fields' });
+    }
+
+    const totalCost = quantity * price;
+
+    // 1. Fetch current portfolio
+    const { data: portfolio, error: portError } = await supabase
+      .from('paper_portfolios')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+
+    if (portError) throw portError;
+
+    // 2. Fetch current position
+    const { data: position, error: posError } = await supabase
+      .from('paper_positions')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('symbol', symbol)
+      .single();
+
+    let newBalance = Number(portfolio.balance);
+    let newQuantity = position ? position.quantity : 0;
+    let newAveragePrice = position ? Number(position.average_price) : 0;
+
+    if (side === 'BUY') {
+      if (newBalance < totalCost) {
+        return res.status(400).json({ success: false, error: 'Insufficient funds' });
+      }
+      newBalance -= totalCost;
+      
+      // Calculate new average price
+      const totalValue = (newQuantity * newAveragePrice) + totalCost;
+      newQuantity += quantity;
+      newAveragePrice = totalValue / newQuantity;
+
+    } else if (side === 'SELL') {
+      if (newQuantity < quantity) {
+        return res.status(400).json({ success: false, error: 'Insufficient shares to sell' });
+      }
+      newBalance += totalCost;
+      newQuantity -= quantity;
+      
+      if (newQuantity === 0) {
+        newAveragePrice = 0;
+      }
+    }
+
+    // 3. Update Database (Using Anon Key, assumes RLS allows public updates for this prototype)
+    
+    // Update Portfolio
+    await supabase.from('paper_portfolios').update({ balance: newBalance }).eq('user_id', userId);
+
+    // Update Position
+    if (newQuantity > 0) {
+      if (position) {
+        await supabase.from('paper_positions').update({ 
+          quantity: newQuantity, 
+          average_price: newAveragePrice 
+        }).eq('id', position.id);
+      } else {
+        await supabase.from('paper_positions').insert({
+          user_id: userId,
+          symbol,
+          quantity: newQuantity,
+          average_price: newAveragePrice
+        });
+      }
+    } else if (position && newQuantity === 0) {
+      await supabase.from('paper_positions').delete().eq('id', position.id);
+    }
+
+    // Log Trade
+    const { data: tradeData, error: tradeErr } = await supabase.from('paper_trades').insert({
+      user_id: userId,
+      symbol,
+      side,
+      quantity,
+      price
+    }).select().single();
+
+    if (tradeErr) {
+      logger.error('Failed to insert trade record', tradeErr);
+    }
+
+    res.json({
+      success: true,
+      message: `Successfully ${side === 'BUY' ? 'bought' : 'sold'} ${quantity} shares of ${symbol}`,
+      newBalance
+    });
+
+  } catch (error: any) {
+    logger.error(`Trade execution error: ${error.message}`);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+export const getLeaderboard = async (req: Request, res: Response) => {
+  try {
+    // Basic leaderboard just using cash balance for speed
+    const { data, error } = await supabase
+      .from('paper_portfolios')
+      .select('balance, profiles(email)')
+      .order('balance', { ascending: false })
+      .limit(10);
+
+    if (error) throw error;
+
+    const formatted = data.map(entry => ({
+      email: entry.profiles?.email || 'Unknown',
+      balance: entry.balance
+    }));
+
+    res.json({ success: true, leaderboard: formatted });
+  } catch (error: any) {
+    logger.error(`Leaderboard error: ${error.message}`);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
