@@ -138,10 +138,13 @@ export const getLeaderboard = async (req: Request, res: Response) => {
 
     if (error) throw error;
 
-    const formatted = data.map(entry => ({
-      email: entry.profiles?.email || 'Unknown',
-      balance: entry.balance
-    }));
+    const formatted = data.map((entry: any) => {
+      const profile = Array.isArray(entry.profiles) ? entry.profiles[0] : entry.profiles;
+      return {
+        email: profile?.email || 'Unknown',
+        balance: entry.balance
+      };
+    });
 
     res.json({ success: true, leaderboard: formatted });
   } catch (error: any) {
