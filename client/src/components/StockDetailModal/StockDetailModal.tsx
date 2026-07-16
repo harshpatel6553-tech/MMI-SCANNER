@@ -120,7 +120,6 @@ export function StockDetailModal({ stock, onClose }: StockDetailModalProps) {
               </button>
             </div>
           </div>
-          </div>
           <div className="modal-header-right">
             <div className={`modal-price ${changeClass}`}>
               {formatPrice(displayStock.price)}
@@ -258,6 +257,7 @@ export function StockDetailModal({ stock, onClose }: StockDetailModalProps) {
             )}
           </div>
         </div>
+      </div>
       </div>
       <TradeModal 
         isOpen={isTradeModalOpen} 
