@@ -70,6 +70,7 @@ export function PaperTradingDashboard() {
   // Calculate live P&L
   let totalPositionValue = 0;
   let totalInvested = 0;
+  let totalPnl = 0;
 
   const positionsWithLivePrice = positions.map(pos => {
     const liveStock = stocks.find(s => s.symbol === pos.symbol);
@@ -77,16 +78,16 @@ export function PaperTradingDashboard() {
     const value = pos.quantity * livePrice;
     const invested = pos.quantity * pos.average_price;
     const pnl = value - invested;
-    const pnlPercent = invested > 0 ? (pnl / invested) * 100 : 0;
+    const pnlPercent = invested !== 0 ? (pnl / Math.abs(invested)) * 100 : 0;
 
     totalPositionValue += value;
-    totalInvested += Math.abs(invested); // Use absolute invested amount if we allow shorting
+    totalInvested += Math.abs(invested); // Display absolute invested amount
+    totalPnl += pnl; // Properly sum P&L including short directions
 
     return { ...pos, livePrice, value, pnl, pnlPercent };
   });
 
   const totalPortfolioValue = (portfolio?.balance || 0) + totalPositionValue;
-  const totalPnl = totalPositionValue - totalInvested;
 
   return (
     <div className="paper-trading-container">
