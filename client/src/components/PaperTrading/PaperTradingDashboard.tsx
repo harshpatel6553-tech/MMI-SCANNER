@@ -72,6 +72,8 @@ export function PaperTradingDashboard() {
   let totalInvested = 0;
   let totalPnl = 0;
 
+  let shortLiability = 0;
+
   const positionsWithLivePrice = positions.map(pos => {
     const liveStock = stocks.find(s => s.symbol === pos.symbol);
     const livePrice = liveStock ? liveStock.price : pos.average_price;
@@ -79,6 +81,10 @@ export function PaperTradingDashboard() {
     const invested = pos.quantity * pos.average_price;
     const pnl = value - invested;
     const pnlPercent = invested !== 0 ? (pnl / Math.abs(invested)) * 100 : 0;
+
+    if (pos.quantity < 0) {
+      shortLiability += Math.abs(invested);
+    }
 
     totalPositionValue += value;
     totalInvested += Math.abs(invested); // Display absolute invested amount
@@ -88,6 +94,7 @@ export function PaperTradingDashboard() {
   });
 
   const totalPortfolioValue = (portfolio?.balance || 0) + totalPositionValue;
+  const availableMargin = (portfolio?.balance || 0) - shortLiability;
 
   return (
     <div className="paper-trading-container">
@@ -97,8 +104,8 @@ export function PaperTradingDashboard() {
           <span className="stat-value">₹{totalPortfolioValue.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
         </div>
         <div className="stat-box">
-          <span className="stat-label">Available Cash</span>
-          <span className="stat-value">₹{(portfolio?.balance || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
+          <span className="stat-label">Available Margin</span>
+          <span className="stat-value">₹{availableMargin.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
         </div>
         <div className="stat-box">
           <span className="stat-label">Total Invested</span>

@@ -55,9 +55,28 @@ export const executeTrade = async (req: Request, res: Response) => {
     let newQuantity = position ? position.quantity : 0;
     let newAveragePrice = position ? Number(position.average_price) : 0;
 
+    // Calculate Buying Power
+    const { data: allPositions } = await supabase
+      .from('paper_positions')
+      .select('*')
+      .eq('user_id', userId);
+
+    let shortLiability = 0;
+    if (allPositions) {
+      allPositions.forEach(p => {
+        if (p.quantity < 0) {
+          shortLiability += Math.abs(p.quantity * p.average_price);
+        }
+      });
+    }
+    
+    // Buying power is cash minus the margin required to hold short positions
+    const buyingPower = newBalance - shortLiability;
+
     if (side === 'BUY') {
-      if (newBalance < totalCost) {
-        return res.status(400).json({ success: false, error: 'Insufficient funds' });
+      // Only enforce buying power limits if opening a new long position or adding to one
+      if (newQuantity >= 0 && buyingPower < totalCost) {
+        return res.status(400).json({ success: false, error: 'Insufficient buying power (Margin Used by Short Positions)' });
       }
       newBalance -= totalCost;
       
