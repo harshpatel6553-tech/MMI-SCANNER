@@ -14,6 +14,9 @@ interface Portfolio {
   balance: number;
 }
 
+import { TradeModal } from './TradeModal';
+import type { StockData } from '../../types';
+
 export function PaperTradingDashboard() {
   const { profile } = useAuth();
   const { stocks } = useStocks({ index: 'ALL', priceMin: 0, priceMax: 0, volumeMin: 0, search: '' }, 'symbol', 'asc');
@@ -22,6 +25,7 @@ export function PaperTradingDashboard() {
   const [positions, setPositions] = useState<Position[]>([]);
   const [leaderboard, setLeaderboard] = useState<{email: string, balance: number}[]>([]);
   const [loading, setLoading] = useState(true);
+  const [tradeStock, setTradeStock] = useState<StockData | null>(null);
 
   const fetchPortfolio = async () => {
     if (!profile) return;
@@ -73,10 +77,10 @@ export function PaperTradingDashboard() {
     const value = pos.quantity * livePrice;
     const invested = pos.quantity * pos.average_price;
     const pnl = value - invested;
-    const pnlPercent = (pnl / invested) * 100;
+    const pnlPercent = invested > 0 ? (pnl / invested) * 100 : 0;
 
     totalPositionValue += value;
-    totalInvested += invested;
+    totalInvested += Math.abs(invested); // Use absolute invested amount if we allow shorting
 
     return { ...pos, livePrice, value, pnl, pnlPercent };
   });
@@ -94,6 +98,10 @@ export function PaperTradingDashboard() {
         <div className="stat-box">
           <span className="stat-label">Available Cash</span>
           <span className="stat-value">₹{(portfolio?.balance || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
+        </div>
+        <div className="stat-box">
+          <span className="stat-label">Total Invested</span>
+          <span className="stat-value">₹{totalInvested.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
         </div>
         <div className="stat-box">
           <span className="stat-label">Total P&L</span>
@@ -118,17 +126,29 @@ export function PaperTradingDashboard() {
                     <th>Avg Price</th>
                     <th>LTP</th>
                     <th>Unrealized P&L</th>
+                    <th>Action</th>
                   </tr>
                 </thead>
                 <tbody>
                   {positionsWithLivePrice.map(pos => (
                     <tr key={pos.id}>
                       <td className="symbol">{pos.symbol}</td>
-                      <td>{pos.quantity}</td>
+                      <td className={pos.quantity < 0 ? 'bearish' : ''}>{pos.quantity}</td>
                       <td>₹{pos.average_price.toFixed(2)}</td>
                       <td>₹{pos.livePrice.toFixed(2)}</td>
                       <td className={pos.pnl >= 0 ? 'bullish' : 'bearish'}>
                         ₹{pos.pnl.toFixed(2)} ({pos.pnlPercent.toFixed(2)}%)
+                      </td>
+                      <td>
+                        <button 
+                          className="trade-action-btn"
+                          onClick={() => {
+                            const stockData = stocks.find(s => s.symbol === pos.symbol);
+                            if (stockData) setTradeStock(stockData);
+                          }}
+                        >
+                          Trade
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -151,6 +171,14 @@ export function PaperTradingDashboard() {
           </div>
         </div>
       </div>
+      {tradeStock && (
+        <TradeModal 
+          isOpen={!!tradeStock} 
+          onClose={() => setTradeStock(null)} 
+          stock={tradeStock} 
+          onTradeComplete={fetchPortfolio}
+        />
+      )}
     </div>
   );
 }

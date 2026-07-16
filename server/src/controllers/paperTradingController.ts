@@ -61,30 +61,44 @@ export const executeTrade = async (req: Request, res: Response) => {
       }
       newBalance -= totalCost;
       
-      // Calculate new average price
-      const totalValue = (newQuantity * newAveragePrice) + totalCost;
-      newQuantity += quantity;
-      newAveragePrice = totalValue / newQuantity;
+      if (newQuantity < 0) {
+        newQuantity += quantity;
+        if (newQuantity > 0) {
+          newAveragePrice = price; // Flipped to long
+        } else if (newQuantity === 0) {
+          newAveragePrice = 0;
+        }
+      } else {
+        const totalValue = (newQuantity * newAveragePrice) + totalCost;
+        newQuantity += quantity;
+        newAveragePrice = totalValue / newQuantity;
+      }
 
     } else if (side === 'SELL') {
-      if (newQuantity < quantity) {
-        return res.status(400).json({ success: false, error: 'Insufficient shares to sell' });
-      }
       newBalance += totalCost;
-      newQuantity -= quantity;
       
-      if (newQuantity === 0) {
-        newAveragePrice = 0;
+      if (newQuantity > 0) {
+        newQuantity -= quantity;
+        if (newQuantity < 0) {
+          newAveragePrice = price; // Flipped to short
+        } else if (newQuantity === 0) {
+          newAveragePrice = 0;
+        }
+      } else {
+        const currentCost = Math.abs(newQuantity) * newAveragePrice;
+        const additionalCost = quantity * price;
+        newQuantity -= quantity;
+        newAveragePrice = (currentCost + additionalCost) / Math.abs(newQuantity);
       }
     }
 
-    // 3. Update Database (Using Anon Key, assumes RLS allows public updates for this prototype)
+    // 3. Update Database
     
     // Update Portfolio
     await supabase.from('paper_portfolios').update({ balance: newBalance }).eq('user_id', userId);
 
     // Update Position
-    if (newQuantity > 0) {
+    if (newQuantity !== 0) {
       if (position) {
         await supabase.from('paper_positions').update({ 
           quantity: newQuantity, 
