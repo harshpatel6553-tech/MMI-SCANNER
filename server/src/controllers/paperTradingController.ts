@@ -160,26 +160,55 @@ export const executeTrade = async (req: Request, res: Response) => {
   }
 };
 
+import { stockService } from '../services/stockService.js';
+
 export const getLeaderboard = async (req: Request, res: Response) => {
   try {
-    // Basic leaderboard just using cash balance for speed
-    const { data, error } = await supabase
+    // 1. Fetch all portfolios
+    const { data: portfolios, error: portError } = await supabase
       .from('paper_portfolios')
-      .select('balance, profiles(email)')
-      .order('balance', { ascending: false })
-      .limit(10);
+      .select('user_id, balance, profiles(email)');
 
-    if (error) throw error;
+    if (portError) throw portError;
 
-    const formatted = data.map((entry: any) => {
-      const profile = Array.isArray(entry.profiles) ? entry.profiles[0] : entry.profiles;
+    // 2. Fetch all positions
+    const { data: allPositions, error: posError } = await supabase
+      .from('paper_positions')
+      .select('user_id, symbol, quantity, average_price');
+
+    if (posError) throw posError;
+
+    // 3. Get live prices
+    const liveStocks = stockService.getCachedStocks();
+    const livePrices = new Map<string, number>();
+    liveStocks.forEach(s => livePrices.set(s.symbol, s.price));
+
+    // 4. Calculate total portfolio value for each user
+    const userValues = portfolios.map((port: any) => {
+      let totalPositionValue = 0;
+      
+      const userPositions = allPositions.filter(p => p.user_id === port.user_id);
+      
+      userPositions.forEach(pos => {
+        const currentPrice = livePrices.get(pos.symbol) || pos.average_price;
+        totalPositionValue += (pos.quantity * currentPrice);
+      });
+
+      const totalPortfolioValue = Number(port.balance) + totalPositionValue;
+      
+      const profile = Array.isArray(port.profiles) ? port.profiles[0] : port.profiles;
+
       return {
         email: profile?.email || 'Unknown',
-        balance: entry.balance
+        balance: totalPortfolioValue // We send the total portfolio value back as "balance" so frontend renders it
       };
     });
 
-    res.json({ success: true, leaderboard: formatted });
+    // 5. Sort by Total Portfolio Value and take top 10
+    userValues.sort((a, b) => b.balance - a.balance);
+    const top10 = userValues.slice(0, 10);
+
+    res.json({ success: true, leaderboard: top10 });
   } catch (error: any) {
     logger.error(`Leaderboard error: ${error.message}`);
     res.status(500).json({ success: false, error: error.message });
