@@ -40,10 +40,9 @@ export const StockRow = React.memo(function StockRow({
   };
 
   return (
-    <motion.tr
+    <tr
       className={rowClasses}
       style={isNew ? { animationDelay: `${index * 30}ms` } : undefined}
-      whileHover={{ backgroundColor: 'rgba(218, 127, 99, 0.05)' }}
       onClick={() => onRowClick(stock)}
     >
       <td className="cell-watchlist">
@@ -91,6 +90,6 @@ export const StockRow = React.memo(function StockRow({
           </span>
         )}
       </td>
-    </motion.tr>
+    </tr>
   );
 });

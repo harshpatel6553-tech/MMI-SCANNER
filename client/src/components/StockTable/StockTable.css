@@ -145,6 +145,16 @@
   flex: 1;
 }
 
+.stock-row {
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.stock-row:hover {
+  background-color: rgba(218, 127, 99, 0.05);
+}
+
 .stock-table tbody tr {
   border-bottom: 1px solid var(--border-light);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);

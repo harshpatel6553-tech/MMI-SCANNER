@@ -39,23 +39,17 @@ export function MarketBreadth({ stats }: MarketBreadthProps) {
         </div>
 
         <div className="breadth-bar-track">
-          <motion.div
-            initial={{ width: 0 }}
-            animate={{ width: `${gainerPct}%` }}
-            transition={{ type: 'spring', damping: 20, stiffness: 100 }}
+          <div
             className="breadth-bar-segment bar-gainers"
+            style={{ width: `${gainerPct}%` }}
           />
-          <motion.div
-            initial={{ width: 0 }}
-            animate={{ width: `${unchangedPct}%` }}
-            transition={{ type: 'spring', damping: 20, stiffness: 100 }}
+          <div
             className="breadth-bar-segment bar-unchanged"
+            style={{ width: `${unchangedPct}%` }}
           />
-          <motion.div
-            initial={{ width: 0 }}
-            animate={{ width: `${loserPct}%` }}
-            transition={{ type: 'spring', damping: 20, stiffness: 100 }}
+          <div
             className="breadth-bar-segment bar-losers"
+            style={{ width: `${loserPct}%` }}
           />
         </div>
 
