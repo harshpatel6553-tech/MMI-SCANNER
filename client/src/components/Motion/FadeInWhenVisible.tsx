@@ -27,8 +27,8 @@ export function FadeInWhenVisible({ children, delay = 0, direction = 'up', class
 
   return (
     <motion.div
-      initial={{ opacity: 0, ...initialOffset, filter: 'blur(4px)' }}
-      whileInView={{ opacity: 1, x: 0, y: 0, filter: 'blur(0px)' }}
+      initial={{ opacity: 0, ...initialOffset }}
+      whileInView={{ opacity: 1, x: 0, y: 0 }}
       viewport={{ once: true, margin: "-50px" }}
       transition={{ 
         duration: 0.6, 

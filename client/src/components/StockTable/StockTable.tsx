@@ -30,7 +30,7 @@ const columns: { key: SortField | 'index' | 'indicator' | 'watchlist'; label: st
 
 export function StockTable({ stocks, priceFlash, sortField, sortOrder, onSort, isLoading, watchlist, onToggleWatchlist, onRowClick }: StockTableProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [scrollProgress, setScrollProgress] = useState(0);
+  const progressRef = useRef<HTMLDivElement>(null);
   const [hasAnimated, setHasAnimated] = useState(false);
 
   // Track if initial animation has played
@@ -43,9 +43,10 @@ export function StockTable({ stocks, priceFlash, sortField, sortOrder, onSort, i
 
   const handleScroll = useCallback(() => {
     const el = scrollRef.current;
-    if (!el) return;
-    const progress = el.scrollTop / (el.scrollHeight - el.clientHeight) * 100;
-    setScrollProgress(Math.min(100, Math.max(0, progress || 0)));
+    const progressEl = progressRef.current;
+    if (!el || !progressEl) return;
+    const progress = (el.scrollTop / (el.scrollHeight - el.clientHeight));
+    progressEl.style.transform = `scaleX(${Math.min(1, Math.max(0, progress || 0))})`;
   }, []);
 
   const getSortIndicator = (field: string) => {
@@ -91,7 +92,7 @@ export function StockTable({ stocks, priceFlash, sortField, sortOrder, onSort, i
 
   return (
     <div className="stock-table-wrapper">
-      <div className="table-scroll-progress" style={{ width: `${scrollProgress}%` }} />
+      <div className="table-scroll-progress" ref={progressRef} style={{ width: '100%', transform: 'scaleX(0)' }} />
       <table className="stock-table">
         <thead>
           <tr>
