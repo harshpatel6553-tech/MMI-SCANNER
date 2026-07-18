@@ -2,6 +2,8 @@ import React from 'react';
 import type { StockData } from '../../types';
 import { formatPrice, formatVolume, formatPercent, getChangeClass } from '../../utils/formatters';
 import { AnimatedPrice } from '../AnimatedPrice/AnimatedPrice';
+import { motion } from 'framer-motion';
+import { Star, ChevronUp, ChevronDown, Zap } from 'lucide-react';
 
 interface StockRowProps {
   stock: StockData;
@@ -38,9 +40,10 @@ export const StockRow = React.memo(function StockRow({
   };
 
   return (
-    <tr
+    <motion.tr
       className={rowClasses}
       style={isNew ? { animationDelay: `${index * 30}ms` } : undefined}
+      whileHover={{ backgroundColor: 'rgba(218, 127, 99, 0.05)' }}
       onClick={() => onRowClick(stock)}
     >
       <td className="cell-watchlist">
@@ -49,7 +52,7 @@ export const StockRow = React.memo(function StockRow({
           onClick={handleStarClick}
           aria-label={isWatchlisted ? 'Remove from watchlist' : 'Add to watchlist'}
         >
-          {isWatchlisted ? '★' : '☆'}
+          <Star size={14} fill={isWatchlisted ? 'currentColor' : 'none'} />
         </button>
       </td>
       <td className="cell-index">{index + 1}</td>
@@ -59,7 +62,9 @@ export const StockRow = React.memo(function StockRow({
         <AnimatedPrice value={stock.price} className={changeClass} />
       </td>
       <td className={`cell-change ${changeClass}`}>
-        <span className="change-arrow">{stock.change > 0 ? '▲' : stock.change < 0 ? '▼' : '—'}</span>
+        <span className="change-arrow">
+          {stock.change > 0 ? <ChevronUp size={12} className="inline" /> : stock.change < 0 ? <ChevronDown size={12} className="inline" /> : '—'}
+        </span>
         {formatPrice(Math.abs(stock.change))}
       </td>
       <td className="cell-pct">
@@ -82,10 +87,10 @@ export const StockRow = React.memo(function StockRow({
             className="volume-spike-badge"
             title={`${stock.relativeVolume.toFixed(1)}x avg volume`}
           >
-            ⚡
+            <Zap size={12} className="inline" fill="currentColor" />
           </span>
         )}
       </td>
-    </tr>
+    </motion.tr>
   );
 });

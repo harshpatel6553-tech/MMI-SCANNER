@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 /* ============================================
    NIFTY SCREENER — Premium Trading Terminal
    Design System & Global Styles
@@ -6,54 +10,62 @@
 /* ---- CSS Custom Properties ---- */
 :root {
   /* Backgrounds */
-  --bg-primary: #0b0b0d;
-  --bg-secondary: #111114;
-  --bg-card: rgba(17, 17, 20, 0.8);
-  --bg-card-hover: rgba(26, 26, 31, 0.9);
-  --bg-tertiary: #1a1a20;
+  --bg-primary: #000000;
+  --bg-secondary: #0a0a0a;
+  --bg-card: rgba(10, 10, 10, 0.85);
+  --bg-card-hover: rgba(20, 20, 20, 0.95);
+  --bg-tertiary: #111111;
 
   /* Text */
-  --text-primary: #e6e4e0;
-  --text-secondary: #aba69e;
-  --text-muted: #726e68;
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #475569;
 
   /* Accents */
-  --accent: #da7f63;
-  --accent-glow: rgba(218, 127, 99, 0.3);
-  --accent-subtle: rgba(218, 127, 99, 0.07);
+  --accent: #00e5ff;
+  --accent-bright: #67f2ff;
+  --accent-muted: #0093a8;
+  --accent-surface: rgba(0, 229, 255, 0.1);
+  --accent-glow: rgba(0, 229, 255, 0.25);
+  --accent-subtle: rgba(0, 229, 255, 0.05);
+
+  /* Animation Easings */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
 
   /* Positive (Green) */
-  --positive: #10b981;
-  --positive-bg: rgba(16, 185, 129, 0.1);
-  --positive-glow: rgba(16, 185, 129, 0.35);
-  --positive-dim: #059669;
+  --positive: #00ff9d;
+  --positive-bg: rgba(0, 255, 157, 0.08);
+  --positive-glow: rgba(0, 255, 157, 0.2);
+  --positive-dim: #00b36e;
 
   /* Negative (Red) */
-  --negative: #ef4444;
-  --negative-bg: rgba(239, 68, 68, 0.1);
-  --negative-glow: rgba(239, 68, 68, 0.35);
-  --negative-dim: #dc2626;
+  --negative: #ff2a5f;
+  --negative-bg: rgba(255, 42, 95, 0.08);
+  --negative-glow: rgba(255, 42, 95, 0.2);
+  --negative-dim: #cc1a45;
 
   /* Borders */
-  --border: rgba(171, 166, 158, 0.09);
-  --border-accent: rgba(218, 127, 99, 0.22);
-  --border-light: rgba(171, 166, 158, 0.05);
+  --border: #1f1f1f;
+  --border-accent: rgba(0, 229, 255, 0.3);
+  --border-light: #141414;
 
   /* Sizing */
-  --header-height: 68px;
-  --statusbar-height: 32px;
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
+  --header-height: 56px;
+  --statusbar-height: 28px;
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+  --radius-xl: 8px;
 
   /* Shadows */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5);
-  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.6);
-  --shadow-glow: 0 0 16px var(--accent-glow);
-  --shadow-positive: 0 0 16px var(--positive-glow);
-  --shadow-negative: 0 0 16px var(--negative-glow);
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.8);
+  --shadow-glow: 0 0 10px var(--accent-glow);
+  --shadow-positive: 0 0 10px var(--positive-glow);
+  --shadow-negative: 0 0 10px var(--negative-glow);
 }
 
 /* ---- Reset & Base ---- */
@@ -63,6 +75,11 @@
   padding: 0;
 }
 
+*:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 html {
   scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
@@ -70,12 +87,13 @@ html {
 }
 
 body {
-  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  line-height: 1.6;
+  line-height: 1.5;
   overflow: hidden;
   min-height: 100vh;
+  letter-spacing: -0.01em;
 }
 
 #root {
@@ -103,28 +121,29 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, var(--accent), #dfb15b);
+  background: var(--bg-tertiary);
   border-radius: 4px;
-  border: 1px solid rgba(0, 0, 0, 0.3);
-  transition: box-shadow 0.3s ease;
+  border: 1px solid var(--border);
+  transition: all 0.3s ease;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, #e4947c, #e7c27d);
-  box-shadow: 0 0 8px var(--accent-glow);
+  background: var(--border-accent);
+  border: 1px solid var(--accent);
+  box-shadow: var(--shadow-glow);
 }
 
 /* Firefox scrollbar */
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--accent) var(--bg-primary);
+  scrollbar-color: var(--border) var(--bg-primary);
 }
 
 /* ---- Typography ---- */
 h1, h2, h3, h4, h5, h6 {
-  font-family: 'Instrument Serif', Georgia, serif;
-  font-weight: 400;
-  letter-spacing: 0.03em;
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.02em;
 }
 
 /* Tabular numbers for financial data */
@@ -157,10 +176,8 @@ h1, h2, h3, h4, h5, h6 {
 
 .glass-card {
   background: var(--bg-card);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-sm);
 }
 
 .glass-card:hover {
@@ -182,34 +199,49 @@ h1, h2, h3, h4, h5, h6 {
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.15s ease;
   user-select: none;
   position: relative;
   overflow: hidden;
 }
 
-.btn:hover {
-  background: var(--bg-card-hover);
-  border-color: var(--border-accent);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-glow);
-}
-
 .btn:active {
-  transform: scale(0.98) translateY(0);
-  box-shadow: none;
+  transform: scale(0.98);
 }
 
-.btn-accent {
-  background: linear-gradient(135deg, var(--accent), #0099cc);
+.btn-primary {
+  background: var(--accent);
   border-color: var(--accent);
-  color: var(--bg-primary);
-  font-weight: 600;
+  color: #000;
+  font-weight: 700;
 }
 
-.btn-accent:hover {
+.btn-primary:hover {
+  background: var(--accent-bright);
+  border-color: var(--accent-bright);
   box-shadow: var(--shadow-glow);
-  filter: brightness(1.1);
+}
+
+.btn-secondary {
+  background: var(--bg-card);
+  border-color: var(--border-accent);
+  color: var(--accent);
+}
+
+.btn-secondary:hover {
+  background: var(--accent-surface);
+  border-color: var(--accent);
+}
+
+.btn-ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-secondary);
+}
+
+.btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
 }
 
 /* Ripple effect for buttons */
@@ -622,5 +654,16 @@ h1, h2, h3, h4, h5, h6 {
   
   #root {
     min-height: 100dvh;
+  }
+}
+/* ---- Accessibility ---- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

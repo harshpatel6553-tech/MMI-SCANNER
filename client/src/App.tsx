@@ -28,6 +28,8 @@ import { Login } from './components/Login/Login';
 import { Paywall } from './components/Paywall/Paywall';
 import { AdminDashboard } from './components/AdminDashboard/AdminDashboard';
 import { UpdatePasswordModal } from './components/UpdatePasswordModal/UpdatePasswordModal';
+import { AnimatePresence } from 'framer-motion';
+import { AnimatedView } from './components/Motion/AnimatedView';
 import type { FilterOptions, SortField, SortOrder, StockData } from './types';
 import './App.css';
 
@@ -97,72 +99,90 @@ function AppContent() {
           watchlistCount={watchlistCount}
         />
 
-        {activeTab === 'table' && (
-          <div className="app-table">
-            <StockTable
-              stocks={stocks}
-              priceFlash={priceFlash}
-              sortField={sortField}
-              sortOrder={sortOrder}
-              onSort={handleSort}
-              isLoading={allStocks.length === 0}
-              watchlist={watchlist}
-              onToggleWatchlist={toggleWatchlist}
-              onRowClick={setSelectedStock}
-            />
-          </div>
-        )}
+        <AnimatePresence mode="wait">
+          {activeTab === 'table' && (
+            <AnimatedView key="table">
+              <div className="app-table">
+                <StockTable
+                  stocks={stocks}
+                  priceFlash={priceFlash}
+                  sortField={sortField}
+                  sortOrder={sortOrder}
+                  onSort={handleSort}
+                  isLoading={allStocks.length === 0}
+                  watchlist={watchlist}
+                  onToggleWatchlist={toggleWatchlist}
+                  onRowClick={setSelectedStock}
+                />
+              </div>
+            </AnimatedView>
+          )}
 
-        {activeTab === 'watchlist' && (
-          <div className="app-table">
-            <StockTable
-              stocks={watchlistStocks}
-              priceFlash={priceFlash}
-              sortField={sortField}
-              sortOrder={sortOrder}
-              onSort={handleSort}
-              isLoading={allStocks.length === 0}
-              watchlist={watchlist}
-              onToggleWatchlist={toggleWatchlist}
-              onRowClick={setSelectedStock}
-            />
-          </div>
-        )}
+          {activeTab === 'watchlist' && (
+            <AnimatedView key="watchlist">
+              <div className="app-table">
+                <StockTable
+                  stocks={watchlistStocks}
+                  priceFlash={priceFlash}
+                  sortField={sortField}
+                  sortOrder={sortOrder}
+                  onSort={handleSort}
+                  isLoading={allStocks.length === 0}
+                  watchlist={watchlist}
+                  onToggleWatchlist={toggleWatchlist}
+                  onRowClick={setSelectedStock}
+                />
+              </div>
+            </AnimatedView>
+          )}
 
-        {activeTab === 'heatmap' && (
-          <Heatmap stocks={allStocks} />
-        )}
+          {activeTab === 'heatmap' && (
+            <AnimatedView key="heatmap">
+              <Heatmap stocks={allStocks} />
+            </AnimatedView>
+          )}
 
-        {activeTab === 'sectors' && (
-          <SectorBreakdown sectorData={sectorData} />
-        )}
+          {activeTab === 'sectors' && (
+            <AnimatedView key="sectors">
+              <SectorBreakdown sectorData={sectorData} />
+            </AnimatedView>
+          )}
 
-        {activeTab === 'technical' && (
-          <div className="app-table">
-            <TechnicalScanner 
-              stocks={stocks}
-              priceFlash={priceFlash}
-              onRowClick={setSelectedStock}
-            />
-          </div>
-        )}
+          {activeTab === 'technical' && (
+            <AnimatedView key="technical">
+              <div className="app-table">
+                <TechnicalScanner 
+                  stocks={stocks}
+                  priceFlash={priceFlash}
+                  onRowClick={setSelectedStock}
+                />
+              </div>
+            </AnimatedView>
+          )}
 
-        {activeTab === 'news' && (
-          <LiveNewsFeed 
-            onStockClick={(sym) => {
-              const s = allStocks.find(x => x.symbol === sym);
-              if (s) setSelectedStock(s);
-            }} 
-          />
-        )}
+          {activeTab === 'news' && (
+            <AnimatedView key="news">
+              <LiveNewsFeed 
+                onStockClick={(sym) => {
+                  const s = allStocks.find(x => x.symbol === sym);
+                  if (s) setSelectedStock(s);
+                }} 
+              />
+            </AnimatedView>
+          )}
 
-        {activeTab === 'results' && (
-          <EarningsResults />
-        )}
+          {activeTab === 'results' && (
+            <AnimatedView key="results">
+              <EarningsResults />
+            </AnimatedView>
+          )}
 
-        {activeTab === 'paper' && (
-          <PaperTradingDashboard />
-        )}
+          {activeTab === 'paper' && (
+            <AnimatedView key="paper">
+              <PaperTradingDashboard />
+            </AnimatedView>
+          )}
+        </AnimatePresence>
       </main>
 
       <StatusBar stockCount={allStocks.length} />

@@ -1,6 +1,9 @@
 import { useState, useMemo } from 'react';
 import type { StockData } from '../../types';
 import { formatPrice, formatPercent } from '../../utils/formatters';
+import { StaggerList } from '../Motion/StaggerList';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ChevronDown, ChevronUp, PieChart } from 'lucide-react';
 import './SectorBreakdown.css';
 
 interface SectorEntry {
@@ -31,12 +34,12 @@ export function SectorBreakdown({ sectorData }: SectorBreakdownProps) {
     <div className="sector-breakdown-container">
       {sortedSectors.length === 0 && (
         <div className="sector-empty">
-          <div className="sector-empty-icon">📊</div>
+          <div className="sector-empty-icon"><PieChart size={32} /></div>
           <div>Waiting for sector data...</div>
         </div>
       )}
-      <div className="sector-grid">
-        {sortedSectors.map(([sector, data], idx) => {
+      <StaggerList className="sector-grid" staggerDelay={0.05}>
+        {sortedSectors.map(([sector, data]) => {
           const isExpanded = expandedSector === sector;
           const topGainer = [...data.stocks].sort((a, b) => b.changePercent - a.changePercent)[0];
           const topLoser = [...data.stocks].sort((a, b) => a.changePercent - b.changePercent)[0];
@@ -46,10 +49,10 @@ export function SectorBreakdown({ sectorData }: SectorBreakdownProps) {
           const loserPct = data.totalStocks > 0 ? (data.losers / data.totalStocks) * 100 : 0;
 
           return (
-            <div
+            <motion.div
+              layout
               key={sector}
               className={`sector-card glass-card ${isExpanded ? 'expanded' : ''}`}
-              style={{ animationDelay: `${Math.min(idx * 60, 600)}ms` }}
             >
               <div className="sector-card-header" onClick={() => handleToggle(sector)}>
                 <div className="sector-card-title">
@@ -70,14 +73,14 @@ export function SectorBreakdown({ sectorData }: SectorBreakdownProps) {
               <div className="sector-extremes">
                 {topGainer && (
                   <div className="sector-extreme">
-                    <span className="sector-extreme-label">Top ▲</span>
+                    <span className="sector-extreme-label">Top <ChevronUp size={12} className="inline" /></span>
                     <span className="positive">{topGainer.symbol}</span>
                     <span className="positive">{formatPercent(topGainer.changePercent)}</span>
                   </div>
                 )}
                 {topLoser && (
                   <div className="sector-extreme">
-                    <span className="sector-extreme-label">Top ▼</span>
+                    <span className="sector-extreme-label">Top <ChevronDown size={12} className="inline" /></span>
                     <span className="negative">{topLoser.symbol}</span>
                     <span className="negative">{formatPercent(topLoser.changePercent)}</span>
                   </div>
@@ -85,33 +88,45 @@ export function SectorBreakdown({ sectorData }: SectorBreakdownProps) {
               </div>
 
               <div className="sector-expand-hint">
-                <span className="sector-expand-icon">{isExpanded ? '▲' : '▼'}</span>
+                <span className="sector-expand-icon">
+                  {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                </span>
               </div>
 
-              {isExpanded && (
-                <div className="sector-detail-table">
-                  <div className="sector-detail-header">
-                    <span>Symbol</span>
-                    <span>Price</span>
-                    <span>Change %</span>
-                  </div>
-                  {data.stocks
-                    .sort((a, b) => b.changePercent - a.changePercent)
-                    .map(stock => (
-                      <div key={stock.symbol} className="sector-detail-row">
-                        <span className="sector-detail-symbol">{stock.symbol}</span>
-                        <span className="sector-detail-price">{formatPrice(stock.price)}</span>
-                        <span className={`sector-detail-change ${stock.changePercent >= 0 ? 'positive' : 'negative'}`}>
-                          {formatPercent(stock.changePercent)}
-                        </span>
+              <AnimatePresence>
+                {isExpanded && (
+                  <motion.div 
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                    className="overflow-hidden"
+                  >
+                    <div className="sector-detail-table">
+                      <div className="sector-detail-header">
+                        <span>Symbol</span>
+                        <span>Price</span>
+                        <span>Change %</span>
                       </div>
-                    ))}
-                </div>
-              )}
-            </div>
+                      {data.stocks
+                        .sort((a, b) => b.changePercent - a.changePercent)
+                        .map(stock => (
+                          <div key={stock.symbol} className="sector-detail-row">
+                            <span className="sector-detail-symbol">{stock.symbol}</span>
+                            <span className="sector-detail-price">{formatPrice(stock.price)}</span>
+                            <span className={`sector-detail-change ${stock.changePercent >= 0 ? 'positive' : 'negative'}`}>
+                              {formatPercent(stock.changePercent)}
+                            </span>
+                          </div>
+                        ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
           );
         })}
-      </div>
+      </StaggerList>
     </div>
   );
 }

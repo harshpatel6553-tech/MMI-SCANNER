@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useSocket } from '../../hooks/useSocket';
 import { useAuth } from '../../context/AuthContext';
 import { formatTime } from '../../utils/formatters';
+import { Shield, LogOut } from 'lucide-react';
 import './Header.css';
 
 export function Header() {
@@ -61,19 +62,13 @@ export function Header() {
             </div>
           )}
           {profile?.is_admin && (
-            <button className="header-logout-btn" onClick={() => navigate('/admin')} style={{ background: 'rgba(218, 127, 99, 0.15)', borderColor: 'rgba(218, 127, 99, 0.3)', color: '#da7f63' }}>
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-              </svg>
+            <button className="btn btn-secondary" onClick={() => navigate('/admin')}>
+              <Shield size={16} />
               Admin Panel
             </button>
           )}
-          <button className="header-logout-btn" onClick={signOut}>
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-              <polyline points="16 17 21 12 16 7"></polyline>
-              <line x1="21" y1="12" x2="9" y2="12"></line>
-            </svg>
+          <button className="btn btn-ghost" onClick={signOut}>
+            <LogOut size={16} />
             Logout
           </button>
         </div>

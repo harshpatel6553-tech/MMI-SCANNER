@@ -1,6 +1,17 @@
 import { useRef, useEffect, useState } from 'react';
 import './ViewTabs.css';
 
+import { 
+  Table2, 
+  LayoutGrid, 
+  PieChart, 
+  TrendingUp, 
+  Star, 
+  Newspaper, 
+  LineChart, 
+  Gamepad2 
+} from 'lucide-react';
+
 interface ViewTabsProps {
   activeTab: 'table' | 'heatmap' | 'sectors' | 'watchlist' | 'news' | 'technical' | 'results' | 'paper';
   onTabChange: (tab: 'table' | 'heatmap' | 'sectors' | 'watchlist' | 'news' | 'technical' | 'results' | 'paper') => void;
@@ -8,14 +19,14 @@ interface ViewTabsProps {
 }
 
 const tabs = [
-  { key: 'table', label: '📋 Table' },
-  { key: 'heatmap', label: '🟩 Heatmap' },
-  { key: 'sectors', label: '📊 Sectors' },
-  { key: 'technical', label: '📈 Technical' },
-  { key: 'watchlist', label: '⭐ Watchlist' },
-  { key: 'news', label: '📰 Live News' },
-  { key: 'results', label: '📊 Results' },
-  { key: 'paper', label: '🎮 Paper Trading' }
+  { key: 'table', label: 'Table', Icon: Table2 },
+  { key: 'heatmap', label: 'Heatmap', Icon: LayoutGrid },
+  { key: 'sectors', label: 'Sectors', Icon: PieChart },
+  { key: 'technical', label: 'Technical', Icon: TrendingUp },
+  { key: 'watchlist', label: 'Watchlist', Icon: Star },
+  { key: 'news', label: 'Live News', Icon: Newspaper },
+  { key: 'results', label: 'Results', Icon: LineChart },
+  { key: 'paper', label: 'Paper Trading', Icon: Gamepad2 }
 ] as const;
 
 export function ViewTabs({ activeTab, onTabChange, watchlistCount = 0 }: ViewTabsProps) {
@@ -44,7 +55,8 @@ export function ViewTabs({ activeTab, onTabChange, watchlistCount = 0 }: ViewTab
             className={`view-tab ${activeTab === tab.key ? 'active' : ''}`}
             onClick={() => onTabChange(tab.key as any)}
           >
-            {tab.label}
+            <tab.Icon size={16} strokeWidth={2.5} />
+            <span>{tab.label}</span>
             {tab.key === 'watchlist' && watchlistCount > 0 && (
               <span className="watchlist-count-badge">{watchlistCount}</span>
             )}

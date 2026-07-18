@@ -8,11 +8,9 @@
   flex-direction: column;
   overflow: hidden;
   position: relative;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background: var(--bg-card);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
 }
 
 /* Scroll progress indicator */
@@ -21,7 +19,7 @@
   top: 0;
   left: 0;
   height: 2px;
-  background: linear-gradient(90deg, var(--accent), #7c3aed, var(--accent));
+  background: linear-gradient(90deg, var(--accent), var(--accent-bright), var(--accent));
   background-size: 200% 100%;
   animation: gradientFlow 3s ease infinite;
   z-index: 10;
@@ -51,8 +49,7 @@
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--text-secondary);
-  background: rgba(10, 14, 26, 0.95);
-  backdrop-filter: blur(10px);
+  background: var(--bg-secondary);
   border-bottom: 1px solid var(--border);
   cursor: pointer;
   user-select: none;
@@ -87,17 +84,17 @@
   opacity: 0.7;
 }
 
-/* Column widths */
+/* Column widths & fonts */
 .col-watchlist { width: 38px; text-align: center; cursor: default; }
 .col-index { width: 45px; text-align: center; }
-.col-symbol { width: 100px; }
+.col-symbol { width: 100px; font-weight: 700; }
 .col-name { width: 180px; }
-.col-price { width: 110px; text-align: right; }
-.col-change { width: 100px; text-align: right; }
-.col-pct { width: 100px; text-align: right; }
-.col-high { width: 110px; text-align: right; }
-.col-low { width: 110px; text-align: right; }
-.col-volume { width: 100px; text-align: right; }
+.col-price { width: 110px; text-align: right; font-family: 'Space Grotesk', monospace; }
+.col-change { width: 100px; text-align: right; font-family: 'Space Grotesk', monospace; }
+.col-pct { width: 100px; text-align: right; font-family: 'Space Grotesk', monospace; }
+.col-high { width: 110px; text-align: right; font-family: 'Space Grotesk', monospace; }
+.col-low { width: 110px; text-align: right; font-family: 'Space Grotesk', monospace; }
+.col-volume { width: 100px; text-align: right; font-family: 'Space Grotesk', monospace; }
 .col-indicator { width: 40px; text-align: center; }
 
 /* Watchlist star */

@@ -38,15 +38,10 @@
   max-width: 720px;
   max-height: 90vh;
   overflow-y: auto;
-  background: rgba(17, 17, 20, 0.92);
-  backdrop-filter: blur(40px);
-  -webkit-backdrop-filter: blur(40px);
+  background: var(--bg-card);
   border: 1px solid var(--border-accent);
-  border-radius: var(--radius-xl);
-  box-shadow:
-    0 24px 80px rgba(0, 0, 0, 0.7),
-    0 0 40px var(--accent-glow),
-    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-lg);
   animation: modalSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   padding: 32px;
 }

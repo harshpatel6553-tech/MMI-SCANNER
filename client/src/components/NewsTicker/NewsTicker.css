@@ -46,6 +46,8 @@
   height: 100%;
   overflow: hidden;
   position: relative;
+  -webkit-mask-image: linear-gradient(to right, transparent, black 3%, black 97%, transparent);
+  mask-image: linear-gradient(to right, transparent, black 3%, black 97%, transparent);
 }
 
 .news-ticker-track {

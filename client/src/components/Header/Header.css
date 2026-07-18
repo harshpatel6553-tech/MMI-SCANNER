@@ -29,9 +29,9 @@
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(218, 127, 99, 0.04) 40%,
-    rgba(218, 127, 99, 0.08) 50%,
-    rgba(218, 127, 99, 0.04) 60%,
+    var(--accent-subtle) 40%,
+    var(--accent-surface) 50%,
+    var(--accent-subtle) 60%,
     transparent 100%
   );
   animation: scannerBeam 6s linear infinite;
@@ -49,7 +49,7 @@
     90deg,
     transparent 0%,
     var(--accent) 20%,
-    #dfb15b 50%,
+    var(--accent-bright) 50%,
     var(--accent) 80%,
     transparent 100%
   );
@@ -74,16 +74,11 @@
 }
 
 .header-title {
-  font-family: 'Outfit', -apple-system, sans-serif;
-  font-size: 16px;
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-size: 14px;
   font-weight: 700;
-  letter-spacing: 2px;
-  background: linear-gradient(135deg, #e6e4e0, #da7f63, #dfb15b, #e6e4e0);
-  background-size: 300% 100%;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  animation: gradientFlow 8s ease infinite;
+  letter-spacing: 0.5px;
+  color: var(--text-primary);
 }
 
 /* Center - Market badge */

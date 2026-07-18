@@ -138,16 +138,18 @@
   font-size: 12px;
 }
 
-.stat-icon {
+.filter-panel .stat-icon {
   font-size: 14px;
 }
 
-.stat-label {
+.filter-panel .stat-label {
   color: var(--text-muted);
   font-weight: 500;
 }
 
-.stat-value {
+.filter-panel .stat-value {
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-size: 12px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   min-width: 24px;

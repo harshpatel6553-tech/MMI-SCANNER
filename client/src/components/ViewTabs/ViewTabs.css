@@ -11,10 +11,8 @@
   align-items: center;
   gap: 4px;
   background: var(--bg-card);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   padding: 4px;
   position: relative;
 }
@@ -25,7 +23,7 @@
   gap: 5px;
   padding: 8px 18px;
   border: none;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text-muted);
   font-family: inherit;
@@ -53,9 +51,9 @@
   top: 4px;
   height: calc(100% - 8px);
   background: var(--bg-tertiary);
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border-accent);
-  box-shadow: 0 0 12px var(--accent-glow), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  box-shadow: var(--shadow-glow);
   transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 0;
 }

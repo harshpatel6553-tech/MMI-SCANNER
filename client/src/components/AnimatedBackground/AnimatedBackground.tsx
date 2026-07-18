@@ -6,7 +6,7 @@ export function AnimatedBackground() {
       <div className="gradient-mesh" />
       <div className="grid-overlay" />
       <div className="particles">
-        {Array.from({ length: 30 }).map((_, i) => (
+        {Array.from({ length: 12 }).map((_, i) => (
           <div
             key={i}
             className="particle"

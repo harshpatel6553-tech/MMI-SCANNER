@@ -18,23 +18,24 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  background: var(--bg-main);
+  background: var(--bg-secondary);
   padding: 1.5rem;
-  border-radius: 8px;
-  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
 }
 
-.stat-label {
+.stat-box .stat-label {
   color: var(--text-secondary);
   font-size: 0.9rem;
   text-transform: uppercase;
   letter-spacing: 1px;
 }
 
-.stat-value {
+.stat-box .stat-value {
   font-size: 1.8rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
 }
 
 .dashboard-grid {
@@ -70,7 +71,7 @@
 .positions-table th, .positions-table td {
   padding: 1rem;
   text-align: right;
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border);
 }
 
 .positions-table th:first-child, .positions-table td:first-child {
@@ -100,9 +101,9 @@
   justify-content: space-between;
   align-items: center;
   padding: 1rem;
-  background: var(--bg-main);
-  border-radius: 8px;
-  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
 }
 
 .leaderboard-item .rank {
@@ -114,33 +115,20 @@
 .leaderboard-item .email {
   flex: 1;
   font-weight: 500;
+  color: var(--text-primary);
 }
 
 .leaderboard-item .balance {
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
 }
 
 .empty-state {
   text-align: center;
   padding: 3rem 1rem;
   color: var(--text-secondary);
-  background: var(--bg-main);
-  border-radius: 8px;
-  border: 1px dashed var(--border-color);
-}
-
-.trade-action-btn {
-  background: #3b82f6;
-  color: #fff;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 4px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: opacity 0.2s;
-}
-
-.trade-action-btn:hover {
-  opacity: 0.8;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  border: 1px dashed var(--border);
 }

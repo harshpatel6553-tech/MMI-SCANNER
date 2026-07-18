@@ -149,7 +149,7 @@ export function PaperTradingDashboard() {
                       </td>
                       <td>
                         <button 
-                          className="trade-action-btn"
+                          className="btn btn-primary"
                           onClick={() => {
                             const stockData = stocks.find(s => s.symbol === pos.symbol);
                             if (stockData) setTradeStock(stockData);

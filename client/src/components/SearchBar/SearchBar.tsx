@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
+import { Search, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import './SearchBar.css';
 
 interface SearchBarProps {
@@ -31,9 +33,12 @@ export function SearchBar({ value, onChange, matchCount }: SearchBarProps) {
   };
 
   return (
-    <div className={`search-bar ${isFocused ? 'focused' : ''} ${localValue ? 'has-value' : ''}`}>
+    <motion.div 
+      layout
+      className={`search-bar ${isFocused ? 'focused' : ''} ${localValue ? 'has-value' : ''}`}
+    >
       <div className="search-icon-wrapper">
-        <span className="search-icon">🔍</span>
+        <Search size={16} className="search-icon text-muted" />
         {isFocused && <span className="search-pulse" />}
       </div>
       <input
@@ -49,12 +54,21 @@ export function SearchBar({ value, onChange, matchCount }: SearchBarProps) {
       {localValue && matchCount !== undefined && (
         <span className="search-match-count">{matchCount} matches</span>
       )}
-      {localValue && (
-        <button className="search-clear" onClick={handleClear} aria-label="Clear search">
-          ✕
-        </button>
-      )}
+      <AnimatePresence>
+        {localValue && (
+          <motion.button 
+            initial={{ opacity: 0, scale: 0.5, rotate: -90 }}
+            animate={{ opacity: 1, scale: 1, rotate: 0 }}
+            exit={{ opacity: 0, scale: 0.5, rotate: 90 }}
+            className="search-clear" 
+            onClick={handleClear} 
+            aria-label="Clear search"
+          >
+            <X size={14} />
+          </motion.button>
+        )}
+      </AnimatePresence>
       {isFocused && <div className="search-scanning-border" />}
-    </div>
+    </motion.div>
   );
 }
