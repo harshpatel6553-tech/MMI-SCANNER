@@ -147,7 +147,7 @@
 
 .stock-row {
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color 0.15s ease;
   position: relative;
 }
 
@@ -157,7 +157,6 @@
 
 .stock-table tbody tr {
   border-bottom: 1px solid var(--border-light);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   cursor: pointer;
 }
