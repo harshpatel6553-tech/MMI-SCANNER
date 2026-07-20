@@ -220,11 +220,12 @@ export default function App() {
               <AdminDashboard />
             </ProtectedRoute>
           } />
-          <Route path="/*" element={
+          <Route path="/" element={
             <ProtectedRoute>
               <AppContent />
             </ProtectedRoute>
           } />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       )}
       <UpdatePasswordModal />
