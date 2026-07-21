@@ -39,24 +39,40 @@ class NewsService extends EventEmitter {
         return;
       }
 
-      let response: Response | null = null;
+      // Define the list of Twitter accounts to follow
+      const accountsToFollow = ['RedboxIndia', 'yatinmota'];
+      let allFetchedTweets: any[] = [];
       let lastError: any = null;
 
-      // Try keys until one succeeds, up to the number of available keys
+      // Try keys until one succeeds for the entire batch
       for (let i = 0; i < keys.length; i++) {
         const apiKey = keys[this.currentKeyIndex % keys.length];
         try {
-          response = await fetch('https://twitter-search-only.p.rapidapi.com/timeline.php?screenname=RedboxIndia&tweet_mode=extended&count=20', {
-            headers: {
-              'x-rapidapi-key': apiKey,
-              'x-rapidapi-host': 'twitter-search-only.p.rapidapi.com'
+          const fetchPromises = accountsToFollow.map(async (screenname) => {
+            const response = await fetch(`https://twitter-search-only.p.rapidapi.com/timeline.php?screenname=${screenname}&tweet_mode=extended&count=20`, {
+              headers: {
+                'x-rapidapi-key': apiKey,
+                'x-rapidapi-host': 'twitter-search-only.p.rapidapi.com'
+              }
+            });
+
+            if (!response.ok) {
+              throw new Error(`HTTP ${response.status} ${response.statusText}`);
             }
+
+            const json = await response.json();
+            if (json.timeline && Array.isArray(json.timeline)) {
+              // Add a source field so we know which account it came from
+              return json.timeline.map((tweet: any) => ({ ...tweet, _sourceAccount: screenname }));
+            }
+            return [];
           });
 
-          if (response.ok) {
-            break; // Success! Exit the retry loop.
-          } else {
-            throw new Error(`HTTP ${response.status} ${response.statusText}`);
+          const results = await Promise.all(fetchPromises);
+          allFetchedTweets = results.flat();
+          
+          if (allFetchedTweets.length > 0) {
+            break; // Success! We fetched data. Exit the retry loop.
           }
         } catch (error) {
           lastError = error;
@@ -65,21 +81,20 @@ class NewsService extends EventEmitter {
         }
       }
 
-      if (!response || !response.ok) {
-        throw new Error(`All ${keys.length} API keys failed. Last error: ${lastError?.message || 'Unknown'}`);
-      }
-      
-      const json = await response.json();
-      
-      if (!json.timeline || !Array.isArray(json.timeline)) {
-        logger.warn('Unexpected JSON format from RapidAPI');
+      if (allFetchedTweets.length === 0) {
+        logger.warn(`Failed to fetch tweets from any account. Last error: ${lastError?.message || 'Unknown'}`);
         return;
       }
+      
+      // Sort all fetched tweets by date descending (newest first)
+      allFetchedTweets.sort((a, b) => {
+        const dateA = new Date(a.created_at || 0).getTime();
+        const dateB = new Date(b.created_at || 0).getTime();
+        return dateB - dateA;
+      });
 
-      const tweets = json.timeline;
-
-      // Parse and clean the top 20 tweets
-      const newNews: NewsItem[] = tweets.slice(0, 20).map((item: any, index: number) => {
+      // Parse and clean the top 20 most recent tweets across all accounts
+      const newNews: NewsItem[] = allFetchedTweets.slice(0, 20).map((item: any, index: number) => {
         const textContent = item.full_text || item.retweeted_status?.full_text || item.retweeted_status?.text || item.text || 'Breaking News';
         const cleanTitle = he.decode(textContent);
         
@@ -88,9 +103,9 @@ class NewsService extends EventEmitter {
         return {
           id: item.tweet_id || `${Date.now()}-${index}`,
           title: cleanTitle,
-          link: `https://x.com/RedboxIndia/status/${item.tweet_id}`,
+          link: `https://x.com/${item._sourceAccount}/status/${item.tweet_id}`,
           pubDate: item.created_at || new Date().toUTCString(),
-          source: 'RedboxIndia',
+          source: item._sourceAccount,
           isEarningsResult: earningsRegex.test(cleanTitle)
         };
       });
@@ -114,9 +129,9 @@ class NewsService extends EventEmitter {
       }
 
       // Combine old cache with new tweets, keeping the top 20 latest
-      const combinedNews = [...newTweets, ...this.newsCache].slice(0, 20);
+      const combinedNews = [...newTweets, ...this.newsCache].sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime()).slice(0, 20);
       this.newsCache = combinedNews;
-      logger.debug(`Fetched ${newTweets.length} new tweets from RedboxIndia.`);
+      logger.debug(`Fetched ${newTweets.length} new tweets from multiple accounts.`);
 
       // Emit news alerts for new tweets (skip on first boot to avoid spamming alerts)
       if (!isFirstFetch && newTweets.length > 0) {
@@ -126,7 +141,7 @@ class NewsService extends EventEmitter {
       }
 
     } catch (error) {
-      logger.error('Error fetching RapidAPI:', error instanceof Error ? error.message : String(error));
+      logger.error('Error in fetchTweets:', error instanceof Error ? error.message : String(error));
     }
   }
 
