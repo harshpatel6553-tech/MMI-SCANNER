@@ -122,7 +122,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } else {
       // 14-Day Free Trial Logic (default 'trialing')
-      const trialStart = new Date(profile.trial_start_date).getTime();
+      // Fallback to created_at or 'now' if trial_start_date is missing
+      const startDateString = profile.trial_start_date || (profile as any).created_at || new Date().toISOString();
+      const trialStart = new Date(startDateString).getTime();
       const now = new Date().getTime();
       
       // Protect against invalid dates
