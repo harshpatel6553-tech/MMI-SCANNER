@@ -100,20 +100,24 @@ class NewsService extends EventEmitter {
         
         const earningsRegex = /\b(Q[1-4]|FY\d{2}|Quarterly Results|Net Profit|Revenue|EBITDA|PAT)\b/i;
         
-        const deterministicId = item.tweet_id || item.id_str || item.id || Buffer.from(cleanTitle.substring(0, 30) + (item.created_at || '')).toString('base64').replace(/[^a-zA-Z0-9]/g, '');
+        const titleHashStr = cleanTitle.replace(/[^a-zA-Z0-9]/g, '').substring(0, 50).toLowerCase();
+        const deterministicId = 'msg-' + Buffer.from(titleHashStr + item._sourceAccount).toString('hex');
         
         return {
           id: deterministicId,
           title: cleanTitle,
-          link: `https://x.com/${item._sourceAccount}/status/${deterministicId}`,
+          link: `https://x.com/${item._sourceAccount}`,
           pubDate: item.created_at || new Date().toUTCString(),
           source: item._sourceAccount,
           isEarningsResult: earningsRegex.test(cleanTitle)
         };
       });
 
+      // Deduplicate newNews internally based on ID
+      const uniqueNewNews = Array.from(new Map(newNews.map(item => [item.id, item])).values());
+
       const isFirstFetch = this.newsCache.length === 0;
-      let newTweets = newNews.filter(n => !this.newsCache.find(old => old.id === n.id));
+      let newTweets = uniqueNewNews.filter(n => !this.newsCache.find(old => old.id === n.id));
 
       if (newTweets.length > 0 && aiService.hasValidKey) {
         try {
