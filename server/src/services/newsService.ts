@@ -100,10 +100,12 @@ class NewsService extends EventEmitter {
         
         const earningsRegex = /\b(Q[1-4]|FY\d{2}|Quarterly Results|Net Profit|Revenue|EBITDA|PAT)\b/i;
         
+        const deterministicId = item.tweet_id || item.id_str || item.id || Buffer.from(cleanTitle.substring(0, 30) + (item.created_at || '')).toString('base64').replace(/[^a-zA-Z0-9]/g, '');
+        
         return {
-          id: item.tweet_id || `${Date.now()}-${index}`,
+          id: deterministicId,
           title: cleanTitle,
-          link: `https://x.com/${item._sourceAccount}/status/${item.tweet_id}`,
+          link: `https://x.com/${item._sourceAccount}/status/${deterministicId}`,
           pubDate: item.created_at || new Date().toUTCString(),
           source: item._sourceAccount,
           isEarningsResult: earningsRegex.test(cleanTitle)
