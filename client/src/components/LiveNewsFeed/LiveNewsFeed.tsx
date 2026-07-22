@@ -28,7 +28,6 @@ export function LiveNewsFeed({ onStockClick }: LiveNewsFeedProps) {
           </svg>
           <h3>Breaking Market News</h3>
         </div>
-        <div className="live-news-source">Source: @RedboxIndia</div>
       </div>
       
       <div className="live-news-content">
@@ -51,8 +50,11 @@ export function LiveNewsFeed({ onStockClick }: LiveNewsFeedProps) {
                 >
                   <div className="news-item-header">
                     <span className="news-item-time">{formatTime(item.pubDate)}</span>
+                    <span className="news-item-source" style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.5px', background: 'rgba(255,255,255,0.05)', padding: '2px 6px', borderRadius: '4px', marginLeft: '4px' }}>
+                      @{item.source || 'REDBOXINDIA'}
+                    </span>
                     {item.sentiment && item.sentiment !== 'Neutral' && (
-                      <span className={`news-sentiment-badge ${getSentimentClass(item.sentiment)}`}>
+                      <span className={`news-sentiment-badge ${getSentimentClass(item.sentiment)}`} style={{ marginLeft: 'auto' }}>
                         {item.sentiment}
                       </span>
                     )}
