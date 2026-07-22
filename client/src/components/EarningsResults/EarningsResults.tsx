@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNews } from '../../hooks/useNews';
+import { Calendar, Activity, Zap, Inbox, Search, TrendingUp, BarChart3 } from 'lucide-react';
 import './EarningsResults.css';
 
 interface CalendarEvent {
@@ -40,7 +41,11 @@ export function EarningsResults() {
     const isBullish = sentiment === 'Bullish';
     return (
       <span className={`news-sentiment-badge ${isBullish ? 'bullish' : 'bearish'}`}>
-        {isBullish ? 'BULLISH' : 'BEARISH'}
+        {isBullish ? (
+          <><TrendingUp size={12} /> BULLISH</>
+        ) : (
+          <><TrendingUp size={12} style={{ transform: 'scaleY(-1)' }} /> BEARISH</>
+        )}
       </span>
     );
   };
@@ -48,12 +53,22 @@ export function EarningsResults() {
   return (
     <div className="earnings-results-container">
       <div className="earnings-live-feed">
-        <h2 className="section-title">📊 Live Earnings Feed</h2>
+        <h2 className="section-title">
+          <Activity className="icon-glow" size={20} />
+          Live Earnings Feed
+        </h2>
         <div className="news-list">
           {loading && earningsNews.length === 0 ? (
-            <div className="news-loading">Scanning for breaking results...</div>
+            <div className="news-empty">
+              <Zap className="spin-pulse" size={32} />
+              <p>Scanning for breaking results...</p>
+            </div>
           ) : earningsNews.length === 0 ? (
-            <div className="news-empty">No earnings results announced yet today.</div>
+            <div className="news-empty">
+              <Inbox size={32} />
+              <p>No earnings results announced yet today.</p>
+              <span className="empty-subtext">Waiting for companies to report...</span>
+            </div>
           ) : (
             earningsNews.map((item) => (
               <a 
@@ -84,13 +99,24 @@ export function EarningsResults() {
       </div>
       
       <div className="earnings-calendar">
-        <h2 className="section-title">📅 Expected Today</h2>
-        <div className="calendar-list">
+        <div className="calendar-header-glass">
+          <h2 className="section-title">
+            <Calendar size={20} className="icon-accent" />
+            Expected Today
+          </h2>
           <p className="calendar-subtext">Companies scheduled to announce quarterly results today.</p>
+        </div>
+        <div className="calendar-list">
           {calendarLoading ? (
-            <div className="news-loading">Fetching calendar...</div>
+            <div className="news-empty">
+              <Search className="spin-pulse" size={32} />
+              <p>Fetching calendar...</p>
+            </div>
           ) : calendar.length === 0 ? (
-            <div className="news-empty">No major Indian companies are scheduled to report earnings today.</div>
+            <div className="news-empty">
+              <BarChart3 size={32} />
+              <p>No major Indian companies are scheduled to report earnings today.</p>
+            </div>
           ) : (
             calendar.map(co => (
               <div key={co.symbol} className="calendar-item">
