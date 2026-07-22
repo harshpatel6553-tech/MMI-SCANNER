@@ -138,6 +138,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
     }
+  } else if (!loading && user) {
+    // CRITICAL SECURITY FIX: If the user is logged in but their profile is completely missing 
+    // (e.g. they were deleted from the database), explicitly lock them out.
+    isTrialExpired = true;
   }
 
   return (
