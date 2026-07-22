@@ -71,15 +71,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .eq('id', userId)
         .single();
 
-      if (error) {
+      if (error || !data) {
         // If profile not found immediately, retry once after 1s (trigger might take a moment)
         setTimeout(async () => {
-          const { data: retryData } = await supabase
+          const { data: retryData, error: retryError } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', userId)
             .single();
-          setProfile(retryData);
+            
+          if (retryError || !retryData) {
+            // CRITICAL FALLBACK: The Postgres trigger failed to create the profile!
+            // We will attempt to manually reconstruct it from the frontend.
+            const newProfile = {
+              id: userId,
+              email: user?.email || '',
+              subscription_status: 'trialing',
+              trial_start_date: new Date().toISOString(),
+              is_admin: false
+            };
+            
+            // Try to insert it (this may fail if RLS blocks frontend inserts, which is fine)
+            await supabase.from('profiles').insert([newProfile]);
+            
+            // Regardless of DB success, set it locally so they aren't locked out
+            setProfile(newProfile);
+          } else {
+            setProfile(retryData);
+          }
           setLoading(false);
         }, 1000);
       } else {
