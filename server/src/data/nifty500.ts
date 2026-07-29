@@ -1811,6 +1811,10 @@ const ADDITIONAL_NIFTY500_STOCKS: StockQuote[] = [
   {
     "symbol": "ECLERX",
     "name": "eClerx Services Ltd."
+  },
+  {
+    "symbol": "EBGNG",
+    "name": "GNG Electronics Limited"
   }
 ];
 

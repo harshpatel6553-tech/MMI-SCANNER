@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSocketContext } from '../context/SocketContext';
 
 export interface NewsItem {
@@ -19,6 +19,9 @@ export function useNews() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { socket } = useSocketContext();
+  
+  // Ref to track if we should continue fast polling
+  const isWarmingUp = useRef(false);
 
   const fetchNews = useCallback(async () => {
     try {
@@ -27,11 +30,20 @@ export function useNews() {
       if (data.success) {
         setNews(data.data);
         setError(null);
+        
+        // If empty, backend is likely still starting up/fetching from Twitter.
+        if (data.data.length === 0) {
+          isWarmingUp.current = true;
+        } else {
+          isWarmingUp.current = false;
+        }
       } else {
         setError(data.error);
+        isWarmingUp.current = false;
       }
     } catch (err) {
       setError('Failed to fetch news');
+      isWarmingUp.current = false;
     } finally {
       setLoading(false);
     }
@@ -43,14 +55,25 @@ export function useNews() {
     // Initial fetch
     fetchNews();
 
-    // Poll for new news every 60 seconds as a fallback
-    const interval = setInterval(() => {
-      if (isMounted) fetchNews();
-    }, 60000);
+    // Adaptive fallback polling: poll every 3 seconds if empty, otherwise 60 seconds
+    let ticks = 0;
+    const tickInterval = setInterval(() => {
+      if (!isMounted) return;
+      ticks++;
+      
+      if (isWarmingUp.current) {
+        // If warming up (news is empty), fetch every 3 seconds
+        fetchNews();
+      } else if (ticks >= 20) { 
+        // 20 ticks * 3s = 60 seconds standard fallback
+        fetchNews();
+        ticks = 0;
+      }
+    }, 3000);
 
     return () => {
       isMounted = false;
-      clearInterval(interval);
+      clearInterval(tickInterval);
     };
   }, [fetchNews]);
 
