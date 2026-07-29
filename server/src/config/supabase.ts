@@ -8,14 +8,18 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import logger from '../utils/logger.js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL || '';
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || '';
+
+// Use the service key if available to bypass RLS in the backend, fallback to anon key
+const ACTIVE_KEY = SUPABASE_SERVICE_KEY || SUPABASE_ANON_KEY;
 
 /** Whether Supabase is properly configured with real credentials */
 export const isSupabaseConfigured: boolean =
   SUPABASE_URL !== '' &&
-  SUPABASE_ANON_KEY !== '' &&
+  ACTIVE_KEY !== '' &&
   !SUPABASE_URL.includes('your-project-id') &&
-  !SUPABASE_ANON_KEY.includes('your-supabase-anon-key');
+  !ACTIVE_KEY.includes('your-supabase-anon-key');
 
 /**
  * Supabase client instance.
@@ -27,7 +31,7 @@ export const isSupabaseConfigured: boolean =
  */
 export const supabase: SupabaseClient = createClient(
   SUPABASE_URL || 'https://placeholder.supabase.co',
-  SUPABASE_ANON_KEY || 'placeholder-key',
+  ACTIVE_KEY || 'placeholder-key',
   {
     auth: { persistSession: false },
   }
