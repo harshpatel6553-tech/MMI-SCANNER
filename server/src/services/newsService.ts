@@ -134,8 +134,11 @@ class NewsService extends EventEmitter {
         }
       }
 
-      // Combine old cache with new tweets, keeping the top 20 latest
-      const combinedNews = [...newTweets, ...this.newsCache].sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime()).slice(0, 20);
+      // Combine old cache with new tweets, keeping the top 100 latest in memory for deduplication
+      const combinedNews = [...newTweets, ...this.newsCache]
+        .sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime())
+        .slice(0, 100);
+        
       this.newsCache = combinedNews;
       logger.debug(`Fetched ${newTweets.length} new tweets from multiple accounts.`);
 
