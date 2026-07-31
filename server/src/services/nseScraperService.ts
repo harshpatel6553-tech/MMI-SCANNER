@@ -22,9 +22,10 @@ class NSEScraperService {
     try {
       logger.info('Fetching latest NSE bulk deals via Python scraper...');
       const scriptPath = path.resolve(process.cwd(), 'src/scripts/nse_scraper.py');
+      const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
       
       const deals = await new Promise<any[]>((resolve, reject) => {
-        exec(`python "${scriptPath}"`, { maxBuffer: 1024 * 1024 * 10 }, (error, stdout, stderr) => {
+        exec(`${pythonCmd} "${scriptPath}"`, { maxBuffer: 1024 * 1024 * 10 }, (error, stdout, stderr) => {
           if (error) {
             reject(error);
             return;
