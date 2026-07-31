@@ -1,7 +1,7 @@
 # ============================================
 # BUILD STAGE
 # ============================================
-FROM node:22-alpine AS builder
+FROM node:22-bookworm-slim AS builder
 
 # Set working directory for the server
 WORKDIR /app/server
@@ -21,7 +21,12 @@ RUN npm run build
 # ============================================
 # RUN STAGE
 # ============================================
-FROM node:22-alpine AS runner
+FROM node:22-bookworm-slim AS runner
+
+# Install Python 3, pip, and pandas (needed for NSE bulk deal scraper)
+RUN apt-get update && \
+    apt-get install -y python3 python3-pip python3-pandas --no-install-recommends && \
+    rm -rf /var/lib/apt/lists/*
 
 # Set working directory
 WORKDIR /app/server
@@ -34,6 +39,9 @@ RUN npm ci --omit=dev
 
 # Copy compiled JavaScript files from the builder stage
 COPY --from=builder /app/server/dist ./dist
+
+# Also copy the Python scripts so they are available in production
+COPY --from=builder /app/server/src/scripts ./src/scripts
 
 # Set environment
 ENV NODE_ENV=production
