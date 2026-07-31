@@ -10,7 +10,7 @@ WORKDIR /app/server
 COPY server/package*.json ./
 
 # Install all dependencies (including TypeScript devDependencies)
-RUN npm ci
+RUN npm install
 
 # Copy the server source code
 COPY server/ ./
@@ -35,7 +35,7 @@ WORKDIR /app/server
 COPY server/package*.json ./
 
 # Install only production dependencies (saves memory and disk space)
-RUN npm ci --omit=dev
+RUN npm install --omit=dev
 
 # Copy compiled JavaScript files from the builder stage
 COPY --from=builder /app/server/dist ./dist
