@@ -3,11 +3,20 @@
 # ============================================
 FROM node:22-bookworm-slim AS builder
 
+# Install build tools in case native modules need them
+RUN apt-get update && \
+    apt-get install -y python3 make g++ && \
+    rm -rf /var/lib/apt/lists/*
+
 # Set working directory for the server
 WORKDIR /app/server
 
 # Copy package configuration files
 COPY server/package*.json ./
+
+# Prevent Puppeteer from downloading Chromium during build (saves memory and avoids network timeouts)
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV PUPPETEER_SKIP_DOWNLOAD=true
 
 # Install all dependencies (including TypeScript devDependencies)
 RUN npm install
@@ -33,6 +42,10 @@ WORKDIR /app/server
 
 # Copy package files
 COPY server/package*.json ./
+
+# Prevent Puppeteer from downloading Chromium during production install
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV PUPPETEER_SKIP_DOWNLOAD=true
 
 # Install only production dependencies (saves memory and disk space)
 RUN npm install --omit=dev
