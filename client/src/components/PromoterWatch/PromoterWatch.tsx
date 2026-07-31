@@ -11,6 +11,8 @@ interface Deal {
   price: number;
 }
 
+const API_URL = (import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000') + '/api';
+
 export const PromoterWatch: React.FC = () => {
   const [deals, setDeals] = useState<Deal[]>([]);
   const [loading, setLoading] = useState(true);
@@ -23,7 +25,7 @@ export const PromoterWatch: React.FC = () => {
   const fetchDeals = async () => {
     try {
       setLoading(true);
-      const res = await fetch('http://localhost:5000/api/deals/bulk');
+      const res = await fetch(`${API_URL}/deals/bulk`);
       const data = await res.json();
       if (data.status === 'success') {
         setDeals(data.data || []);
