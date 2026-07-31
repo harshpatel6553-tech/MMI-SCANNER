@@ -97,8 +97,8 @@ class NewsService extends EventEmitter {
       const newNews: NewsItem[] = allFetchedTweets.slice(0, 20).map((item: any, index: number) => {
         const textContent = item.full_text || item.retweeted_status?.full_text || item.retweeted_status?.text || item.text || 'Breaking News';
         const cleanTitle = he.decode(textContent);
-        
         const earningsRegex = /\b(Q[1-4]|FY\d{2}|Quarterly Results|Net Profit|Revenue|EBITDA|PAT)\b/i;
+        const blockDealRegex = /\b(Block Deal|Bulk Deal|Stake Sale|Promoter|Pledge|OFS)\b/i;
         
         const titleHashStr = cleanTitle.replace(/[^a-zA-Z0-9]/g, '').substring(0, 50).toLowerCase();
         const deterministicId = 'msg-' + Buffer.from(titleHashStr + item._sourceAccount).toString('hex');
@@ -109,7 +109,8 @@ class NewsService extends EventEmitter {
           link: `https://x.com/${item._sourceAccount}`,
           pubDate: item.created_at || new Date().toUTCString(),
           source: item._sourceAccount,
-          isEarningsResult: earningsRegex.test(cleanTitle)
+          isEarningsResult: earningsRegex.test(cleanTitle),
+          isPromoterAction: blockDealRegex.test(cleanTitle)
         };
       });
 

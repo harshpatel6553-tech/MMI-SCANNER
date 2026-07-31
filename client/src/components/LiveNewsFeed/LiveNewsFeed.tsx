@@ -53,11 +53,20 @@ export function LiveNewsFeed({ onStockClick }: LiveNewsFeedProps) {
                     <span className="news-item-source" style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.5px', background: 'rgba(255,255,255,0.05)', padding: '2px 6px', borderRadius: '4px', marginLeft: '4px' }}>
                       @{item.source || 'REDBOXINDIA'}
                     </span>
-                    {item.sentiment && item.sentiment !== 'Neutral' && (
-                      <span className={`news-sentiment-badge ${getSentimentClass(item.sentiment)}`} style={{ marginLeft: 'auto' }}>
-                        {item.sentiment}
-                      </span>
-                    )}
+                    
+                    <div style={{ marginLeft: 'auto', display: 'flex', gap: '4px' }}>
+                      {item.isPromoterAction && (
+                        <span className="news-sentiment-badge" style={{ backgroundColor: '#a855f7', color: '#fff', border: '1px solid #c084fc' }}>
+                          BLOCK DEAL
+                        </span>
+                      )}
+                      
+                      {item.sentiment && item.sentiment !== 'Neutral' && (
+                        <span className={`news-sentiment-badge ${getSentimentClass(item.sentiment)}`}>
+                          {item.sentiment}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div className="news-item-title">{item.title}</div>
                 </a>

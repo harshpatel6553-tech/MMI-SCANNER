@@ -10,6 +10,7 @@ export interface NewsItem {
   sentiment?: 'Bullish' | 'Bearish' | 'Neutral';
   affectedStocks?: string[];
   isEarningsResult?: boolean;
+  isPromoterAction?: boolean;
 }
 
 const API_URL = (import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000') + '/api';
