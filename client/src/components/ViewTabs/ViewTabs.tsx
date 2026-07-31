@@ -9,12 +9,13 @@ import {
   Star, 
   Newspaper, 
   LineChart, 
-  Gamepad2 
+  Gamepad2,
+  Eye
 } from 'lucide-react';
 
 interface ViewTabsProps {
-  activeTab: 'table' | 'heatmap' | 'sectors' | 'watchlist' | 'news' | 'technical' | 'results' | 'paper';
-  onTabChange: (tab: 'table' | 'heatmap' | 'sectors' | 'watchlist' | 'news' | 'technical' | 'results' | 'paper') => void;
+  activeTab: 'table' | 'heatmap' | 'sectors' | 'watchlist' | 'news' | 'technical' | 'results' | 'paper' | 'promoter';
+  onTabChange: (tab: 'table' | 'heatmap' | 'sectors' | 'watchlist' | 'news' | 'technical' | 'results' | 'paper' | 'promoter') => void;
   watchlistCount?: number;
 }
 
@@ -26,7 +27,8 @@ const tabs = [
   { key: 'watchlist', label: 'Watchlist', Icon: Star },
   { key: 'news', label: 'Live News', Icon: Newspaper },
   { key: 'results', label: 'Results', Icon: LineChart },
-  { key: 'paper', label: 'Paper Trading', Icon: Gamepad2 }
+  { key: 'paper', label: 'Paper Trading', Icon: Gamepad2 },
+  { key: 'promoter', label: 'Promoter Watch', Icon: Eye }
 ] as const;
 
 export function ViewTabs({ activeTab, onTabChange, watchlistCount = 0 }: ViewTabsProps) {

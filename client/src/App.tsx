@@ -13,6 +13,7 @@ import { Heatmap } from './components/Heatmap/Heatmap';
 import { SectorBreakdown } from './components/SectorBreakdown/SectorBreakdown';
 import { LiveNewsFeed } from './components/LiveNewsFeed/LiveNewsFeed';
 import { EarningsResults } from './components/EarningsResults/EarningsResults';
+import { PromoterWatch } from './components/PromoterWatch/PromoterWatch';
 import { NewsTicker } from './components/NewsTicker/NewsTicker';
 import { AlertToast } from './components/Alerts/AlertToast';
 import { AlertPanel } from './components/Alerts/AlertPanel';
@@ -43,7 +44,7 @@ function AppContent() {
   });
   const [sortField, setSortField] = useState<SortField>('symbol');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
-  const [activeTab, setActiveTab] = useState<'table' | 'heatmap' | 'sectors' | 'watchlist' | 'news' | 'technical' | 'results' | 'paper'>('table');
+  const [activeTab, setActiveTab] = useState<'table' | 'heatmap' | 'sectors' | 'watchlist' | 'news' | 'technical' | 'results' | 'paper' | 'promoter'>('table');
   const [selectedStock, setSelectedStock] = useState<StockData | null>(null);
 
   const { stocks, allStocks, stats, priceFlash, sectorData } = useStocks(filters, sortField, sortOrder);
@@ -180,6 +181,12 @@ function AppContent() {
           {activeTab === 'paper' && (
             <AnimatedView key="paper">
               <PaperTradingDashboard />
+            </AnimatedView>
+          )}
+
+          {activeTab === 'promoter' && (
+            <AnimatedView key="promoter">
+              <PromoterWatch />
             </AnimatedView>
           )}
         </AnimatePresence>
