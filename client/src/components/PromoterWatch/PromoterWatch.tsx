@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ArrowLeft, ShieldAlert, Target, Info, Search } from 'lucide-react';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { AdSenseBanner } from '../AdSense/AdSenseBanner';
 
 interface Deal {
   date: string;
@@ -161,6 +162,8 @@ export const PromoterWatch: React.FC = () => {
             </div>
           </div>
         </div>
+
+        <AdSenseBanner dataAdSlot="promoter-dashboard-middle" className="mb-8" />
 
         {/* DATA TABLE */}
         <div className="bg-[#111] border border-gray-800 rounded-sm overflow-hidden">
