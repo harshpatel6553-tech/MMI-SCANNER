@@ -2,8 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { ArrowLeft, ShieldAlert, Target, Info, Search } from 'lucide-react';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { AdSenseBanner } from '../AdSense/AdSenseBanner';
-import { useSocketContext } from '../../context/SocketContext';
-import { WhaleAlertToast, WhaleAlertProps } from './WhaleAlertToast';
 
 interface Deal {
   date: string;
@@ -20,36 +18,10 @@ export const PromoterWatch: React.FC = () => {
   const [deals, setDeals] = useState<Deal[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  
-  const { socket } = useSocketContext();
-  const [whaleAlerts, setWhaleAlerts] = useState<(WhaleAlertProps & { id: string })[]>([]);
 
   useEffect(() => {
     fetchDeals();
   }, []);
-
-  useEffect(() => {
-    if (!socket) return;
-    
-    const handleWhaleAlert = (data: any) => {
-      const newAlert = {
-        ...data,
-        id: Math.random().toString(36).substr(2, 9)
-      };
-      
-      setWhaleAlerts(prev => [newAlert, ...prev].slice(0, 5)); // Keep max 5 visible
-    };
-    
-    socket.on('WHALE_ALERT', handleWhaleAlert);
-    
-    return () => {
-      socket.off('WHALE_ALERT', handleWhaleAlert);
-    };
-  }, [socket]);
-
-  const removeWhaleAlert = (id: string) => {
-    setWhaleAlerts(prev => prev.filter(a => a.id !== id));
-  };
 
   const fetchDeals = async () => {
     try {
@@ -107,18 +79,6 @@ export const PromoterWatch: React.FC = () => {
 
   return (
     <div className="flex-1 bg-[#0a0a0a] min-h-screen text-gray-300 font-mono overflow-y-auto">
-      
-      {/* WHALE ALERTS TOAST CONTAINER */}
-      <div className="fixed top-24 right-6 z-50 flex flex-col space-y-4">
-        {whaleAlerts.map(alert => (
-          <WhaleAlertToast 
-            key={alert.id}
-            {...alert}
-            onClose={removeWhaleAlert}
-          />
-        ))}
-      </div>
-
       {/* HEADER */}
       <div className="border-b border-gray-800 p-6 flex flex-col md:flex-row justify-between items-start md:items-end bg-black">
         <div>
