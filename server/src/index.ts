@@ -37,6 +37,7 @@ import {
   setupSocketHandlers,
   broadcastStockUpdate,
 } from './sockets/stockSocket.js';
+import { initJainamSocket } from './services/jainamSocketService.js';
 
 // ── Configuration ──────────────────────────────────────────────
 
@@ -94,6 +95,7 @@ const io = new SocketIOServer<ClientToServerEvents, ServerToClientEvents>(
 // ── Socket Handlers ────────────────────────────────────────────
 
 setupSocketHandlers(io);
+initJainamSocket(io);
 
 // ── REST Routes ────────────────────────────────────────────────
 
