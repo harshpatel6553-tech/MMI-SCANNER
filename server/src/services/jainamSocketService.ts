@@ -64,7 +64,7 @@ const connectToJainam = (token: string) => {
         // Handle array or single object
         const updates = Array.isArray(parsed.data) ? parsed.data : [parsed.data];
         
-        updates.forEach(update => {
+        updates.forEach((update: any) => {
           if (!update.symbol || !update.last_price || !update.last_quantity) return;
           
           const symbol = update.symbol.replace('NSE:', '');
