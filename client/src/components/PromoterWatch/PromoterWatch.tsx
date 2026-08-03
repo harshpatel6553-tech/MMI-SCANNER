@@ -110,7 +110,7 @@ export const PromoterWatch: React.FC = () => {
         </div>
       </div>
 
-      <div className="p-6">
+      <div className="p-6 pb-32">
         <div className="mb-6 relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600" />
           <input 
