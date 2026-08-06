@@ -167,7 +167,7 @@ export function setupSocketHandlers(io: TypedServer): void {
       // Send filtered stocks for the new subscription
       const stocks = stockService.getCachedStocks();
       const subscriptionStocks = filterStocksBySubscription(stocks, index);
-      socket.emit('stocks:update', subscriptionStocks);
+      socket.emit('stocks:update:full', subscriptionStocks);
     });
 
     // Handle disconnection
@@ -183,23 +183,12 @@ export function setupSocketHandlers(io: TypedServer): void {
   });
 }
 
+/** Cache of the last state sent to clients to compute deltas */
+const lastBroadcastState: Map<string, StockData> = new Map();
+
 /**
  * Broadcast stock updates and alerts to all connected clients.
- *
- * Each client receives only the stocks matching their current subscription
- * preference. Alerts are broadcast to ALL connected clients regardless of
- * subscription.
- *
- * @param io - The Socket.IO server instance
- * @param stocks - Updated stock data to broadcast
- * @param alerts - New alerts to broadcast (optional)
- *
- * @example
- * ```typescript
- * const updatedStocks = await stockService.fetchNifty50();
- * const newAlerts = alertService.checkAndGenerateAlerts(updatedStocks);
- * broadcastStockUpdate(io, updatedStocks, newAlerts);
- * ```
+ * Uses a Delta Architecture to only send stocks that have actually changed.
  */
 export function broadcastStockUpdate(
   io: TypedServer,
@@ -207,17 +196,42 @@ export function broadcastStockUpdate(
   alerts: StockAlert[] = []
 ): void {
   try {
+    const deltaStocks: StockData[] = [];
+
+    // 1. Calculate the Delta (Only what changed)
+    for (const stock of stocks) {
+      const last = lastBroadcastState.get(stock.symbol);
+      if (
+        !last ||
+        last.price !== stock.price ||
+        last.volume !== stock.volume ||
+        last.dayHigh !== stock.dayHigh ||
+        last.dayLow !== stock.dayLow
+      ) {
+        deltaStocks.push(stock);
+        lastBroadcastState.set(stock.symbol, { ...stock });
+      }
+    }
+
     const sockets = io.sockets.sockets;
 
+    // 2. Broadcast the Delta to clients (if there are changes)
+    if (deltaStocks.length > 0) {
+      for (const [, socket] of sockets) {
+        const typedSocket = socket as TypedSocket;
+        const subscription = typedSocket.data.subscription || 'ALL';
+
+        const filteredDelta = filterStocksBySubscription(deltaStocks, subscription);
+        
+        if (filteredDelta.length > 0) {
+          typedSocket.emit('stocks:update:delta', filteredDelta);
+        }
+      }
+    }
+
+    // 3. Always broadcast connection status & alerts
     for (const [, socket] of sockets) {
       const typedSocket = socket as TypedSocket;
-      const subscription = typedSocket.data.subscription || 'ALL';
-
-      // Send filtered stock data based on client subscription
-      const filtered = filterStocksBySubscription(stocks, subscription);
-      typedSocket.emit('stocks:update', filtered);
-
-      // Send connection status
       typedSocket.emit('connection:status', {
         connected: true,
         stockCount: stocks.length,
@@ -225,14 +239,13 @@ export function broadcastStockUpdate(
       });
     }
 
-    // Broadcast alerts to ALL connected clients
     for (const alert of alerts) {
       io.emit('alert:new', alert);
     }
 
-    if (alerts.length > 0) {
+    if (deltaStocks.length > 0 || alerts.length > 0) {
       logger.debug(
-        `Broadcast ${stocks.length} stocks and ${alerts.length} alerts to ${sockets.size} clients`
+        `Delta Broadcast: ${deltaStocks.length} changed stocks and ${alerts.length} alerts to ${sockets.size} clients`
       );
     }
   } catch (err) {

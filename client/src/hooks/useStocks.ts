@@ -58,9 +58,13 @@ export function useStocks(
     };
 
     socket.on('stocks:update', handleUpdate);
+    socket.on('stocks:update:full', handleUpdate);
+    socket.on('stocks:update:delta', handleUpdate);
 
     return () => {
       socket.off('stocks:update', handleUpdate);
+      socket.off('stocks:update:full', handleUpdate);
+      socket.off('stocks:update:delta', handleUpdate);
       flashTimers.current.forEach(t => clearTimeout(t));
     };
   }, [socket]);

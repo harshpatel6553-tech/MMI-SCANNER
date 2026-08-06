@@ -96,8 +96,12 @@ export interface FilterOptions {
 
 /** Socket.IO events emitted from server to client */
 export interface ServerToClientEvents {
-  /** Batch stock data update */
+  /** Batch stock data update (Legacy) */
   'stocks:update': (data: StockData[]) => void;
+  /** Full baseline state update for Delta Architecture */
+  'stocks:update:full': (data: StockData[]) => void;
+  /** Partial delta update containing only changed stocks */
+  'stocks:update:delta': (data: StockData[]) => void;
   /** New price alert notification */
   'alert:new': (alert: StockAlert) => void;
   /** Server connection status heartbeat */
