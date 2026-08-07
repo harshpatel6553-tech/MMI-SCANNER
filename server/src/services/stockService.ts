@@ -249,7 +249,7 @@ class StockService {
           
           if (errorMsg.includes('404')) {
             logger.debug(`Skipping ${yahooSymbol} (404 Not Found)`);
-          } else if (isRateLimit || errorMsg.includes('socket hang up') || errorMsg.includes('timeout')) {
+          } else if (isRateLimit || errorMsg.toLowerCase().includes('socket hang up') || errorMsg.toLowerCase().includes('timeout')) {
             // Log rate limits and socket timeouts as debug to avoid spamming the console 
             // with red errors when polling 500 stocks every 3 seconds.
             logger.debug(`Rate limited/Timeout fetching ${yahooSymbol}: ${errorMsg}`);
