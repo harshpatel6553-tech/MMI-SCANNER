@@ -236,14 +236,23 @@ class StockService {
           return stockData;
         } catch (err: any) {
           let errorMsg = err.message || 'Unknown error';
+          let isRateLimit = false;
+          
           if (err.response) {
             errorMsg = `HTTP ${err.response.status} ${err.response.statusText}`;
+            if (err.response.status === 429 || err.response.status === 401) {
+              isRateLimit = true;
+            }
           } else if (err.code) {
             errorMsg = err.code;
           }
           
           if (errorMsg.includes('404')) {
             logger.debug(`Skipping ${yahooSymbol} (404 Not Found)`);
+          } else if (isRateLimit || errorMsg.includes('socket hang up') || errorMsg.includes('timeout')) {
+            // Log rate limits and socket timeouts as debug to avoid spamming the console 
+            // with red errors when polling 500 stocks every 3 seconds.
+            logger.debug(`Rate limited/Timeout fetching ${yahooSymbol}: ${errorMsg}`);
           } else {
             logger.error(`Failed to fetch ${yahooSymbol}: ${errorMsg}`);
           }
