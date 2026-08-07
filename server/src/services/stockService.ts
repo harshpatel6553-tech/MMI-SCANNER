@@ -234,12 +234,18 @@ class StockService {
           };
 
           return stockData;
-        } catch (err) {
-          const message = err instanceof Error ? err.message : String(err);
-          if (message.includes('404')) {
+        } catch (err: any) {
+          let errorMsg = err.message || 'Unknown error';
+          if (err.response) {
+            errorMsg = `HTTP ${err.response.status} ${err.response.statusText}`;
+          } else if (err.code) {
+            errorMsg = err.code;
+          }
+          
+          if (errorMsg.includes('404')) {
             logger.debug(`Skipping ${yahooSymbol} (404 Not Found)`);
           } else {
-            logger.error(`Failed to fetch ${yahooSymbol}: ${message}`);
+            logger.error(`Failed to fetch ${yahooSymbol}: ${errorMsg}`);
           }
           return null;
         }
