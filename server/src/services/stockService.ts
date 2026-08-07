@@ -47,34 +47,47 @@ function sleep(ms: number): Promise<void> {
 
 /**
  * Fetches a single stock quote from Yahoo Finance v8 Chart API.
- * Returns both meta and indicators.quote data from the chart response.
+ * Includes a 3-attempt retry mechanism for ETIMEDOUT and rate-limit drops.
  */
 async function fetchChartQuote(
-  yahooSymbol: string
+  yahooSymbol: string,
+  retries = 3
 ): Promise<{ meta: Record<string, any>; quote: Record<string, any>; volumes: number[] } | null> {
-  // Use 1h interval to detect sudden intraday volume spikes on an hourly basis
   const url = `${YAHOO_CHART_URL}/${encodeURIComponent(yahooSymbol)}?interval=1h&range=1d`;
 
-  const response = await axios.get(url, {
-    headers: {
-      'User-Agent': USER_AGENT,
-      Accept: 'application/json',
-    },
-    httpsAgent,
-    timeout: 5000,
-  });
+  let attempt = 0;
+  while (attempt < retries) {
+    try {
+      const response = await axios.get(url, {
+        headers: {
+          'User-Agent': USER_AGENT,
+          Accept: 'application/json',
+        },
+        httpsAgent,
+        timeout: 5000,
+      });
 
-  const data = response.data as any;
-  const result = data?.chart?.result?.[0];
+      const data = response.data as any;
+      const result = data?.chart?.result?.[0];
 
-  if (!result?.meta) {
-    return null;
+      if (!result?.meta) {
+        return null;
+      }
+
+      const quote = result?.indicators?.quote?.[0] ?? {};
+      const volumes: number[] = (quote.volume ?? []).filter((v: any) => v != null && v > 0);
+
+      return { meta: result.meta, quote, volumes };
+    } catch (error: any) {
+      attempt++;
+      if (attempt >= retries) {
+        throw error;
+      }
+      // Wait before retrying (exponential backoff: 500ms, 1000ms)
+      await sleep(500 * attempt);
+    }
   }
-
-  const quote = result?.indicators?.quote?.[0] ?? {};
-  const volumes: number[] = (quote.volume ?? []).filter((v: any) => v != null && v > 0);
-
-  return { meta: result.meta, quote, volumes };
+  return null;
 }
 
 /**
