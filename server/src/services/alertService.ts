@@ -74,7 +74,9 @@ class AlertService {
 
       // Detect DAY_HIGH transition or new high value
       const isNewHighValue = previousState.highValue > 0 && stock.dayHigh > previousState.highValue;
-      if (stock.atDayHigh && (!previousState.atHigh || isNewHighValue)) {
+      const transitionedToHigh = stock.atDayHigh && !previousState.atHigh;
+      
+      if (isNewHighValue || transitionedToHigh) {
         const alert: StockAlert = {
           id: crypto.randomUUID(),
           symbol: stock.symbol,
@@ -91,7 +93,9 @@ class AlertService {
 
       // Detect DAY_LOW transition or new low value
       const isNewLowValue = previousState.lowValue > 0 && stock.dayLow < previousState.lowValue;
-      if (stock.atDayLow && (!previousState.atLow || isNewLowValue)) {
+      const transitionedToLow = stock.atDayLow && !previousState.atLow;
+      
+      if (isNewLowValue || transitionedToLow) {
         const alert: StockAlert = {
           id: crypto.randomUUID(),
           symbol: stock.symbol,
