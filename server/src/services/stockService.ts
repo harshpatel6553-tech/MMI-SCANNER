@@ -13,6 +13,8 @@ import { NIFTY_500_STOCKS } from '../data/nifty500.js';
 import { SECTOR_MAP } from '../data/sectorMap.js';
 import { technicalService } from './technicalService.js';
 import logger from '../utils/logger.js';
+import axios from 'axios';
+import https from 'https';
 
 /** Number of concurrent requests per batch */
 const CONCURRENCY = 25;
@@ -33,6 +35,9 @@ const YAHOO_CHART_URL = 'https://query1.finance.yahoo.com/v8/finance/chart';
 const USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
+/** Persistent HTTPS connection pool to prevent socket exhaustion when fetching 500 stocks */
+const httpsAgent = new https.Agent({ keepAlive: true, maxSockets: 100, maxFreeSockets: 10 });
+
 /**
  * Pauses execution for the given number of milliseconds.
  */
@@ -50,18 +55,16 @@ async function fetchChartQuote(
   // Use 1h interval to detect sudden intraday volume spikes on an hourly basis
   const url = `${YAHOO_CHART_URL}/${encodeURIComponent(yahooSymbol)}?interval=1h&range=1d`;
 
-  const response = await fetch(url, {
+  const response = await axios.get(url, {
     headers: {
       'User-Agent': USER_AGENT,
       Accept: 'application/json',
     },
+    httpsAgent,
+    timeout: 5000,
   });
 
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-  }
-
-  const data = (await response.json()) as any;
+  const data = response.data as any;
   const result = data?.chart?.result?.[0];
 
   if (!result?.meta) {
