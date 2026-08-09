@@ -42,7 +42,11 @@ export function useStocks(
             flashTimers.current.set(stock.symbol, timer);
           }
           prevPrices.current.set(stock.symbol, stock.price);
-          newMap.set(stock.symbol, stock);
+          
+          // Merge partial delta updates into existing stock data
+          const existingStock = newMap.get(stock.symbol) || ({} as StockData);
+          const mergedStock = { ...existingStock, ...stock };
+          newMap.set(stock.symbol, mergedStock);
         });
 
         if (newFlashes.size > 0) {

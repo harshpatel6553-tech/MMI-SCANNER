@@ -101,7 +101,7 @@ export interface ServerToClientEvents {
   /** Full baseline state update for Delta Architecture */
   'stocks:update:full': (data: StockData[]) => void;
   /** Partial delta update containing only changed stocks */
-  'stocks:update:delta': (data: StockData[]) => void;
+  'stocks:update:delta': (data: Partial<StockData>[]) => void;
   /** New price alert notification */
   'alert:new': (alert: StockAlert) => void;
   /** Server connection status heartbeat */

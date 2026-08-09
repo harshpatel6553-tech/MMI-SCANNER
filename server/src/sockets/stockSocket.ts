@@ -42,14 +42,18 @@ type TypedSocket = Socket<
  * @param subscription - Client subscription type
  * @returns Filtered stock array
  */
-function filterStocksBySubscription(
-  stocks: StockData[],
+function filterStocksBySubscription<T extends Partial<StockData>>(
+  stocks: T[],
   subscription: 'NIFTY50' | 'NIFTY500' | 'ALL'
-): StockData[] {
+): T[] {
   if (subscription === 'ALL') {
     return stocks;
   }
-  return stocks.filter((s) => s.indexName === subscription);
+  return stocks.filter((s) => {
+    // For delta updates, indexName might be undefined. Look it up in lastBroadcastState.
+    const indexName = s.indexName ?? lastBroadcastState.get(s.symbol!)?.indexName;
+    return indexName === subscription;
+  });
 }
 
 /** Track online users: socketId -> { email, connectedAt } */
@@ -196,20 +200,35 @@ export function broadcastStockUpdate(
   alerts: StockAlert[] = []
 ): void {
   try {
-    const deltaStocks: StockData[] = [];
+    const deltaStocks: Partial<StockData>[] = [];
 
     // 1. Calculate the Delta (Only what changed)
     for (const stock of stocks) {
       const last = lastBroadcastState.get(stock.symbol);
-      if (
-        !last ||
-        last.price !== stock.price ||
-        last.volume !== stock.volume ||
-        last.dayHigh !== stock.dayHigh ||
-        last.dayLow !== stock.dayLow
-      ) {
+      
+      if (!last) {
+        // First time seeing this stock: send the full object
         deltaStocks.push(stock);
         lastBroadcastState.set(stock.symbol, { ...stock });
+      } else {
+        // Compare fields and build a true delta object
+        let hasChanges = false;
+        const diff: Partial<StockData> = { symbol: stock.symbol };
+
+        if (last.price !== stock.price) { diff.price = stock.price; hasChanges = true; }
+        if (last.volume !== stock.volume) { diff.volume = stock.volume; hasChanges = true; }
+        if (last.dayHigh !== stock.dayHigh) { diff.dayHigh = stock.dayHigh; hasChanges = true; }
+        if (last.dayLow !== stock.dayLow) { diff.dayLow = stock.dayLow; hasChanges = true; }
+        if (last.change !== stock.change) { diff.change = stock.change; hasChanges = true; }
+        if (last.changePercent !== stock.changePercent) { diff.changePercent = stock.changePercent; hasChanges = true; }
+        if (last.volumeSpike !== stock.volumeSpike) { diff.volumeSpike = stock.volumeSpike; hasChanges = true; }
+        if (last.lastUpdated !== stock.lastUpdated) { diff.lastUpdated = stock.lastUpdated; hasChanges = true; }
+        // Note: We don't check name, sector, fiftyTwoWeekHigh, etc. because they rarely/never change intraday
+
+        if (hasChanges) {
+          deltaStocks.push(diff);
+          lastBroadcastState.set(stock.symbol, { ...stock });
+        }
       }
     }
 
