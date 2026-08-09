@@ -24,6 +24,7 @@ import type {
   ClientToServerEvents,
 } from './types/index.js';
 import { testConnection, supabase, isSupabaseConfigured } from './config/supabase.js';
+import { isMarketOpen } from './utils/marketHours.js';
 import logger from './utils/logger.js';
 import stockRoutes from './routes/stockRoutes.js';
 import { newsRoutes } from './routes/newsRoutes.js';
@@ -250,6 +251,14 @@ async function pollNifty50(): Promise<void> {
     logger.debug('Nifty 50 poll skipped — previous cycle still running');
     return;
   }
+  
+  if (!isMarketOpen()) {
+    logger.debug('Nifty 50 poll skipped — market is closed');
+    const allCached = stockService.getCachedStocks();
+    broadcastStockUpdate(io, allCached, []);
+    isNifty50Polling = false;
+    return;
+  }
 
   isNifty50Polling = true;
   const startTime = Date.now();
@@ -293,6 +302,14 @@ async function pollNifty50(): Promise<void> {
 async function pollNifty500(): Promise<void> {
   if (isNifty500Polling) {
     logger.debug('Nifty 500 poll skipped — previous cycle still running');
+    return;
+  }
+  
+  if (!isMarketOpen()) {
+    logger.debug('Nifty 500 poll skipped — market is closed');
+    const allCached = stockService.getCachedStocks();
+    broadcastStockUpdate(io, allCached, []);
+    isNifty500Polling = false;
     return;
   }
 
