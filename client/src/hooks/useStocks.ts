@@ -44,8 +44,16 @@ export function useStocks(
           prevPrices.current.set(stock.symbol, stock.price);
           
           // Merge partial delta updates into existing stock data
-          const existingStock = newMap.get(stock.symbol) || ({} as StockData);
-          const mergedStock = { ...existingStock, ...stock };
+          const existingStock = newMap.get(stock.symbol);
+          
+          // CRITICAL FIX: If this is a partial delta update but we don't have the full stock yet 
+          // (e.g. race condition during page refresh), completely ignore it to prevent fatal crashes.
+          // Full updates will always have the 'name' property.
+          if (!existingStock && !stock.name) {
+            return;
+          }
+
+          const mergedStock = { ...(existingStock || {} as StockData), ...stock };
           newMap.set(stock.symbol, mergedStock);
         });
 
