@@ -411,6 +411,13 @@ async function startServer(): Promise<void> {
       logger.info(`   Nifty 500:  polling every ${NIFTY500_POLL_INTERVAL}ms`);
       logger.info('═══════════════════════════════════════════════');
     });
+
+    // ⚡ INSTANT PRELOAD FROM SUPABASE
+    // This allows clients connecting right now to instantly see the last known prices
+    // instead of waiting 10-15 seconds for the Yahoo Finance scraping to complete.
+    logger.info('📦 Loading last known state from database...');
+    await loadInitialStocksFromSupabase();
+    
     
     // Start Weekly MACD Calculation Loop (Runs every hour)
     logger.info('🔄 Starting Technical MACD background calculation...');
