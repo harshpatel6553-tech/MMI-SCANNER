@@ -125,6 +125,13 @@ class StockService {
   }
 
   /**
+   * Preload a stock directly into the cache (used during cold-start loading from database)
+   */
+  public preloadStock(stock: StockData): void {
+    this.stockCache.set(stock.symbol, stock);
+  }
+
+  /**
    * Fetch real-time quotes for a list of stocks from Yahoo Finance v8 Chart API.
    *
    * Processes stocks in groups of {@link CONCURRENCY} concurrent requests,

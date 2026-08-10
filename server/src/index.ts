@@ -387,6 +387,60 @@ import { technicalService } from './services/technicalService.js';
 // ── Server Startup ─────────────────────────────────────────────
 
 /**
+ * Preload the in-memory cache with the last known stock state from Supabase.
+ * This completely eliminates the 10-second "loading skeleton" wait time on the 
+ * frontend during cold server restarts by immediately serving the last known prices.
+ */
+async function loadInitialStocksFromSupabase(): Promise<void> {
+  if (!isSupabaseConfigured) return;
+  
+  try {
+    const { data, error } = await supabase
+      .from('stocks')
+      .select('*');
+      
+    if (error) {
+      logger.error('Failed to preload stocks from Supabase:', error);
+      return;
+    }
+    
+    if (data && data.length > 0) {
+      // Map snake_case db columns back to camelCase StockData format
+      for (const row of data) {
+        const stockData: import('./types/index.js').StockData = {
+          symbol: row.symbol,
+          name: row.name,
+          price: row.price,
+          previousClose: row.previous_close,
+          open: row.open_price,
+          dayHigh: row.day_high,
+          dayLow: row.day_low,
+          change: row.change,
+          changePercent: row.change_percent,
+          volume: row.volume,
+          sector: row.sector,
+          averageVolume: row.average_volume,
+          relativeVolume: row.relative_volume,
+          volumeSpike: row.volume_spike,
+          indexName: row.index_name,
+          atDayHigh: row.at_day_high,
+          atDayLow: row.at_day_low,
+          fiftyTwoWeekHigh: row.fifty_two_week_high,
+          fiftyTwoWeekLow: row.fifty_two_week_low,
+          marketCap: row.market_cap,
+          lastUpdated: row.updated_at || new Date().toISOString(),
+          macdWeeklyBuy: technicalService.getSignal(row.symbol)
+        };
+        stockService.preloadStock(stockData);
+      }
+      logger.info(`⚡ Preloaded ${data.length} stocks from Supabase instantly!`);
+    }
+  } catch (err) {
+    logger.error('Exception preloading stocks:', err);
+  }
+}
+
+/**
  * Initialize and start the server.
  */
 async function startServer(): Promise<void> {
