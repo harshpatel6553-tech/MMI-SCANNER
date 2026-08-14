@@ -53,8 +53,6 @@ RUN npm install --omit=dev
 # Copy compiled JavaScript files from the builder stage
 COPY --from=builder /app/server/dist ./dist
 
-# Also copy the Python scripts so they are available in production
-COPY --from=builder /app/server/src/scripts ./src/scripts
 
 # Set environment
 ENV NODE_ENV=production
