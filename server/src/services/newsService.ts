@@ -37,43 +37,41 @@ class NewsService extends EventEmitter {
 
       const fetchPromises = accountsToFollow.map(async (screenname) => {
         try {
-          const response = await fetch(`https://syndication.twitter.com/srv/timeline-profile/screen-name/${screenname}`, {
+          // Use Nitter to get the Twitter data as RSS without API limits
+          const response = await fetch(`https://nitter.net/${screenname}/rss`, {
             headers: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36'
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
             }
           });
 
           if (!response.ok) {
-             logger.warn(`Syndication API error for ${screenname}: HTTP ${response.status}`);
+             logger.warn(`Nitter API error for ${screenname}: HTTP ${response.status}`);
              return [];
           }
 
-          const html = await response.text();
-          // Extract the JSON data from __NEXT_DATA__ script block
-          const match = html.match(/<script id="__NEXT_DATA__" type="application\/json">([\s\S]*?)<\/script>/);
+          const xml = await response.text();
           
-          if (!match || !match[1]) {
-             logger.warn(`Could not parse JSON from Syndication API for ${screenname}`);
-             return [];
-          }
-
-          const json = JSON.parse(match[1]);
-          const entries = json?.props?.pageProps?.timeline?.entries || [];
+          // Parse the RSS items manually to avoid dependency issues
+          const items = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)].map(m => m[1]);
           
-          // Map to the format the rest of the code expects
-          return entries
-             .filter((e: any) => e.type === 'tweet')
-             .map((e: any) => {
-                 const tweet = e.tweet;
-                 return {
-                     full_text: tweet.text,
-                     created_at: tweet.created_at,
-                     _sourceAccount: screenname,
-                     id_str: tweet.id_str
-                 };
-             });
+          return items.map(itemHtml => {
+             const titleMatch = itemHtml.match(/<title>([\s\S]*?)<\/title>/);
+             const pubDateMatch = itemHtml.match(/<pubDate>([\s\S]*?)<\/pubDate>/);
+             const guidMatch = itemHtml.match(/<guid[^>]*>([\s\S]*?)<\/guid>/);
+             
+             let full_text = titleMatch ? titleMatch[1] : 'Breaking News';
+             // Clean up CDATA tags if present
+             full_text = full_text.replace(/^<!\[CDATA\[/, '').replace(/\]\]>$/, '');
+             
+             return {
+                 full_text,
+                 created_at: pubDateMatch ? pubDateMatch[1] : new Date().toUTCString(),
+                 _sourceAccount: screenname,
+                 id_str: guidMatch ? guidMatch[1].replace(/[^0-9]/g, '') : ''
+             };
+          });
         } catch (err) {
-           logger.error(`Error fetching syndication for ${screenname}: ${err}`);
+           logger.error(`Error fetching Nitter for ${screenname}: ${err}`);
            return [];
         }
       });
