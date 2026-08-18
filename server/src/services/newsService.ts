@@ -177,12 +177,8 @@ class NewsService extends EventEmitter {
     if (this.isPolling) return;
     this.isPolling = true;
 
-    // Initial fetch
-    if (this.isIndianMarketOpen()) {
-      this.fetchTweets();
-    } else {
-      logger.debug('Indian Market is closed. Skipping initial Twitter API fetch.');
-    }
+    // Initial fetch always runs so the news panel isn't blank
+    this.fetchTweets();
 
     // Poll every interval
     setInterval(() => {
