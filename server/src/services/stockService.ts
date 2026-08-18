@@ -12,7 +12,7 @@ import { SECTOR_MAP } from '../data/sectorMap.js';
 import { technicalService } from './technicalService.js';
 import logger from '../utils/logger.js';
 import yahooFinanceModule from 'yahoo-finance2';
-const yahooFinance = yahooFinanceModule.default || yahooFinanceModule;
+const yahooFinance = (yahooFinanceModule as any).default || yahooFinanceModule;
 
 /** Number of concurrent requests per batch */
 const CONCURRENCY = 50;
