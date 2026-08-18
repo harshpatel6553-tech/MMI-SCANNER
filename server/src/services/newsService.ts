@@ -37,24 +37,26 @@ class NewsService extends EventEmitter {
 
       const fetchPromises = accountsToFollow.map(async (screenname) => {
         try {
-          // Use Nitter to get the Twitter data as RSS without API limits
-          const response = await fetch(`https://nitter.net/${screenname}/rss`, {
+          // Use axios instead of native fetch because native fetch returns empty string for Nitter
+          const { default: axios } = await import('axios');
+          const response = await axios.get(`https://nitter.net/${screenname}/rss`, {
             headers: {
               'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-            }
+            },
+            timeout: 10000 // 10 second timeout
           });
 
-          if (!response.ok) {
+          if (response.status !== 200) {
              logger.warn(`Nitter API error for ${screenname}: HTTP ${response.status}`);
              return [];
           }
 
-          const xml = await response.text();
+          const xml = response.data;
           
           // Parse the RSS items manually to avoid dependency issues
-          const items = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)].map(m => m[1]);
+          const items = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)].map((m: any) => m[1]);
           
-          return items.map(itemHtml => {
+          return items.map((itemHtml: string) => {
              const titleMatch = itemHtml.match(/<title>([\s\S]*?)<\/title>/);
              const pubDateMatch = itemHtml.match(/<pubDate>([\s\S]*?)<\/pubDate>/);
              const guidMatch = itemHtml.match(/<guid[^>]*>([\s\S]*?)<\/guid>/);
