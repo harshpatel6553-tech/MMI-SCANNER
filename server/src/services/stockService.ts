@@ -11,7 +11,8 @@ import { NIFTY_500_STOCKS } from '../data/nifty500.js';
 import { SECTOR_MAP } from '../data/sectorMap.js';
 import { technicalService } from './technicalService.js';
 import logger from '../utils/logger.js';
-import yahooFinance from 'yahoo-finance2';
+import yahooFinanceModule from 'yahoo-finance2';
+const yahooFinance = yahooFinanceModule.default || yahooFinanceModule;
 
 /** Number of concurrent requests per batch */
 const CONCURRENCY = 50;

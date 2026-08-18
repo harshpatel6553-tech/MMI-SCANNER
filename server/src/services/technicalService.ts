@@ -8,7 +8,8 @@
 import { MACD } from 'technicalindicators';
 import logger from '../utils/logger.js';
 import { NIFTY_500_STOCKS } from '../data/nifty500.js';
-import yahooFinance from 'yahoo-finance2';
+import yahooFinanceModule from 'yahoo-finance2';
+const yahooFinance = yahooFinanceModule.default || yahooFinanceModule;
 
 class TechnicalService {
   /** Cache of MACD Weekly Buy signals keyed by NSE symbol */
