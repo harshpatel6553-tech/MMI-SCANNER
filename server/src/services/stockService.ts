@@ -13,7 +13,7 @@ import { technicalService } from './technicalService.js';
 import logger from '../utils/logger.js';
 
 /** Number of concurrent requests per batch */
-const CONCURRENCY = 50;
+const CONCURRENCY = 20;
 
 /** Delay (ms) between successive batches to avoid triggering Yahoo DDoS protections */
 const BATCH_DELAY_MS = 2000;
