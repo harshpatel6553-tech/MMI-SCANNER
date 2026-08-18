@@ -31,58 +31,58 @@ class NewsService extends EventEmitter {
 
   private async fetchTweets(): Promise<void> {
     try {
-      const keyString = process.env.RAPIDAPI_KEY || process.env.TWITTERAPI_KEY || '';
-      const keys = keyString.split(',').map(k => k.trim()).filter(Boolean);
-
-      if (keys.length === 0) {
-        logger.warn('RAPIDAPI_KEY is missing. Skipping Twitter fetch.');
-        return;
-      }
-
       // Define the list of Twitter accounts to follow
       const accountsToFollow = ['RedboxIndia', 'yatinmota'];
       let allFetchedTweets: any[] = [];
-      let lastError: any = null;
 
-      // Try keys until one succeeds for the entire batch
-      for (let i = 0; i < keys.length; i++) {
-        const apiKey = keys[this.currentKeyIndex % keys.length];
+      const fetchPromises = accountsToFollow.map(async (screenname) => {
         try {
-          const fetchPromises = accountsToFollow.map(async (screenname) => {
-            const response = await fetch(`https://twitter-search-only.p.rapidapi.com/timeline.php?screenname=${screenname}&tweet_mode=extended&count=20`, {
-              headers: {
-                'x-rapidapi-key': apiKey,
-                'x-rapidapi-host': 'twitter-search-only.p.rapidapi.com'
-              }
-            });
-
-            if (!response.ok) {
-              throw new Error(`HTTP ${response.status} ${response.statusText}`);
+          const response = await fetch(`https://syndication.twitter.com/srv/timeline-profile/screen-name/${screenname}`, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36'
             }
-
-            const json = await response.json();
-            if (json.timeline && Array.isArray(json.timeline)) {
-              // Add a source field so we know which account it came from
-              return json.timeline.map((tweet: any) => ({ ...tweet, _sourceAccount: screenname }));
-            }
-            return [];
           });
 
-          const results = await Promise.all(fetchPromises);
-          allFetchedTweets = results.flat();
-          
-          if (allFetchedTweets.length > 0) {
-            break; // Success! We fetched data. Exit the retry loop.
+          if (!response.ok) {
+             logger.warn(`Syndication API error for ${screenname}: HTTP ${response.status}`);
+             return [];
           }
-        } catch (error) {
-          lastError = error;
-          logger.warn(`API Key (Index ${this.currentKeyIndex % keys.length}) failed. Rotating to next key...`);
-          this.currentKeyIndex++; // Move to next key for the next iteration
+
+          const html = await response.text();
+          // Extract the JSON data from __NEXT_DATA__ script block
+          const match = html.match(/<script id="__NEXT_DATA__" type="application\/json">([\s\S]*?)<\/script>/);
+          
+          if (!match || !match[1]) {
+             logger.warn(`Could not parse JSON from Syndication API for ${screenname}`);
+             return [];
+          }
+
+          const json = JSON.parse(match[1]);
+          const entries = json?.props?.pageProps?.timeline?.entries || [];
+          
+          // Map to the format the rest of the code expects
+          return entries
+             .filter((e: any) => e.type === 'tweet')
+             .map((e: any) => {
+                 const tweet = e.tweet;
+                 return {
+                     full_text: tweet.text,
+                     created_at: tweet.created_at,
+                     _sourceAccount: screenname,
+                     id_str: tweet.id_str
+                 };
+             });
+        } catch (err) {
+           logger.error(`Error fetching syndication for ${screenname}: ${err}`);
+           return [];
         }
-      }
+      });
+
+      const results = await Promise.all(fetchPromises);
+      allFetchedTweets = results.flat();
 
       if (allFetchedTweets.length === 0) {
-        logger.warn(`Failed to fetch tweets from any account. Last error: ${lastError?.message || 'Unknown'}`);
+        logger.warn(`Failed to fetch tweets from Syndication API for any account.`);
         return;
       }
       
@@ -94,8 +94,8 @@ class NewsService extends EventEmitter {
       });
 
       // Parse and clean the top 20 most recent tweets across all accounts
-      const newNews: NewsItem[] = allFetchedTweets.slice(0, 20).map((item: any, index: number) => {
-        const textContent = item.full_text || item.retweeted_status?.full_text || item.retweeted_status?.text || item.text || 'Breaking News';
+      const newNews: NewsItem[] = allFetchedTweets.slice(0, 20).map((item: any) => {
+        const textContent = item.full_text || 'Breaking News';
         const cleanTitle = he.decode(textContent);
         const earningsRegex = /\b(Q[1-4]|FY\d{2}|Quarterly Results|Net Profit|Revenue|EBITDA|PAT)\b/i;
         const blockDealRegex = /\b(Block Deal|Bulk Deal|Stake Sale|Promoter|Pledge|OFS)\b/i;
@@ -106,7 +106,7 @@ class NewsService extends EventEmitter {
         return {
           id: deterministicId,
           title: cleanTitle,
-          link: `https://x.com/${item._sourceAccount}`,
+          link: `https://x.com/${item._sourceAccount}/status/${item.id_str || ''}`,
           pubDate: item.created_at || new Date().toUTCString(),
           source: item._sourceAccount,
           isEarningsResult: earningsRegex.test(cleanTitle),
