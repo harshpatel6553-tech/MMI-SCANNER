@@ -246,13 +246,13 @@ let isNifty500Polling = false;
  * Execute a single Nifty 50 polling cycle.
  * Fetches quotes, checks for alerts, upserts to DB, and broadcasts.
  */
-async function pollNifty50(): Promise<void> {
+async function pollNifty50(isInitial = false): Promise<void> {
   if (isNifty50Polling) {
     logger.debug('Nifty 50 poll skipped — previous cycle still running');
     return;
   }
   
-  if (!isMarketOpen()) {
+  if (!isInitial && !isMarketOpen()) {
     logger.debug('Nifty 50 poll skipped — market is closed');
     const allCached = stockService.getCachedStocks();
     broadcastStockUpdate(io, allCached, []);
@@ -299,13 +299,13 @@ async function pollNifty50(): Promise<void> {
  * Execute a single Nifty 500 polling cycle.
  * Fetches quotes for non-Nifty-50 stocks, checks alerts, upserts, and broadcasts.
  */
-async function pollNifty500(): Promise<void> {
+async function pollNifty500(isInitial = false): Promise<void> {
   if (isNifty500Polling) {
     logger.debug('Nifty 500 poll skipped — previous cycle still running');
     return;
   }
   
-  if (!isMarketOpen()) {
+  if (!isInitial && !isMarketOpen()) {
     logger.debug('Nifty 500 poll skipped — market is closed');
     const allCached = stockService.getCachedStocks();
     broadcastStockUpdate(io, allCached, []);
@@ -480,11 +480,11 @@ async function startServer(): Promise<void> {
 
     // Initial fetch — run immediately
     logger.info('🔄 Starting initial Nifty 50 data fetch...');
-    await pollNifty50();
+    await pollNifty50(true);
 
     // Start Nifty 500 initial fetch after Nifty 50 completes
     logger.info('🔄 Starting initial Nifty 500 data fetch...');
-    await pollNifty500();
+    await pollNifty500(true);
 
     // Start polling intervals
     nifty50Interval = setInterval(pollNifty50, NIFTY50_POLL_INTERVAL);

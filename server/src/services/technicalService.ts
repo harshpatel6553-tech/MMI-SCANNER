@@ -8,6 +8,7 @@
 import { MACD } from 'technicalindicators';
 import logger from '../utils/logger.js';
 import { NIFTY_500_STOCKS } from '../data/nifty500.js';
+import yahooFinance from 'yahoo-finance2';
 
 class TechnicalService {
   /** Cache of MACD Weekly Buy signals keyed by NSE symbol */
@@ -20,28 +21,20 @@ class TechnicalService {
     try {
       const yahooSymbol = `${symbol}.NS`;
       
-      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?interval=1wk&range=1y`;
-      const response = await fetch(url, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          Accept: 'application/json',
-        },
+      const oneYearAgo = new Date();
+      oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+
+      const data = await yahooFinance.historical(yahooSymbol, {
+        period1: oneYearAgo,
+        interval: '1wk'
       });
 
-      if (!response.ok) {
-        return false;
-      }
-
-      const data = (await response.json()) as any;
-      const result = data?.chart?.result?.[0];
-      const quote = result?.indicators?.quote?.[0];
-
-      if (!quote || !quote.close || quote.close.length < 35) {
+      if (!data || data.length < 35) {
         return false; // Not enough data points
       }
 
       // Filter out null values
-      const closePrices = quote.close.filter((p: number | null) => p !== null);
+      const closePrices = data.map(d => d.close).filter((p): p is number => p !== null);
 
       if (closePrices.length < 35) return false;
 

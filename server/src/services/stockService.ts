@@ -1,10 +1,8 @@
 /**
  * @module stockService
  * @description Core stock data service that fetches real-time quotes from
- * Yahoo Finance v8 Chart API (direct HTTP) and maintains an in-memory cache.
- *
- * Uses the chart endpoint which does NOT require crumb/cookie authentication,
- * avoiding the rate-limiting issues of the yahoo-finance2 library.
+ * Yahoo Finance using yahoo-finance2 bulk fetching to completely bypass
+ * strict IP bans and rate limits.
  */
 
 import type { StockQuote, StockData } from '../types/index.js';
@@ -13,30 +11,19 @@ import { NIFTY_500_STOCKS } from '../data/nifty500.js';
 import { SECTOR_MAP } from '../data/sectorMap.js';
 import { technicalService } from './technicalService.js';
 import logger from '../utils/logger.js';
-import axios from 'axios';
-import https from 'https';
+import yahooFinance from 'yahoo-finance2';
 
 /** Number of concurrent requests per batch */
-const CONCURRENCY = 25;
+const CONCURRENCY = 50;
 
-/** Delay (ms) between successive batches */
-const BATCH_DELAY_MS = 250;
+/** Delay (ms) between successive batches to avoid triggering Yahoo DDoS protections */
+const BATCH_DELAY_MS = 2000;
 
 /**
  * Tolerance for detecting whether a stock is at its day high or low.
  * A price within 0.01% of the extreme is considered "at" the extreme.
  */
 const HIGH_LOW_TOLERANCE = 0.0001;
-
-/** Yahoo Finance v8 chart endpoint — NO crumb/cookie required */
-const YAHOO_CHART_URL = 'https://query1.finance.yahoo.com/v8/finance/chart';
-
-/** User agent to mimic a browser */
-const USER_AGENT =
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
-
-/** Persistent HTTPS connection pool to prevent socket exhaustion when fetching 500 stocks */
-const httpsAgent = new https.Agent({ keepAlive: true, maxSockets: 100, maxFreeSockets: 10 });
 
 /**
  * Pauses execution for the given number of milliseconds.
@@ -45,66 +32,6 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-/**
- * Fetches a single stock quote from Yahoo Finance v8 Chart API.
- * Includes a 3-attempt retry mechanism for ETIMEDOUT and rate-limit drops.
- */
-async function fetchChartQuote(
-  yahooSymbol: string,
-  retries = 3
-): Promise<{ meta: Record<string, any>; quote: Record<string, any>; volumes: number[] } | null> {
-  const url = `${YAHOO_CHART_URL}/${encodeURIComponent(yahooSymbol)}?interval=1h&range=1d`;
-
-  let attempt = 0;
-  while (attempt < retries) {
-    try {
-      const response = await axios.get(url, {
-        headers: {
-          'User-Agent': USER_AGENT,
-          Accept: 'application/json',
-        },
-        httpsAgent,
-        timeout: 5000,
-      });
-
-      const data = response.data as any;
-      const result = data?.chart?.result?.[0];
-
-      if (!result?.meta) {
-        return null;
-      }
-
-      const quote = result?.indicators?.quote?.[0] ?? {};
-      const volumes: number[] = (quote.volume ?? []).filter((v: any) => v != null && v > 0);
-
-      return { meta: result.meta, quote, volumes };
-    } catch (error: any) {
-      attempt++;
-      if (attempt >= retries) {
-        throw error;
-      }
-      // Wait before retrying (exponential backoff: 500ms, 1000ms)
-      await sleep(500 * attempt);
-    }
-  }
-  return null;
-}
-
-/**
- * Core service for fetching and caching stock market data.
- *
- * Uses Yahoo Finance v8 Chart API to retrieve real-time quotes for
- * NSE-listed stocks. Fetches in controlled concurrent batches to
- * balance speed and rate-limit compliance.
- *
- * @example
- * ```typescript
- * import { stockService } from './stockService.js';
- *
- * const nifty50 = await stockService.fetchNifty50();
- * console.log(`Fetched ${nifty50.length} stocks`);
- * ```
- */
 class StockService {
   /** In-memory cache of the latest stock data, keyed by NSE symbol */
   private stockCache: Map<string, StockData> = new Map();
@@ -124,23 +51,10 @@ class StockService {
     }
   }
 
-  /**
-   * Preload a stock directly into the cache (used during cold-start loading from database)
-   */
   public preloadStock(stock: StockData): void {
     this.stockCache.set(stock.symbol, stock);
   }
 
-  /**
-   * Fetch real-time quotes for a list of stocks from Yahoo Finance v8 Chart API.
-   *
-   * Processes stocks in groups of {@link CONCURRENCY} concurrent requests,
-   * with a {@link BATCH_DELAY_MS} pause between groups.
-   *
-   * @param stocks - Array of stock identifiers to fetch
-   * @param indexName - Index label to attach to each result
-   * @returns Array of successfully fetched stock data
-   */
   async fetchQuotes(
     stocks: StockQuote[],
     indexName: 'NIFTY50' | 'NIFTY500'
@@ -148,89 +62,59 @@ class StockService {
     const results: StockData[] = [];
     const batches: StockQuote[][] = [];
 
-    // Split into concurrent batches
+    // Split into concurrent batches of 50
     for (let i = 0; i < stocks.length; i += CONCURRENCY) {
       batches.push(stocks.slice(i, i + CONCURRENCY));
     }
 
     logger.debug(
-      `Fetching ${stocks.length} ${indexName} stocks in ${batches.length} batch(es) via Yahoo v8 Chart API`
+      `Fetching ${stocks.length} ${indexName} stocks in ${batches.length} batch(es) via Bulk Quote API`
     );
 
     for (let batchIdx = 0; batchIdx < batches.length; batchIdx++) {
       const batch = batches[batchIdx]!;
 
-      // Add delay between batches (skip first)
       if (batchIdx > 0) {
         await sleep(BATCH_DELAY_MS);
       }
 
-      // Fetch batch concurrently (small batch = 5 concurrent)
-      const promises = batch.map(async (stock) => {
-        const yahooSymbol = `${stock.symbol}.NS`;
-        try {
-          const chartData = await fetchChartQuote(yahooSymbol);
+      const symbols = batch.map(s => `${s.symbol}.NS`);
+      
+      try {
+        const quotes = await yahooFinance.quote(symbols);
+        
+        for (const quote of quotes) {
+          const cleanSymbol = quote.symbol.replace('.NS', '');
+          const baseStock = batch.find(s => s.symbol === cleanSymbol);
+          if (!baseStock) continue;
 
-          if (!chartData || chartData.meta.regularMarketPrice == null) {
-            logger.warn(`No data returned for ${yahooSymbol}`);
-            return null;
-          }
+          const price: number = quote.regularMarketPrice ?? 0;
+          if (price === 0) continue;
 
-          const { meta, quote, volumes } = chartData;
+          const dayHigh: number = quote.regularMarketDayHigh ?? price;
+          const dayLow: number = quote.regularMarketDayLow ?? price;
+          const prevClose: number = quote.regularMarketPreviousClose ?? price;
+          const openPrice: number = quote.regularMarketOpen ?? price;
 
-          const price: number = meta.regularMarketPrice ?? 0;
-          const dayHigh: number = meta.regularMarketDayHigh ?? price;
-          const dayLow: number = meta.regularMarketDayLow ?? price;
-          const prevClose: number = meta.previousClose ?? meta.chartPreviousClose ?? price;
-
-          // Extract open price from indicators.quote (first 1-hour candle of the day)
-          const openArray: number[] = (quote.open ?? []).filter((v: any) => v != null);
-          const openPrice: number = openArray.length > 0 ? openArray[0] : price;
-
-          // Detect if price is at day high/low within tolerance
-          const atDayHigh =
-            dayHigh > 0 &&
-            price > 0 &&
-            Math.abs(price - dayHigh) / dayHigh <= HIGH_LOW_TOLERANCE;
-
-          const atDayLow =
-            dayLow > 0 &&
-            price > 0 &&
-            Math.abs(price - dayLow) / dayLow <= HIGH_LOW_TOLERANCE;
+          const atDayHigh = dayHigh > 0 && price > 0 && Math.abs(price - dayHigh) / dayHigh <= HIGH_LOW_TOLERANCE;
+          const atDayLow = dayLow > 0 && price > 0 && Math.abs(price - dayLow) / dayLow <= HIGH_LOW_TOLERANCE;
 
           const change = price - prevClose;
           const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
 
-          // Intraday Volume analytics (1-hour Sudden Spikes)
-          let volume = 0; // Current 1h volume
-          let averageVolume = 0; // Average 1h volume today
+          const volume: number = quote.regularMarketVolume ?? 0;
+          
+          // Estimate 1-hour average volume based on the 10-day average daily volume
+          // (assuming ~6.25 trading hours per day)
+          const dailyAvgVol = quote.averageDailyVolume10Day ?? volume;
+          const averageVolume = dailyAvgVol > 0 ? Math.round(dailyAvgVol / 6.25) : volume;
 
-          if (volumes.length > 0) {
-            volume = volumes[volumes.length - 1] ?? 0;
-            
-            // Calculate average 1h volume, excluding the very first opening hour which is always huge
-            const validVolumes = volumes.length > 1 ? volumes.slice(1, -1) : volumes;
-            if (validVolumes.length > 0) {
-              averageVolume = Math.round(validVolumes.reduce((sum, v) => sum + v, 0) / validVolumes.length);
-            } else {
-              averageVolume = Math.round(volume);
-            }
-          }
-
-          volume = Math.round(volume);
-
-          const relativeVolume: number =
-            averageVolume > 0 ? volume / averageVolume : 0;
-          // Trigger spike if sudden 1h volume is 2.0x higher than average 1h volume
+          const relativeVolume: number = averageVolume > 0 ? volume / averageVolume : 0;
           const volumeSpike: boolean = relativeVolume >= 2.0;
 
-          // Market cap: price × shares outstanding (estimate from volume data if not in meta)
-          const marketCap: number = meta.marketCap ?? 0;
-
           const stockData: StockData = {
-            symbol: stock.symbol,
-            name:
-              meta.longName || meta.shortName || this.nameMap.get(stock.symbol) || stock.name,
+            symbol: cleanSymbol,
+            name: quote.longName || quote.shortName || this.nameMap.get(cleanSymbol) || baseStock.name,
             price,
             previousClose: prevClose,
             open: openPrice,
@@ -239,7 +123,7 @@ class StockService {
             change,
             changePercent,
             volume,
-            sector: SECTOR_MAP[stock.symbol] || 'Others',
+            sector: SECTOR_MAP[cleanSymbol] || 'Others',
             averageVolume,
             relativeVolume,
             volumeSpike,
@@ -247,76 +131,29 @@ class StockService {
             lastUpdated: new Date().toISOString(),
             atDayHigh,
             atDayLow,
-            fiftyTwoWeekHigh: meta.fiftyTwoWeekHigh ?? 0,
-            fiftyTwoWeekLow: meta.fiftyTwoWeekLow ?? 0,
-            marketCap,
-            macdWeeklyBuy: technicalService.getSignal(stock.symbol),
+            fiftyTwoWeekHigh: quote.fiftyTwoWeekHigh ?? 0,
+            fiftyTwoWeekLow: quote.fiftyTwoWeekLow ?? 0,
+            marketCap: quote.marketCap ?? 0,
+            macdWeeklyBuy: technicalService.getSignal(cleanSymbol),
           };
 
-          return stockData;
-        } catch (err: any) {
-          let errorMsg = err.message || 'Unknown error';
-          let isRateLimit = false;
-          
-          if (err.response) {
-            errorMsg = `HTTP ${err.response.status} ${err.response.statusText}`;
-            if (err.response.status === 429 || err.response.status === 401) {
-              isRateLimit = true;
-            }
-          } else if (err.code) {
-            errorMsg = err.code;
-          }
-          
-          if (errorMsg.includes('404')) {
-            logger.debug(`Skipping ${yahooSymbol} (404 Not Found)`);
-          } else if (isRateLimit || errorMsg.toLowerCase().includes('socket hang up') || errorMsg.toLowerCase().includes('timeout')) {
-            // Log rate limits and socket timeouts as debug to avoid spamming the console 
-            // with red errors when polling 500 stocks every 3 seconds.
-            logger.debug(`Rate limited/Timeout fetching ${yahooSymbol}: ${errorMsg}`);
-          } else {
-            logger.error(`Failed to fetch ${yahooSymbol}: ${errorMsg}`);
-          }
-          return null;
+          results.push(stockData);
+          this.stockCache.set(stockData.symbol, stockData);
         }
-      });
-
-      const settled = await Promise.allSettled(promises);
-
-      for (const outcome of settled) {
-        if (outcome.status === 'fulfilled' && outcome.value !== null) {
-          const data = outcome.value;
-          results.push(data);
-          this.stockCache.set(data.symbol, data);
-        }
-      }
-
-      // Log progress every 5 batches
-      if ((batchIdx + 1) % 5 === 0 || batchIdx === batches.length - 1) {
-        logger.debug(
-          `Progress: ${Math.min((batchIdx + 1) * CONCURRENCY, stocks.length)}/${stocks.length} symbols processed`
-        );
+      } catch (err: any) {
+        logger.error(`Bulk fetch failed for batch ${batchIdx}: ${err.message}`);
       }
     }
 
     this.lastFetchTime.set(indexName, Date.now());
-
-    logger.info(
-      `${indexName}: fetched ${results.length}/${stocks.length} stocks successfully`
-    );
-
+    logger.info(`${indexName}: fetched ${results.length}/${stocks.length} stocks successfully`);
     return results;
   }
 
-  /**
-   * Fetch all Nifty 50 stocks.
-   */
   async fetchNifty50(): Promise<StockData[]> {
     return this.fetchQuotes(NIFTY_50_STOCKS, 'NIFTY50');
   }
 
-  /**
-   * Fetch all Nifty 500 stocks (excluding those already in Nifty 50).
-   */
   async fetchNifty500(): Promise<StockData[]> {
     const nifty50Symbols = new Set(NIFTY_50_STOCKS.map((s) => s.symbol));
     const additionalStocks = NIFTY_500_STOCKS.filter(
@@ -325,10 +162,6 @@ class StockService {
     return this.fetchQuotes(additionalStocks, 'NIFTY500');
   }
 
-  /**
-   * Fetch NIFTY 50 and Bank NIFTY index data for Day High/Low alerts.
-   * Uses Yahoo Finance symbols ^NSEI and ^NSEBANK.
-   */
   async fetchIndices(): Promise<StockData[]> {
     const indices = [
       { yahooSymbol: '^NSEI', displaySymbol: 'NIFTY50', name: 'NIFTY 50 Index' },
@@ -337,44 +170,38 @@ class StockService {
 
     const results: StockData[] = [];
 
-    for (const idx of indices) {
-      try {
-        const chartData = await fetchChartQuote(idx.yahooSymbol);
+    try {
+      const quotes = await yahooFinance.quote(indices.map(i => i.yahooSymbol));
+      
+      for (const quote of quotes) {
+        const idx = indices.find(i => i.yahooSymbol === quote.symbol);
+        if (!idx) continue;
 
-        if (!chartData || chartData.meta.regularMarketPrice == null) {
-          logger.warn(`No data returned for index ${idx.yahooSymbol}`);
-          continue;
-        }
+        const price: number = quote.regularMarketPrice ?? 0;
+        if (price === 0) continue;
 
-        const { meta } = chartData;
-        const price: number = meta.regularMarketPrice ?? 0;
-        const dayHigh: number = meta.regularMarketDayHigh ?? price;
-        const dayLow: number = meta.regularMarketDayLow ?? price;
-        const prevClose: number = meta.previousClose ?? meta.chartPreviousClose ?? price;
+        const dayHigh: number = quote.regularMarketDayHigh ?? price;
+        const dayLow: number = quote.regularMarketDayLow ?? price;
+        const prevClose: number = quote.regularMarketPreviousClose ?? price;
+        const openPrice: number = quote.regularMarketOpen ?? price;
+
+        const atDayHigh = dayHigh > 0 && price > 0 && Math.abs(price - dayHigh) / dayHigh <= HIGH_LOW_TOLERANCE;
+        const atDayLow = dayLow > 0 && price > 0 && Math.abs(price - dayLow) / dayLow <= HIGH_LOW_TOLERANCE;
+
         const change = price - prevClose;
         const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
-
-        const atDayHigh =
-          dayHigh > 0 &&
-          price > 0 &&
-          Math.abs(price - dayHigh) / dayHigh <= HIGH_LOW_TOLERANCE;
-
-        const atDayLow =
-          dayLow > 0 &&
-          price > 0 &&
-          Math.abs(price - dayLow) / dayLow <= HIGH_LOW_TOLERANCE;
 
         const indexData: StockData = {
           symbol: idx.displaySymbol,
           name: idx.name,
           price,
           previousClose: prevClose,
-          open: meta.regularMarketOpen ?? price,
+          open: openPrice,
           dayHigh,
           dayLow,
           change,
           changePercent,
-          volume: meta.regularMarketVolume ?? 0,
+          volume: quote.regularMarketVolume ?? 0,
           sector: 'Index',
           averageVolume: 0,
           relativeVolume: 0,
@@ -383,8 +210,8 @@ class StockService {
           lastUpdated: new Date().toISOString(),
           atDayHigh,
           atDayLow,
-          fiftyTwoWeekHigh: meta.fiftyTwoWeekHigh ?? 0,
-          fiftyTwoWeekLow: meta.fiftyTwoWeekLow ?? 0,
+          fiftyTwoWeekHigh: quote.fiftyTwoWeekHigh ?? 0,
+          fiftyTwoWeekLow: quote.fiftyTwoWeekLow ?? 0,
           marketCap: 0,
         };
 
@@ -394,39 +221,30 @@ class StockService {
         logger.info(
           `📈 ${idx.name}: ₹${price.toFixed(2)} | High: ₹${dayHigh.toFixed(2)} | Low: ₹${dayLow.toFixed(2)} | ${changePercent >= 0 ? '+' : ''}${changePercent.toFixed(2)}%`
         );
-      } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        logger.error(`Failed to fetch index ${idx.yahooSymbol}: ${message}`);
       }
+    } catch (err: any) {
+      logger.error(`Failed to fetch indices: ${err.message}`);
     }
 
     return results;
   }
 
-  /** Get all cached stock data. */
   getCachedStocks(): StockData[] {
     return Array.from(this.stockCache.values());
   }
 
-  /** Get cached data for a single stock. */
   getCachedStock(symbol: string): StockData | undefined {
     return this.stockCache.get(symbol);
   }
 
-  /** Get the timestamp of the last successful fetch for an index. */
   getLastFetchTime(indexName: string): number | undefined {
     return this.lastFetchTime.get(indexName);
   }
 
-  /** Get the total number of stocks in the cache. */
   getCacheSize(): number {
     return this.stockCache.size;
   }
 }
 
-/**
- * Singleton instance of the StockService.
- */
 export const stockService = new StockService();
-
 export default stockService;
