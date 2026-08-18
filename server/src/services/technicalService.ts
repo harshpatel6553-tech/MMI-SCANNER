@@ -24,7 +24,7 @@ class TechnicalService {
       const oneYearAgo = new Date();
       oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
 
-      const data = await yahooFinance.historical(yahooSymbol, {
+      const data = await (yahooFinance as any).historical(yahooSymbol, {
         period1: oneYearAgo,
         interval: '1wk'
       });
@@ -34,7 +34,7 @@ class TechnicalService {
       }
 
       // Filter out null values
-      const closePrices = data.map(d => d.close).filter((p): p is number => p !== null);
+      const closePrices = data.map((d: any) => d.close).filter((p: any): p is number => p !== null);
 
       if (closePrices.length < 35) return false;
 

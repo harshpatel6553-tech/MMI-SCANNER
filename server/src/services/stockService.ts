@@ -81,7 +81,7 @@ class StockService {
       const symbols = batch.map(s => `${s.symbol}.NS`);
       
       try {
-        const quotes = await yahooFinance.quote(symbols);
+        const quotes = await (yahooFinance as any).quote(symbols);
         
         for (const quote of quotes) {
           const cleanSymbol = quote.symbol.replace('.NS', '');
@@ -171,7 +171,7 @@ class StockService {
     const results: StockData[] = [];
 
     try {
-      const quotes = await yahooFinance.quote(indices.map(i => i.yahooSymbol));
+      const quotes = await (yahooFinance as any).quote(indices.map(i => i.yahooSymbol));
       
       for (const quote of quotes) {
         const idx = indices.find(i => i.yahooSymbol === quote.symbol);
