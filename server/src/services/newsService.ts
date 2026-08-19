@@ -39,6 +39,46 @@ class NewsService extends EventEmitter {
         try {
           // Use axios instead of native fetch because native fetch returns empty string for Nitter
           const { default: axios } = await import('axios');
+          
+          const rapidApiKey = process.env.RAPIDAPI_KEY || process.env.RAPID_API_KEY || process.env.TWITTER_API_KEY || process.env.TWITTERAPI_KEY || process.env.X_RAPIDAPI_KEY;
+          
+          if (rapidApiKey) {
+            try {
+               const rapidRes = await axios.get('https://twitter-search-only.p.rapidapi.com/search', {
+                 params: { query: `from:${screenname}`, type: 'Latest' },
+                 headers: {
+                   'X-RapidAPI-Key': rapidApiKey,
+                   'X-RapidAPI-Host': 'twitter-search-only.p.rapidapi.com'
+                 },
+                 timeout: 10000
+               });
+               
+               if (rapidRes.status === 200 && rapidRes.data) {
+                 let tweets: any[] = [];
+                 if (rapidRes.data.data && Array.isArray(rapidRes.data.data.tweets)) {
+                   tweets = rapidRes.data.data.tweets;
+                 } else if (Array.isArray(rapidRes.data)) {
+                   tweets = rapidRes.data;
+                 } else if (rapidRes.data.timeline) {
+                   tweets = rapidRes.data.timeline;
+                 }
+                 
+                 if (tweets.length > 0) {
+                   logger.info(`Fetched ${tweets.length} real-time tweets for ${screenname} via RapidAPI!`);
+                   return tweets.map(t => ({
+                     full_text: t.text || t.full_text || '',
+                     created_at: t.created_at || new Date().toUTCString(),
+                     _sourceAccount: screenname,
+                     id_str: t.tweet_id || t.id_str || t.id || ''
+                   }));
+                 }
+               }
+            } catch (rapidErr: any) {
+               logger.warn(`RapidAPI fetch failed for ${screenname} (Quota exceeded or invalid key?): ${rapidErr.message}. Falling back to Nitter...`);
+            }
+          }
+
+          // Fallback to Nitter (15 minute cache delay)
           const response = await axios.get(`https://nitter.net/${screenname}/rss`, {
             headers: {
               'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
@@ -73,7 +113,7 @@ class NewsService extends EventEmitter {
              };
           });
         } catch (err) {
-           logger.error(`Error fetching Nitter for ${screenname}: ${err}`);
+           logger.error(`Error fetching news for ${screenname}: ${err}`);
            return [];
         }
       });
