@@ -32,7 +32,7 @@ class NewsService extends EventEmitter {
   private async fetchTweets(): Promise<void> {
     try {
       // Define the list of Twitter accounts to follow
-      const accountsToFollow = ['RedboxIndia', 'yatinmota'];
+      const accountsToFollow = ['RedboxIndia', 'moneycontrolcom'];
       let allFetchedTweets: any[] = [];
 
       const fetchPromises = accountsToFollow.map(async (screenname) => {
