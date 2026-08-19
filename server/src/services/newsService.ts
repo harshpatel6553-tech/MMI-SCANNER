@@ -18,6 +18,7 @@ class NewsService extends EventEmitter {
   private newsCache: NewsItem[] = [];
   private isPolling = false;
   private currentKeyIndex = 0;
+  private rapidApiKeys: string[] = [];
   private readonly POLL_INTERVAL = 60 * 1000; // 60 seconds
 
   constructor() {
@@ -40,9 +41,27 @@ class NewsService extends EventEmitter {
           // Use axios instead of native fetch because native fetch returns empty string for Nitter
           const { default: axios } = await import('axios');
           
-          const rapidApiKey = process.env.RAPIDAPI_KEY || process.env.RAPID_API_KEY || process.env.TWITTER_API_KEY || process.env.TWITTERAPI_KEY || process.env.X_RAPIDAPI_KEY;
+          if (this.rapidApiKeys.length === 0) {
+             const rawKeys = process.env.RAPIDAPI_KEY || process.env.RAPID_API_KEY || process.env.TWITTER_API_KEY || process.env.TWITTERAPI_KEY || process.env.X_RAPIDAPI_KEY || '';
+             if (rawKeys.includes(',')) {
+                 this.rapidApiKeys = rawKeys.split(',').map(k => k.trim()).filter(k => k);
+             } else if (rawKeys) {
+                 this.rapidApiKeys = [rawKeys];
+             }
+             
+             // Also dynamically load any numbered keys like RAPIDAPI_KEY_1, RAPIDAPI_KEY_2, etc.
+             for (let i = 1; i <= 20; i++) {
+                 const k = process.env[`RAPIDAPI_KEY_${i}`] || process.env[`TWITTERAPI_KEY_${i}`] || process.env[`TWITTER_API_KEY_${i}`];
+                 if (k && !this.rapidApiKeys.includes(k)) {
+                     this.rapidApiKeys.push(k);
+                 }
+             }
+          }
           
-          if (rapidApiKey) {
+          if (this.rapidApiKeys.length > 0) {
+            const rapidApiKey = this.rapidApiKeys[this.currentKeyIndex % this.rapidApiKeys.length];
+            this.currentKeyIndex++; // rotate to the next key for the next request
+            
             try {
                const rapidRes = await axios.get('https://twitter-search-only.p.rapidapi.com/timeline.php', {
                  params: { screenname: screenname },
