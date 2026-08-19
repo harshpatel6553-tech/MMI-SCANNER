@@ -39,8 +39,7 @@ class NewsService extends EventEmitter {
         try {
           // Use axios instead of native fetch because native fetch returns empty string for Nitter
           const { default: axios } = await import('axios');
-          const cacheBuster = Date.now();
-          const response = await axios.get(`https://nitter.net/${screenname}/rss?t=${cacheBuster}`, {
+          const response = await axios.get(`https://nitter.net/${screenname}/rss`, {
             headers: {
               'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
             },
