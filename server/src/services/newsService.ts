@@ -74,44 +74,13 @@ class NewsService extends EventEmitter {
                  }
                }
             } catch (rapidErr: any) {
-               logger.warn(`RapidAPI fetch failed for ${screenname} (Quota exceeded or invalid key?): ${rapidErr.message}. Falling back to Nitter...`);
+               logger.warn(`RapidAPI fetch failed for ${screenname} (Quota exceeded or invalid key?): ${rapidErr.message}`);
             }
+          } else {
+            logger.warn(`No RapidAPI Key found in environment variables. Cannot fetch news for ${screenname}.`);
           }
 
-          // Fallback to Nitter (15 minute cache delay)
-          const response = await axios.get(`https://nitter.net/${screenname}/rss`, {
-            headers: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-            },
-            timeout: 10000 // 10 second timeout
-          });
-
-          if (response.status !== 200) {
-             logger.warn(`Nitter API error for ${screenname}: HTTP ${response.status}`);
-             return [];
-          }
-
-          const xml = response.data;
-          
-          // Parse the RSS items manually to avoid dependency issues
-          const items = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)].map((m: any) => m[1]);
-          
-          return items.map((itemHtml: string) => {
-             const titleMatch = itemHtml.match(/<title>([\s\S]*?)<\/title>/);
-             const pubDateMatch = itemHtml.match(/<pubDate>([\s\S]*?)<\/pubDate>/);
-             const guidMatch = itemHtml.match(/<guid[^>]*>([\s\S]*?)<\/guid>/);
-             
-             let full_text = titleMatch ? titleMatch[1] : 'Breaking News';
-             // Clean up CDATA tags if present
-             full_text = full_text.replace(/^<!\[CDATA\[/, '').replace(/\]\]>$/, '');
-             
-             return {
-                 full_text,
-                 created_at: pubDateMatch ? pubDateMatch[1] : new Date().toUTCString(),
-                 _sourceAccount: screenname,
-                 id_str: guidMatch ? guidMatch[1].replace(/[^0-9]/g, '') : ''
-             };
-          });
+          return [];
         } catch (err) {
            logger.error(`Error fetching news for ${screenname}: ${err}`);
            return [];
