@@ -16,6 +16,10 @@ export function useStocks(
   useEffect(() => {
     if (!socket) return;
 
+    // Force the server to send a full snapshot immediately
+    // This fixes the race condition where the client misses the initial payload during the loading screen
+    socket.emit('subscribe:index', 'ALL');
+
     const handleUpdate = (data: StockData[]) => {
       setStockMap(prev => {
         const newMap = new Map(prev);
