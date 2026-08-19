@@ -16,9 +16,14 @@ export function useStocks(
   useEffect(() => {
     if (!socket) return;
 
-    // Force the server to send a full snapshot immediately
-    // This fixes the race condition where the client misses the initial payload during the loading screen
-    socket.emit('subscribe:index', 'ALL');
+    // Force the server to send a full snapshot.
+    // Explicitly wait for connection to bypass offline queue bugs.
+    const requestSnapshot = () => socket.emit('subscribe:index', 'ALL');
+    if (socket.connected) {
+      requestSnapshot();
+    } else {
+      socket.on('connect', requestSnapshot);
+    }
 
     const handleUpdate = (data: StockData[]) => {
       setStockMap(prev => {
@@ -50,11 +55,9 @@ export function useStocks(
           // Merge partial delta updates into existing stock data
           const existingStock = newMap.get(stock.symbol);
           
-          // CRITICAL FIX: If this is a partial delta update but we don't have the full stock yet 
-          // (e.g. race condition during page refresh), completely ignore it to prevent fatal crashes.
-          // Full updates will always have the 'name' property.
+          // CRITICAL FIX: If name is missing, fallback to symbol instead of returning
           if (!existingStock && !stock.name) {
-            return;
+            stock.name = stock.symbol || 'Unknown';
           }
 
           const mergedStock = { ...(existingStock || {} as StockData), ...stock };
