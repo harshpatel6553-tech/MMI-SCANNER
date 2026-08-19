@@ -59,44 +59,63 @@ class NewsService extends EventEmitter {
           }
           
           if (this.rapidApiKeys.length > 0) {
-            const rapidApiKey = this.rapidApiKeys[this.currentKeyIndex % this.rapidApiKeys.length];
-            this.currentKeyIndex++; // rotate to the next key for the next request
-            
-            try {
-               const rapidRes = await axios.get('https://twitter-search-only.p.rapidapi.com/timeline.php', {
-                 params: { screenname: screenname },
-                 headers: {
-                   'X-RapidAPI-Key': rapidApiKey,
-                   'X-RapidAPI-Host': 'twitter-search-only.p.rapidapi.com'
-                 },
-                 timeout: 10000
-               });
-               
-               if (rapidRes.status === 200 && rapidRes.data) {
-                 let tweets: any[] = [];
-                 if (rapidRes.data.data && Array.isArray(rapidRes.data.data.tweets)) {
-                   tweets = rapidRes.data.data.tweets;
-                 } else if (Array.isArray(rapidRes.data)) {
-                   tweets = rapidRes.data;
-                 } else if (rapidRes.data.timeline) {
-                   tweets = rapidRes.data.timeline;
-                 }
+            let fetchSuccess = false;
+
+            while (this.rapidApiKeys.length > 0 && !fetchSuccess) {
+              const rapidApiKey = this.rapidApiKeys[this.currentKeyIndex % this.rapidApiKeys.length];
+              this.currentKeyIndex++; // rotate to the next key for the next attempt
+              
+              try {
+                 const rapidRes = await axios.get('https://twitter-search-only.p.rapidapi.com/timeline.php', {
+                   params: { screenname: screenname },
+                   headers: {
+                     'X-RapidAPI-Key': rapidApiKey,
+                     'X-RapidAPI-Host': 'twitter-search-only.p.rapidapi.com'
+                   },
+                   timeout: 10000
+                 });
                  
-                 if (tweets.length > 0) {
-                   logger.info(`Fetched ${tweets.length} real-time tweets for ${screenname} via RapidAPI!`);
-                   return tweets.map(t => ({
-                     full_text: t.text || t.full_text || '',
-                     created_at: t.created_at || new Date().toUTCString(),
-                     _sourceAccount: screenname,
-                     id_str: t.tweet_id || t.id_str || t.id || ''
-                   }));
+                 if (rapidRes.status === 200 && rapidRes.data) {
+                   let tweets: any[] = [];
+                   if (rapidRes.data.data && Array.isArray(rapidRes.data.data.tweets)) {
+                     tweets = rapidRes.data.data.tweets;
+                   } else if (Array.isArray(rapidRes.data)) {
+                     tweets = rapidRes.data;
+                   } else if (rapidRes.data.timeline) {
+                     tweets = rapidRes.data.timeline;
+                   }
+                   
+                   if (tweets.length > 0) {
+                     logger.info(`Fetched ${tweets.length} real-time tweets for ${screenname} via RapidAPI!`);
+                     fetchSuccess = true;
+                     return tweets.map((t: any) => ({
+                       full_text: t.text || t.full_text || '',
+                       created_at: t.created_at || new Date().toUTCString(),
+                       _sourceAccount: screenname,
+                       id_str: t.tweet_id || t.id_str || t.id || ''
+                     }));
+                   } else {
+                     // Empty timeline, but API call succeeded
+                     fetchSuccess = true; 
+                     return [];
+                   }
                  }
-               }
-            } catch (rapidErr: any) {
-               logger.warn(`RapidAPI fetch failed for ${screenname} (Quota exceeded or invalid key?): ${rapidErr.message}`);
+              } catch (rapidErr: any) {
+                 const status = rapidErr.response?.status;
+                 if (status === 429 || status === 403) {
+                    logger.warn(`RapidAPI Key ${rapidApiKey.substring(0,6)}... exhausted or invalid (HTTP ${status}). Removing from rotation.`);
+                    this.rapidApiKeys = this.rapidApiKeys.filter(k => k !== rapidApiKey);
+                    // Loop will continue and try the next key immediately!
+                 } else {
+                    logger.warn(`RapidAPI fetch failed for ${screenname}: ${rapidErr.message}`);
+                    break; // Stop retrying for unknown errors (like 500s or timeouts)
+                 }
+              }
             }
-          } else {
-            logger.warn(`No RapidAPI Key found in environment variables. Cannot fetch news for ${screenname}.`);
+          }
+          
+          if (this.rapidApiKeys.length === 0) {
+            logger.warn(`All RapidAPI keys exhausted or no keys configured! Cannot fetch news for ${screenname}.`);
           }
 
           return [];
