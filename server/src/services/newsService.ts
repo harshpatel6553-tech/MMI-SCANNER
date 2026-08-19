@@ -18,7 +18,7 @@ class NewsService extends EventEmitter {
   private newsCache: NewsItem[] = [];
   private isPolling = false;
   private currentKeyIndex = 0;
-  private readonly POLL_INTERVAL = 90 * 1000; // 90 seconds
+  private readonly POLL_INTERVAL = 60 * 1000; // 60 seconds
 
   constructor() {
     super();
@@ -39,7 +39,8 @@ class NewsService extends EventEmitter {
         try {
           // Use axios instead of native fetch because native fetch returns empty string for Nitter
           const { default: axios } = await import('axios');
-          const response = await axios.get(`https://nitter.net/${screenname}/rss`, {
+          const cacheBuster = Date.now();
+          const response = await axios.get(`https://nitter.net/${screenname}/rss?t=${cacheBuster}`, {
             headers: {
               'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
             },
