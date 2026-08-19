@@ -89,8 +89,8 @@ class NewsService extends EventEmitter {
                      logger.info(`Fetched ${tweets.length} real-time tweets for ${screenname} via RapidAPI!`);
                      fetchSuccess = true;
                      return tweets.map((t: any) => ({
-                       full_text: t.text || t.full_text || '',
-                       created_at: t.created_at || new Date().toUTCString(),
+                       full_text: t.full_text || t.note_tweet?.text || t.extended_tweet?.full_text || t.text || '',
+                       created_at: t.created_at || t.timestamp || new Date().toUTCString(),
                        _sourceAccount: screenname,
                        id_str: t.tweet_id || t.id_str || t.id || ''
                      }));

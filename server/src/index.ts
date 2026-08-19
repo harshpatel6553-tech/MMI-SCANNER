@@ -111,7 +111,7 @@ newsService.on('news:alert', (news) => {
     name: news.title,
     alertType: 'NEWS',
     price: 0,
-    createdAt: new Date().toISOString()
+    createdAt: new Date(news.pubDate || Date.now()).toISOString()
   });
 });
 
