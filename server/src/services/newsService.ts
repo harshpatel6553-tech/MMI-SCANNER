@@ -44,8 +44,8 @@ class NewsService extends EventEmitter {
           
           if (rapidApiKey) {
             try {
-               const rapidRes = await axios.get('https://twitter-search-only.p.rapidapi.com/search', {
-                 params: { query: `from:${screenname}`, type: 'Latest' },
+               const rapidRes = await axios.get('https://twitter-search-only.p.rapidapi.com/timeline.php', {
+                 params: { screenname: screenname },
                  headers: {
                    'X-RapidAPI-Key': rapidApiKey,
                    'X-RapidAPI-Host': 'twitter-search-only.p.rapidapi.com'
