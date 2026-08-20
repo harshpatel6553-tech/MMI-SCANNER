@@ -25,7 +25,17 @@ router.get('/', async (req: Request, res: Response) => {
         if (raw.error) return [];
         
         // Extract array of tweet objects
-        const items = raw.data?.user?.result?.timeline?.timeline?.instructions?.[1]?.entries || raw.data || raw || [];
+        let items = raw.data?.user?.result?.timeline?.timeline?.instructions?.[1]?.entries || raw.data || raw || [];
+        
+        // Ensure items is actually an array to prevent "items.map is not a function" crashes
+        if (!Array.isArray(items)) {
+           // Fallback for different API response structures
+           if (items && typeof items === 'object') {
+              items = Object.values(items).find(v => Array.isArray(v)) || [];
+           } else {
+              items = [];
+           }
+        }
         
         return items.map((t: any, index: number) => {
           const text = t.text || t.full_text || t.content?.itemContent?.tweet_results?.result?.legacy?.full_text || 'Breaking News Update';
