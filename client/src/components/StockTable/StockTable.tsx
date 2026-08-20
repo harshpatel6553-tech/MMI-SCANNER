@@ -16,61 +16,45 @@ interface StockTableProps {
 }
 
 const columns: { key: SortField | 'index' | 'indicator' | 'watchlist'; label: string; className: string; sortable: boolean }[] = [
-  { key: 'watchlist', label: '★', className: 'col-watchlist', sortable: false },
-  { key: 'index', label: '#', className: 'col-index', sortable: false },
-  { key: 'symbol', label: 'Symbol', className: 'col-symbol', sortable: true },
-  { key: 'name', label: 'Company', className: 'col-name', sortable: true },
-  { key: 'price', label: 'Price (₹)', className: 'col-price', sortable: true },
-  { key: 'change', label: 'Change', className: 'col-change', sortable: true },
-  { key: 'changePercent', label: 'Change %', className: 'col-pct', sortable: true },
-  { key: 'dayHigh', label: 'Day High', className: 'col-high', sortable: true },
-  { key: 'dayLow', label: 'Day Low', className: 'col-low', sortable: true },
-  { key: 'volume', label: 'Volume', className: 'col-volume', sortable: true },
+  { key: 'watchlist', label: 'W', className: 'col-watchlist', sortable: false },
+  { key: 'index', label: 'ID', className: 'col-index', sortable: false },
+  { key: 'symbol', label: 'TICKER', className: 'col-symbol', sortable: true },
+  { key: 'name', label: 'ENTITY', className: 'col-name', sortable: true },
+  { key: 'price', label: 'LAST', className: 'col-price', sortable: true },
+  { key: 'change', label: 'CHG', className: 'col-change', sortable: true },
+  { key: 'changePercent', label: 'CHG%', className: 'col-pct', sortable: true },
+  { key: 'dayHigh', label: 'HIGH', className: 'col-high', sortable: true },
+  { key: 'dayLow', label: 'LOW', className: 'col-low', sortable: true },
+  { key: 'volume', label: 'VOL', className: 'col-volume', sortable: true },
 ];
 
 export function StockTable({ stocks, priceFlash, sortField, sortOrder, onSort, isLoading, watchlist, onToggleWatchlist, onRowClick }: StockTableProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const progressRef = useRef<HTMLDivElement>(null);
   const [hasAnimated, setHasAnimated] = useState(false);
 
-  // Track if initial animation has played
   useEffect(() => {
     if (stocks.length > 0 && !hasAnimated) {
-      const timer = setTimeout(() => setHasAnimated(true), stocks.length * 30 + 500);
+      const timer = setTimeout(() => setHasAnimated(true), 100);
       return () => clearTimeout(timer);
     }
   }, [stocks.length, hasAnimated]);
 
-  const handleScroll = useCallback(() => {
-    const el = scrollRef.current;
-    const progressEl = progressRef.current;
-    if (!el || !progressEl) return;
-    const progress = (el.scrollTop / (el.scrollHeight - el.clientHeight));
-    progressEl.style.transform = `scaleX(${Math.min(1, Math.max(0, progress || 0))})`;
-  }, []);
-
   const getSortIndicator = (field: string) => {
     if (field !== sortField) return '';
-    return sortOrder === 'asc' ? '▲' : '▼';
+    return sortOrder === 'asc' ? '[ASC]' : '[DSC]';
   };
 
   // Loading skeleton
   if (isLoading) {
     return (
       <div className="stock-table-wrapper">
-        <div className="table-scroll-progress" style={{ width: '30%' }} />
+        <div className="terminal-header">
+          <span className="terminal-title">DATASTREAM [LOADING]</span>
+          <span className="terminal-status blink">_</span>
+        </div>
         {Array.from({ length: 15 }).map((_, i) => (
-          <div key={i} className="skeleton-row" style={{ animationDelay: `${i * 80}ms` }}>
-            <div className="skeleton-cell sk-star skeleton" />
-            <div className="skeleton-cell sk-index skeleton" />
-            <div className="skeleton-cell sk-symbol skeleton" />
-            <div className="skeleton-cell sk-name skeleton" />
-            <div className="skeleton-cell sk-price skeleton" />
-            <div className="skeleton-cell sk-change skeleton" />
-            <div className="skeleton-cell sk-pct skeleton" />
-            <div className="skeleton-cell sk-high skeleton" />
-            <div className="skeleton-cell sk-low skeleton" />
-            <div className="skeleton-cell sk-vol skeleton" />
+          <div key={i} className="skeleton-row">
+            <div className="skeleton-cell" style={{width: '100%'}}></div>
           </div>
         ))}
       </div>
@@ -81,10 +65,11 @@ export function StockTable({ stocks, priceFlash, sortField, sortOrder, onSort, i
   if (stocks.length === 0) {
     return (
       <div className="stock-table-wrapper">
+        <div className="terminal-header">
+          <span className="terminal-title">DATASTREAM [EMPTY]</span>
+        </div>
         <div className="table-empty">
-          <div className="table-empty-icon">🔍</div>
-          <div className="table-empty-text">No stocks match your filters</div>
-          <div className="table-empty-sub">Try adjusting your search or filter criteria</div>
+          <div className="table-empty-text">NULL_RECORD_SET</div>
         </div>
       </div>
     );
@@ -92,7 +77,10 @@ export function StockTable({ stocks, priceFlash, sortField, sortOrder, onSort, i
 
   return (
     <div className="stock-table-wrapper">
-      <div className="table-scroll-progress" ref={progressRef} style={{ width: '100%', transform: 'scaleX(0)' }} />
+      <div className="terminal-header">
+        <span className="terminal-title">TERMINAL // TICKER DATA</span>
+        <span className="terminal-count">RECORDS: {stocks.length}</span>
+      </div>
       <table className="stock-table">
         <thead>
           <tr>
@@ -111,7 +99,7 @@ export function StockTable({ stocks, priceFlash, sortField, sortOrder, onSort, i
           </tr>
         </thead>
       </table>
-      <div className="stock-table-body" ref={scrollRef} onScroll={handleScroll}>
+      <div className="stock-table-body" ref={scrollRef}>
         <table className="stock-table">
           <tbody>
             {stocks.map((stock, i) => (

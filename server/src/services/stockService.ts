@@ -11,6 +11,9 @@ import { NIFTY_500_STOCKS } from '../data/nifty500.js';
 import { SECTOR_MAP } from '../data/sectorMap.js';
 import { technicalService } from './technicalService.js';
 import logger from '../utils/logger.js';
+import YahooFinance from 'yahoo-finance2';
+
+const yahooFinance = new YahooFinance();
 
 /** Number of concurrent requests per batch */
 const CONCURRENCY = 20;
@@ -70,7 +73,7 @@ class StockService {
     }
 
     logger.debug(
-      `Fetching ${stocks.length} ${indexName} stocks in ${batches.length} batch(es) via Spark Bulk API`
+      `Fetching ${stocks.length} ${indexName} stocks in ${batches.length} batch(es) via yahoo-finance2`
     );
 
     for (let batchIdx = 0; batchIdx < batches.length; batchIdx++) {
@@ -80,30 +83,12 @@ class StockService {
         await sleep(BATCH_DELAY_MS);
       }
 
-      const symbolsStr = batch.map(s => `${s.symbol}.NS`).join(',');
+      const symbols = batch.map(s => `${s.symbol}.NS`);
       
       try {
-        const url = `https://query1.finance.yahoo.com/v7/finance/spark?symbols=${encodeURIComponent(symbolsStr)}&range=1d&interval=1h`;
-        const res = await fetch(url, {
-          headers: {
-            'User-Agent': USER_AGENT,
-            'Accept': 'application/json'
-          }
-        });
+        const quotes = (await yahooFinance.quote(symbols)) as any[];
 
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}`);
-        }
-
-        const data = await res.json() as any;
-        const sparkResults = data?.spark?.result || [];
-
-        for (const sparkObj of sparkResults) {
-          const meta = sparkObj.response?.[0]?.meta;
-          const quoteIndicators = sparkObj.response?.[0]?.indicators?.quote?.[0];
-          
-          if (!meta) continue;
-
+        for (const meta of quotes) {
           const cleanSymbol = meta.symbol.replace('.NS', '');
           const baseStock = batch.find(s => s.symbol === cleanSymbol);
           if (!baseStock) continue;
@@ -113,13 +98,8 @@ class StockService {
 
           const dayHigh: number = meta.regularMarketDayHigh ?? price;
           const dayLow: number = meta.regularMarketDayLow ?? price;
-          const prevClose: number = meta.previousClose ?? meta.chartPreviousClose ?? price;
-          
-          let openPrice: number = price;
-          if (quoteIndicators && quoteIndicators.close && quoteIndicators.close.length > 0) {
-            const firstClose = quoteIndicators.close.find((p: number | null) => p !== null);
-            if (firstClose) openPrice = firstClose;
-          }
+          const prevClose: number = meta.regularMarketPreviousClose ?? price;
+          const openPrice: number = meta.regularMarketOpen ?? price;
 
           const atDayHigh = dayHigh > 0 && price > 0 && Math.abs(price - dayHigh) / dayHigh <= HIGH_LOW_TOLERANCE;
           const atDayLow = dayLow > 0 && price > 0 && Math.abs(price - dayLow) / dayLow <= HIGH_LOW_TOLERANCE;
@@ -128,7 +108,14 @@ class StockService {
           const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
 
           const volume: number = meta.regularMarketVolume ?? 0;
-          const averageVolume = Math.round(volume); 
+          const averageVolume: number = meta.averageDailyVolume3Month ?? 0; 
+          
+          let relativeVolume = 0;
+          let volumeSpike = false;
+          if (averageVolume > 0) {
+            relativeVolume = volume / averageVolume;
+            volumeSpike = relativeVolume >= 2.0;
+          }
 
           const stockData: StockData = {
             symbol: cleanSymbol,
@@ -143,23 +130,23 @@ class StockService {
             volume,
             sector: SECTOR_MAP[cleanSymbol] || 'Others',
             averageVolume,
-            relativeVolume: 1.0,
-            volumeSpike: false,
+            relativeVolume,
+            volumeSpike,
             indexName,
             lastUpdated: new Date().toISOString(),
             atDayHigh,
             atDayLow,
-            fiftyTwoWeekHigh: meta.fiftyTwoWeekHigh ?? 0,
-            fiftyTwoWeekLow: meta.fiftyTwoWeekLow ?? 0,
+            fiftyTwoWeekHigh: meta.fiftyTwoWeekHigh ?? price,
+            fiftyTwoWeekLow: meta.fiftyTwoWeekLow ?? price,
             marketCap: meta.marketCap ?? 0,
-            macdWeeklyBuy: technicalService.getSignal(cleanSymbol),
+            macdWeeklyBuy: technicalService.getSignal(cleanSymbol)
           };
 
           results.push(stockData);
           this.stockCache.set(stockData.symbol, stockData);
         }
       } catch (err: any) {
-        logger.error(`Bulk fetch failed for batch ${batchIdx}: ${err.message}`);
+        logger.error(`yahooFinance.quote failed for batch ${batchIdx}: ${err.message}`);
       }
     }
 
@@ -189,24 +176,10 @@ class StockService {
     const results: StockData[] = [];
 
     try {
-      const symbolsStr = indices.map(i => i.yahooSymbol).join(',');
-      const url = `https://query1.finance.yahoo.com/v7/finance/spark?symbols=${encodeURIComponent(symbolsStr)}&range=1d&interval=1h`;
-      const res = await fetch(url, {
-        headers: {
-          'User-Agent': USER_AGENT,
-          'Accept': 'application/json'
-        }
-      });
+      const symbols = indices.map(i => i.yahooSymbol);
+      const quotes = (await yahooFinance.quote(symbols)) as any[];
 
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-      const data = await res.json() as any;
-      const sparkResults = data?.spark?.result || [];
-
-      for (const sparkObj of sparkResults) {
-        const meta = sparkObj.response?.[0]?.meta;
-        if (!meta) continue;
-
+      for (const meta of quotes) {
         const idx = indices.find(i => i.yahooSymbol === meta.symbol);
         if (!idx) continue;
 
@@ -215,7 +188,8 @@ class StockService {
 
         const dayHigh: number = meta.regularMarketDayHigh ?? price;
         const dayLow: number = meta.regularMarketDayLow ?? price;
-        const prevClose: number = meta.previousClose ?? meta.chartPreviousClose ?? price;
+        const prevClose: number = meta.regularMarketPreviousClose ?? price;
+        const openPrice: number = meta.regularMarketOpen ?? price;
         
         const atDayHigh = dayHigh > 0 && price > 0 && Math.abs(price - dayHigh) / dayHigh <= HIGH_LOW_TOLERANCE;
         const atDayLow = dayLow > 0 && price > 0 && Math.abs(price - dayLow) / dayLow <= HIGH_LOW_TOLERANCE;
@@ -228,7 +202,7 @@ class StockService {
           name: idx.name,
           price,
           previousClose: prevClose,
-          open: price,
+          open: openPrice,
           dayHigh,
           dayLow,
           change,
@@ -242,8 +216,8 @@ class StockService {
           lastUpdated: new Date().toISOString(),
           atDayHigh,
           atDayLow,
-          fiftyTwoWeekHigh: meta.fiftyTwoWeekHigh ?? 0,
-          fiftyTwoWeekLow: meta.fiftyTwoWeekLow ?? 0,
+          fiftyTwoWeekHigh: meta.fiftyTwoWeekHigh ?? price,
+          fiftyTwoWeekLow: meta.fiftyTwoWeekLow ?? price,
           marketCap: 0,
         };
 

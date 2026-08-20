@@ -8,7 +8,7 @@ export function useStocks(
   sortOrder: SortOrder
 ) {
   const { socket } = useSocketContext();
-  const [stockMap, setStockMap] = useState<Map<string, StockData>>(new Map());
+  const [allStocks, setAllStocks] = useState<StockData[]>([]);
   const [priceFlash, setPriceFlash] = useState<Map<string, 'up' | 'down'>>(new Map());
   const prevPrices = useRef<Map<string, number>>(new Map());
   const flashTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
@@ -26,69 +26,50 @@ export function useStocks(
     }
 
     const handleUpdate = (data: StockData[]) => {
-      setStockMap(prev => {
-        const newMap = new Map(prev);
-        const newFlashes = new Map<string, 'up' | 'down'>();
+      const newFlashes = new Map<string, 'up' | 'down'>();
 
-        data.forEach(stock => {
-          const oldPrice = prevPrices.current.get(stock.symbol);
-          if (oldPrice !== undefined && oldPrice !== stock.price) {
-            const direction = stock.price > oldPrice ? 'up' : 'down';
-            newFlashes.set(stock.symbol, direction);
+      data.forEach(stock => {
+        const oldPrice = prevPrices.current.get(stock.symbol);
+        if (oldPrice !== undefined && oldPrice !== stock.price) {
+          const direction = stock.price > oldPrice ? 'up' : 'down';
+          newFlashes.set(stock.symbol, direction);
 
-            // Clear existing timer
-            const existingTimer = flashTimers.current.get(stock.symbol);
-            if (existingTimer) clearTimeout(existingTimer);
+          // Clear existing timer
+          const existingTimer = flashTimers.current.get(stock.symbol);
+          if (existingTimer) clearTimeout(existingTimer);
 
-            // Set new timer to clear flash
-            const timer = setTimeout(() => {
-              setPriceFlash(prev => {
-                const next = new Map(prev);
-                next.delete(stock.symbol);
-                return next;
-              });
-            }, 1000);
-            flashTimers.current.set(stock.symbol, timer);
-          }
-          prevPrices.current.set(stock.symbol, stock.price);
-          
-          // Merge partial delta updates into existing stock data
-          const existingStock = newMap.get(stock.symbol);
-          
-          // CRITICAL FIX: If name is missing, fallback to symbol instead of returning
-          if (!existingStock && !stock.name) {
-            stock.name = stock.symbol || 'Unknown';
-          }
-
-          const mergedStock = { ...(existingStock || {} as StockData), ...stock };
-          newMap.set(stock.symbol, mergedStock);
-        });
-
-        if (newFlashes.size > 0) {
-          setPriceFlash(prev => {
-            const next = new Map(prev);
-            newFlashes.forEach((v, k) => next.set(k, v));
-            return next;
-          });
+          // Set new timer to clear flash
+          const timer = setTimeout(() => {
+            setPriceFlash(prev => {
+              const next = new Map(prev);
+              next.delete(stock.symbol);
+              return next;
+            });
+          }, 1000);
+          flashTimers.current.set(stock.symbol, timer);
         }
-
-        return newMap;
+        prevPrices.current.set(stock.symbol, stock.price);
       });
+
+      if (newFlashes.size > 0) {
+        setPriceFlash(prev => {
+          const next = new Map(prev);
+          newFlashes.forEach((v, k) => next.set(k, v));
+          return next;
+        });
+      }
+
+      setAllStocks(data);
     };
 
-    socket.on('stocks:update', handleUpdate);
     socket.on('stocks:update:full', handleUpdate);
-    socket.on('stocks:update:delta', handleUpdate);
 
     return () => {
-      socket.off('stocks:update', handleUpdate);
       socket.off('stocks:update:full', handleUpdate);
-      socket.off('stocks:update:delta', handleUpdate);
+      socket.off('connect', requestSnapshot);
       flashTimers.current.forEach(t => clearTimeout(t));
     };
   }, [socket]);
-
-  const allStocks = useMemo(() => Array.from(stockMap.values()), [stockMap]);
 
   const stats = useMemo(() => {
     let gainers = 0, losers = 0, unchanged = 0, volumeSpikes = 0;

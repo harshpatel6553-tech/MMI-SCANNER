@@ -1,4 +1,3 @@
-import { Zap } from 'lucide-react';
 import './MarketBreadth.css';
 
 interface MarketBreadthProps {
@@ -20,20 +19,23 @@ export function MarketBreadth({ stats }: MarketBreadthProps) {
   const unchangedPct = total > 0 ? (unchanged / total) * 100 : 0;
   const loserPct = total > 0 ? (losers / total) * 100 : 0;
 
-  const adDisplay = advanceDeclineRatio === Infinity ? '∞' : advanceDeclineRatio.toFixed(2);
+  const adDisplay = advanceDeclineRatio === Infinity ? 'INF' : advanceDeclineRatio.toFixed(2);
 
   return (
-    <div className="market-breadth glass-card">
-      <div className="breadth-labels">
-        <span className="breadth-count positive">
-          {gainers} <span className="breadth-arrow">▲</span>
-        </span>
-        <span className="breadth-count text-muted">
-          {unchanged} <span className="breadth-dash">―</span>
-        </span>
-        <span className="breadth-count negative">
-          {losers} <span className="breadth-arrow">▼</span>
-        </span>
+    <div className="market-breadth">
+      <div className="breadth-panel">
+        <div className="breadth-data">
+          <span className="breadth-label">ADV</span>
+          <span className="breadth-value positive">{gainers}</span>
+        </div>
+        <div className="breadth-data">
+          <span className="breadth-label">DEC</span>
+          <span className="breadth-value negative">{losers}</span>
+        </div>
+        <div className="breadth-data">
+          <span className="breadth-label">UNC</span>
+          <span className="breadth-value text-muted">{unchanged}</span>
+        </div>
       </div>
 
       <div className="breadth-bar-track">
@@ -51,15 +53,16 @@ export function MarketBreadth({ stats }: MarketBreadthProps) {
         />
       </div>
 
-      <div className="breadth-pills">
-        <span className="pill pill-accent breadth-pill">
-          A/D {adDisplay}
-        </span>
+      <div className="breadth-panel right">
+        <div className="breadth-data">
+          <span className="breadth-label">A/D RATIO</span>
+          <span className="breadth-value">{adDisplay}</span>
+        </div>
         {volumeSpikes > 0 && (
-          <span className="pill pill-warning breadth-pill">
-            <Zap size={12} className="mr-1" />
-            {volumeSpikes} Spikes
-          </span>
+          <div className="breadth-data alert">
+            <span className="breadth-label">SPIKES</span>
+            <span className="breadth-value">{volumeSpikes}</span>
+          </div>
         )}
       </div>
     </div>

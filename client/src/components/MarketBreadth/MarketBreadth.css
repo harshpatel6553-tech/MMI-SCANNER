@@ -1,102 +1,85 @@
 /* ============================================
-   MARKET BREADTH — Compact Advance/Decline Bar
+   MARKET BREADTH — Brutalist Indicator
    ============================================ */
 
 .market-breadth {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 10px 18px;
-  min-height: 50px;
-  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-primary);
+  font-family: 'Space Mono', monospace;
+  min-height: 40px;
 }
 
-/* ---- Count Labels ---- */
-.breadth-labels {
+.breadth-panel {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-shrink: 0;
+  height: 100%;
 }
 
-.breadth-count {
-  font-family: 'Inter', -apple-system, sans-serif;
-  font-size: 12px;
-  font-weight: 700;
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
+.breadth-panel.right {
+  border-left: 1px solid var(--border);
 }
 
-.breadth-arrow {
-  font-size: 10px;
+.breadth-data {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 4px 12px;
+  border-right: 1px solid var(--border);
 }
 
-.breadth-dash {
-  font-size: 12px;
+.breadth-data.alert {
+  background: var(--accent);
+  color: #fff;
+}
+.breadth-data.alert .breadth-label {
+  color: #fff;
+}
+.breadth-data.alert .breadth-value {
+  color: #fff;
+}
+
+.breadth-label {
+  font-size: 9px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.breadth-value {
+  font-size: 14px;
+  font-weight: bold;
 }
 
 /* ---- Bar Track ---- */
 .breadth-bar-track {
   flex: 1;
   display: flex;
-  height: 8px;
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-  background: var(--bg-tertiary);
+  height: 100%;
   min-width: 120px;
+  background: var(--bg-primary);
+  border-right: 1px solid var(--border);
 }
 
 .breadth-bar-segment {
   height: 100%;
-  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: width 0.3s steps(5);
 }
 
-.bar-gainers {
-  background: linear-gradient(90deg, var(--positive-dim), var(--positive));
-  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
-}
-
-.bar-unchanged {
-  background: var(--text-muted);
-  opacity: 0.4;
-}
-
-.bar-losers {
-  background: linear-gradient(270deg, var(--negative-dim), var(--negative));
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-}
-
-/* ---- Pill Badges ---- */
-.breadth-pills {
-  display: flex;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-.breadth-pill {
-  font-family: 'Space Grotesk', -apple-system, sans-serif;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-.pill-volume-spike {
-  background: rgba(168, 85, 247, 0.12);
-  color: #a855f7;
-  border: 1px solid rgba(168, 85, 247, 0.25);
-}
+.bar-gainers { background: var(--positive); }
+.bar-unchanged { background: var(--border); }
+.bar-losers { background: var(--negative); }
 
 /* ---- Responsive ---- */
 @media (max-width: 768px) {
   .market-breadth {
     flex-wrap: wrap;
-    gap: 8px;
-    padding: 8px 12px;
+    border-bottom: none;
   }
-
   .breadth-bar-track {
-    order: 3;
     width: 100%;
-    min-width: 0;
+    height: 8px;
+    order: 3;
+    border-bottom: 1px solid var(--border);
   }
 }
