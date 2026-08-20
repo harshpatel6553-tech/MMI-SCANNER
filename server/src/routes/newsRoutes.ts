@@ -16,34 +16,38 @@ router.get('/', async (req: Request, res: Response) => {
       });
     }
 
-    // Fetch from the new Twitter service (using user_id 44196397 or any other you prefer)
-    // The frontend expects the data to be in NewsItem format
-    const rawTweets = await twitterService.getUserTweets('44196397');
+    // Fetch from the market news accounts using their usernames!
+    const accounts = ['RedboxIndia', 'yatinmota'];
     
-    if (rawTweets.error) {
-      return res.status(500).json({ success: false, error: rawTweets.error });
-    }
+    const results = await Promise.all(
+      accounts.map(async (username) => {
+        const raw = await twitterService.getTweetsByUsername(username);
+        if (raw.error) return [];
+        
+        // Extract array of tweet objects
+        const items = raw.data?.user?.result?.timeline?.timeline?.instructions?.[1]?.entries || raw.data || raw || [];
+        
+        return items.map((t: any, index: number) => {
+          const text = t.text || t.full_text || t.content?.itemContent?.tweet_results?.result?.legacy?.full_text || 'Breaking News Update';
+          const date = t.created_at || t.content?.itemContent?.tweet_results?.result?.legacy?.created_at || new Date().toISOString();
+          return {
+            id: t.id_str || t.id || `${username}-${index}`,
+            title: text,
+            link: `https://twitter.com/${username}/status/${t.id_str || t.id || ''}`,
+            pubDate: date,
+            source: `@${username}`,
+            sentiment: 'Neutral'
+          };
+        }).filter((n: any) => n.title !== 'Breaking News Update');
+      })
+    );
     
-    // Map RapidAPI raw tweet format to our frontend NewsItem format
-    const mappedNews = (rawTweets.data?.user?.result?.timeline?.timeline?.instructions?.[1]?.entries || rawTweets.data || rawTweets || []).map((t: any, index: number) => {
-      // RapidAPI twitter-x-api8 returns deeply nested structures or flat arrays depending on the exact path
-      // We do a best-effort mapping here
-      const text = t.text || t.full_text || t.content?.itemContent?.tweet_results?.result?.legacy?.full_text || 'Breaking News Update';
-      const date = t.created_at || t.content?.itemContent?.tweet_results?.result?.legacy?.created_at || new Date().toISOString();
-      
-      return {
-        id: t.id_str || t.id || `tweet-${index}`,
-        title: text,
-        link: `https://twitter.com/x/status/${t.id_str || t.id || ''}`,
-        pubDate: date,
-        source: 'Twitter',
-        sentiment: 'Neutral'
-      };
-    });
+    // Merge all tweets and sort by date descending (newest first)
+    const mergedNews = results.flat().sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
 
     res.json({
       success: true,
-      data: mappedNews.filter((n: any) => n.title !== 'Breaking News Update'),
+      data: mergedNews,
     });
   } catch (error) {
     res.status(500).json({
