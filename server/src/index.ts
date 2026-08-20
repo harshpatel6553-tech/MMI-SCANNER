@@ -34,6 +34,7 @@ import { alertService } from './services/alertService.js';
 import { newsService } from './services/newsService.js';
 import { screenerService } from './services/screenerService.js';
 import { calendarService } from './services/calendarService.js';
+import { twitterService } from './services/twitterService.js';
 import {
   setupSocketHandlers,
   broadcastStockUpdate,
@@ -161,6 +162,21 @@ app.get('/api/calendar/today', async (req: Request, res: Response) => {
   } catch (err) {
     logger.error('Error fetching calendar:', err);
     res.status(500).json({ success: false, error: 'Internal Server Error' });
+  }
+});
+
+// ── Twitter Live News ──────────────────────────────────────────
+
+app.get('/api/twitter/:userId', async (req: Request, res: Response) => {
+  try {
+    const userId = req.params.userId;
+    if (!userId) return res.status(400).json({ error: 'User ID required' });
+    
+    const tweets = await twitterService.getUserTweets(userId);
+    res.json(tweets);
+  } catch (err) {
+    logger.error(`Error fetching tweets for ${req.params.userId}:`, err);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
