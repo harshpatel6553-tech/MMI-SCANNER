@@ -168,6 +168,12 @@ export const CommandSearch: FC<Props> = ({ items = DEFAULT_ITEMS }) => {
     duration: 0.15,
   };
 
+  useEffect(() => {
+    if (!isOpen) {
+      setQuery('');
+    }
+  }, [isOpen]);
+
   return (
     <>
       <AnimatePresence mode="popLayout">
