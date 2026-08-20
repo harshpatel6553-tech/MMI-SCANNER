@@ -11,6 +11,17 @@ import { SectorPulseWidget } from './components/Widgets/SectorPulseWidget';
 import { LiveNewsWidget } from './components/Widgets/LiveNewsWidget';
 import { WatchlistWidget } from './components/Widgets/WatchlistWidget';
 import { MarketTableWidget } from './components/Widgets/MarketTableWidget';
+import { Heatmap } from './components/Heatmap/Heatmap';
+import { SectorBreakdown } from './components/SectorBreakdown/SectorBreakdown';
+import { LiveNewsFeed } from './components/LiveNewsFeed/LiveNewsFeed';
+import { EarningsResults } from './components/EarningsResults/EarningsResults';
+import { PromoterWatch } from './components/PromoterWatch/PromoterWatch';
+import { PaperTradingDashboard } from './components/PaperTrading/PaperTradingDashboard';
+import { AdminDashboard } from './components/AdminDashboard/AdminDashboard';
+import { AlertPanel } from './components/Alerts/AlertPanel';
+import { AlertToast } from './components/Alerts/AlertToast';
+import { useAlerts } from './hooks/useAlerts';
+import { useStocks } from './hooks/useStocks';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Login } from './components/Login/Login';
 import { Paywall } from './components/Paywall/Paywall';
@@ -18,6 +29,8 @@ import { Paywall } from './components/Paywall/Paywall';
 
 function AppContent() {
   const { preferences, toggleWidget, isCustomizing, setIsCustomizing, activeTab } = useDashboard();
+  const { toasts, alertHistory, dismissToast, clearAll } = useAlerts();
+  const { allStocks, sectorData } = useStocks({ index: 'ALL', priceMin: 0, priceMax: 0, volumeMin: 0, search: '' }, 'symbol', 'asc');
   
   return (
     <div className="app">
@@ -52,8 +65,21 @@ function AppContent() {
           )}
 
           {activeTab === 'Table' && <MarketTableWidget />}
+          {activeTab === 'Heatmap' && <Heatmap stocks={allStocks} />}
+          {activeTab === 'Sectors' && <SectorBreakdown sectorData={sectorData} />}
+          {activeTab === 'Technical' && <div className="card" style={{padding: 24}}>Technical Scanner under construction.</div>}
+          {activeTab === 'Watchlist' && <div className="card" style={{padding: 24}}>Full Watchlist view under construction. Use Overview widget.</div>}
+          {activeTab === 'LiveNews' && <LiveNewsFeed />}
+          {activeTab === 'Results' && <EarningsResults />}
+          {activeTab === 'Promoter' && <PromoterWatch />}
+          {activeTab === 'PaperTrading' && <PaperTradingDashboard />}
+          {activeTab === 'Admin' && <AdminDashboard />}
         </div>
       </div>
+      
+      {/* Alert Overlay Components */}
+      <AlertPanel alerts={alertHistory} onClearAll={clearAll} />
+      <AlertToast toasts={toasts} onDismiss={dismissToast} />
 
       {/* Floating Customize Button */}
       <div 
