@@ -285,7 +285,8 @@ export const CommandSearch: FC<Props> = ({ items = DEFAULT_ITEMS }) => {
                                 key={item.id}
                                 className={`group flex w-full items-center justify-between rounded-md px-3 py-2.5 text-left ${isActive ? 'bg-[var(--bg-surface-hover)] text-[var(--text-1)]' : 'text-[var(--text-2)] hover:text-[var(--text-1)]'} `}
                                 onMouseEnter={() => setActiveIndex(globalIndex)}
-                                onClick={() => {
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
                                   item.action();
                                   setIsOpen(false);
                                 }}
