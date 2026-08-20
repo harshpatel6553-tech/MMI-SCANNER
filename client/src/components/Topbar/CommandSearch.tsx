@@ -182,12 +182,12 @@ export const CommandSearch: FC<Props> = ({ items = DEFAULT_ITEMS }) => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[9999] bg-transparent"
+              className="fixed inset-0 z-[9998] bg-transparent"
               onClick={() => setIsOpen(false)}
             />
         )}
       </AnimatePresence>
-      <div className="relative z-50 h-10 w-full max-w-[280px] md:w-64">
+      <div className="relative z-[10000] h-10 w-full max-w-[280px] md:w-64">
         <AnimatePresence mode="popLayout">
           {!isOpen ? (
             <motion.button
