@@ -176,7 +176,7 @@ export const CommandSearch: FC<Props> = ({ items = DEFAULT_ITEMS }) => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[9999] bg-zinc-950/10 backdrop-blur-[2px] dark:bg-black/40"
+              className="fixed inset-0 z-[9999] bg-transparent"
               onClick={() => setIsOpen(false)}
             />
         )}
@@ -188,7 +188,7 @@ export const CommandSearch: FC<Props> = ({ items = DEFAULT_ITEMS }) => {
               key="trigger"
               layoutId="command-pallete"
               onClick={() => setIsOpen(true)}
-              className="group absolute top-0 left-0 flex h-10 w-full items-center gap-3 overflow-hidden rounded-lg border border-zinc-200 bg-white px-4 py-2 text-zinc-500 shadow-sm hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400 dark:shadow-none dark:hover:text-white"
+              className="group absolute top-0 left-0 flex h-10 w-full items-center gap-3 overflow-hidden rounded-lg border bg-transparent px-4 py-2 text-[var(--text-2)] shadow-sm hover:text-[var(--text-1)] border-[var(--border)]"
               transition={sharedTransition}
             >
               <motion.div layoutId="search-icon" transition={sharedTransition}>
@@ -204,7 +204,7 @@ export const CommandSearch: FC<Props> = ({ items = DEFAULT_ITEMS }) => {
               <motion.kbd
                 layoutId="search-shortcut"
                 transition={sharedTransition}
-                className="absolute right-2 rounded border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[14px] font-bold text-zinc-400 group-hover:text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-500 dark:group-hover:text-zinc-300"
+                className="absolute right-2 rounded border px-2 py-0.5 text-[14px] font-bold border-[var(--border)] bg-[var(--bg-surface)] text-[var(--text-2)] group-hover:text-[var(--text-1)]"
               >
                 ⌘K
               </motion.kbd>
@@ -213,17 +213,17 @@ export const CommandSearch: FC<Props> = ({ items = DEFAULT_ITEMS }) => {
             <motion.div
               layoutId="command-pallete"
               transition={sharedTransition}
-              className="absolute top-0 -left-2 z-[10000] flex h-80 w-xs flex-col overflow-hidden rounded-2xl border-[1.4px] border-zinc-200 bg-white shadow-[0_32px_64px_-15px_rgba(0,0,0,0.1)] md:w-[400px] dark:border-zinc-800 dark:bg-zinc-950 dark:shadow-black"
+              className="absolute top-0 -left-2 z-[10000] flex h-80 w-xs flex-col overflow-hidden rounded-2xl border-[1.4px] shadow-2xl md:w-[400px] bg-[var(--bg-surface)] border-[var(--border)]"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center border-b-[1.4px] border-zinc-100 px-4 py-3.5 dark:border-zinc-800/50">
+              <div className="flex items-center border-b-[1.4px] px-4 py-3.5 border-[var(--border)]">
                 <motion.div
                   layoutId="search-icon"
                   transition={sharedTransition}
                 >
                   <Search
                     size={18}
-                    className="mr-3 text-zinc-400 dark:text-zinc-500"
+                    className="mr-3 text-[var(--text-2)]"
                     strokeWidth={2.5}
                   />
                 </motion.div>
@@ -231,7 +231,7 @@ export const CommandSearch: FC<Props> = ({ items = DEFAULT_ITEMS }) => {
                   <input
                     ref={inputRef}
                     type="text"
-                    className="w-full bg-transparent text-base font-medium text-zinc-900 outline-none md:text-[15px] dark:text-white"
+                    className="w-full bg-transparent text-base font-medium text-[var(--text-1)] outline-none md:text-[15px]"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     onKeyDown={handleKeyDown}
@@ -240,7 +240,7 @@ export const CommandSearch: FC<Props> = ({ items = DEFAULT_ITEMS }) => {
                     <motion.span
                       layoutId="search-text"
                       transition={sharedTransition}
-                      className="pointer-events-none absolute left-0 text-[15px] font-medium text-zinc-400 dark:text-zinc-600"
+                      className="pointer-events-none absolute left-0 text-[15px] font-medium text-[var(--text-2)]"
                     >
                       Search symbol...
                     </motion.span>
@@ -250,7 +250,7 @@ export const CommandSearch: FC<Props> = ({ items = DEFAULT_ITEMS }) => {
                   <motion.span
                     layoutId="search-shortcut"
                     transition={sharedTransition}
-                    className="rounded-[2px] border border-zinc-200 bg-zinc-50 p-0.5 px-1 text-[11px] font-bold text-zinc-400 dark:border-zinc-800 dark:bg-zinc-900/50 dark:text-zinc-500"
+                    className="rounded-[2px] border p-0.5 px-1 text-[11px] font-bold border-[var(--border)] bg-[var(--bg-primary)] text-[var(--text-2)]"
                   >
                     Esc
                   </motion.span>
@@ -258,14 +258,14 @@ export const CommandSearch: FC<Props> = ({ items = DEFAULT_ITEMS }) => {
               </div>
               <div className="custom-scrollbar flex-1 overflow-y-auto p-1.5 md:max-h-[380px]">
                 {filteredItems.length === 0 ? (
-                  <div className="py-12 text-center text-sm text-zinc-500">
+                  <div className="py-12 text-center text-sm text-[var(--text-2)]">
                     No results found for "{query}"
                   </div>
                 ) : (
                   <div className="space-y-4 py-1">
                     {sections.map((section) => (
                       <div key={section.name} className="space-y-1">
-                        <h3 className="px-3 py-1 text-[11px] font-semibold tracking-wider text-zinc-400 uppercase dark:text-zinc-500">
+                        <h3 className="px-3 py-1 text-[11px] font-semibold tracking-wider uppercase text-[var(--text-2)]">
                           {section.name}
                         </h3>
                         <div className="space-y-0.5">
@@ -277,7 +277,7 @@ export const CommandSearch: FC<Props> = ({ items = DEFAULT_ITEMS }) => {
                             return (
                               <button
                                 key={item.id}
-                                className={`group flex w-full items-center justify-between rounded-md px-3 py-2.5 text-left ${isActive ? 'bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-white' : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200'} `}
+                                className={`group flex w-full items-center justify-between rounded-md px-3 py-2.5 text-left ${isActive ? 'bg-[var(--bg-surface-hover)] text-[var(--text-1)]' : 'text-[var(--text-2)] hover:text-[var(--text-1)]'} `}
                                 onMouseEnter={() => setActiveIndex(globalIndex)}
                                 onClick={() => {
                                   item.action();
@@ -286,7 +286,7 @@ export const CommandSearch: FC<Props> = ({ items = DEFAULT_ITEMS }) => {
                               >
                                 <div className="flex items-center gap-3">
                                   <span
-                                    className={`${isActive ? 'text-zinc-900 dark:text-white' : 'text-zinc-400 group-hover:text-zinc-600 dark:text-zinc-500 dark:group-hover:text-zinc-300'}`}
+                                    className={`${isActive ? 'text-[var(--text-1)]' : 'text-[var(--text-2)] group-hover:text-[var(--text-1)]'}`}
                                   >
                                     {item.icon}
                                   </span>
@@ -296,7 +296,7 @@ export const CommandSearch: FC<Props> = ({ items = DEFAULT_ITEMS }) => {
                                 </div>
                                 {item.shortcut && (
                                   <kbd
-                                    className={`rounded border px-1.5 py-0.5 text-[10px] font-bold ${isActive ? 'border-zinc-300 bg-white text-zinc-500 dark:border-zinc-600 dark:bg-zinc-700/50 dark:text-zinc-300' : 'border-transparent bg-transparent text-zinc-400 group-hover:text-zinc-500 dark:text-zinc-600'} `}
+                                    className={`rounded border px-1.5 py-0.5 text-[10px] font-bold ${isActive ? 'border-[var(--border)] bg-[var(--bg-primary)] text-[var(--text-1)]' : 'border-transparent bg-transparent text-[var(--text-2)] group-hover:text-[var(--text-1)]'} `}
                                   >
                                     {item.shortcut}
                                   </kbd>
