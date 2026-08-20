@@ -40,7 +40,7 @@ function AppContent() {
         
         <div className="content">
           <div className="page-head">
-            <div className="eyebrow">{activeTab} · Thu, 20 Aug 2026 (v2.0)</div>
+            <div className="eyebrow">{activeTab} · Thu, 20 Aug 2026</div>
             <div className="page-title">
               {activeTab === 'Overview' ? "Today's tape is running green." : activeTab}
             </div>
