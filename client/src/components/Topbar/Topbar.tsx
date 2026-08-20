@@ -1,7 +1,34 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useDashboard } from '../../contexts/DashboardContext';
+import { CommandSearch } from './CommandSearch';
+import type { StockData } from '../../types';
+import { ArrowRight } from 'lucide-react';
 
-export function Topbar() {
+interface TopbarProps {
+  allStocks: StockData[];
+}
+
+export function Topbar({ allStocks }: TopbarProps) {
+  const { searchQuery, setSearchQuery } = useDashboard();
   const [time, setTime] = useState('');
+
+  const searchItems = useMemo(() => {
+    const items = allStocks.map(stock => ({
+      id: stock.symbol,
+      title: `${stock.symbol} - ${stock.name}`,
+      section: (stock.sector || 'Stocks') as any,
+      icon: <ArrowRight size={16} />,
+      action: () => setSearchQuery(stock.symbol),
+    }));
+    items.unshift({
+      id: 'clear',
+      title: 'Clear Search Filter',
+      section: 'Actions' as any,
+      icon: <ArrowRight size={16} />,
+      action: () => setSearchQuery(''),
+    });
+    return items;
+  }, [allStocks, setSearchQuery]);
 
   useEffect(() => {
     const pad = (n: number) => n.toString().padStart(2, '0');
@@ -32,11 +59,7 @@ export function Topbar() {
           ))}
         </div>
       </div>
-      <div className="search-box">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-        <span>Search symbol…</span>
-        <span className="kbd">⌘K</span>
-      </div>
+      <CommandSearch items={searchItems} />
       <div className="topbar-right">
         <div className="market-pill"><span className="dot-live"></span>Market Open</div>
         <div className="clock">{time}</div>

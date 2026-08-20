@@ -28,6 +28,8 @@ interface DashboardContextType {
   setIsCustomizing: (val: boolean) => void;
   activeTab: string;
   setActiveTab: (tab: string) => void;
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
 }
 
 const DashboardContext = createContext<DashboardContextType | undefined>(undefined);
@@ -39,6 +41,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     return saved ? JSON.parse(saved) : DEFAULT_PREFERENCES;
   });
   const [isCustomizing, setIsCustomizing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     localStorage.setItem('mmi-dashboard-prefs', JSON.stringify(preferences));
@@ -51,7 +54,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   const resetPreferences = () => setPreferences(DEFAULT_PREFERENCES);
 
   return (
-    <DashboardContext.Provider value={{ preferences, toggleWidget, resetPreferences, isCustomizing, setIsCustomizing, activeTab, setActiveTab }}>
+    <DashboardContext.Provider value={{ preferences, toggleWidget, resetPreferences, isCustomizing, setIsCustomizing, activeTab, setActiveTab, searchQuery, setSearchQuery }}>
       {children}
     </DashboardContext.Provider>
   );

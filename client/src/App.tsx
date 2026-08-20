@@ -28,15 +28,19 @@ import { Paywall } from './components/Paywall/Paywall';
 
 
 function AppContent() {
-  const { preferences, toggleWidget, isCustomizing, setIsCustomizing, activeTab } = useDashboard();
+  const { preferences, toggleWidget, activeTab, isCustomizing, setIsCustomizing, searchQuery } = useDashboard();
   const { toasts, alertHistory, dismissToast, clearAll } = useAlerts();
-  const { allStocks, sectorData } = useStocks({ index: 'ALL', priceMin: 0, priceMax: 0, volumeMin: 0, search: '' }, 'symbol', 'asc');
+  
+  // Initialize WebSocket and fetch stocks
+  const { allStocks, stats, sectorData, stocks } = useStocks({ 
+    index: 'ALL', priceMin: 0, priceMax: 0, volumeMin: 0, search: searchQuery 
+  }, 'volume', 'desc');
   
   return (
     <div className="app">
       <Sidebar />
       <div className="main">
-        <Topbar />
+        <Topbar allStocks={allStocks} />
         
         <div className="content">
           <div className="page-head">
@@ -65,7 +69,7 @@ function AppContent() {
           )}
 
           {activeTab === 'Table' && <MarketTableWidget fullView={true} />}
-          {activeTab === 'Heatmap' && <Heatmap stocks={allStocks} />}
+          {activeTab === 'Heatmap' && <Heatmap stocks={stocks} />}
           {activeTab === 'Sectors' && <SectorBreakdown sectorData={sectorData} />}
           {activeTab === 'Technical' && <div className="card" style={{padding: 24}}>Technical Scanner under construction.</div>}
           {activeTab === 'Watchlist' && <div className="card" style={{padding: 24}}>Full Watchlist view under construction. Use Overview widget.</div>}

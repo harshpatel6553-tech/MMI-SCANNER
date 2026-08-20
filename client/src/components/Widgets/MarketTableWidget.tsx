@@ -1,5 +1,6 @@
 import React from 'react';
 import { useStocks } from '../../hooks/useStocks';
+import { useDashboard } from '../../contexts/DashboardContext';
 
 function formatVol(v: number) {
   if(v >= 1e7) return (v / 1e7).toFixed(1) + 'Cr';
@@ -13,7 +14,8 @@ interface MarketTableWidgetProps {
 }
 
 export function MarketTableWidget({ fullView = false }: MarketTableWidgetProps) {
-  const { stocks } = useStocks({ index: 'ALL', priceMin: 0, priceMax: 0, volumeMin: 0, search: '' }, 'volume', 'desc');
+  const { searchQuery } = useDashboard();
+  const { stocks } = useStocks({ index: 'ALL', priceMin: 0, priceMax: 0, volumeMin: 0, search: searchQuery }, 'volume', 'desc');
 
   const rows = fullView ? stocks : stocks.slice(0, 10);
 

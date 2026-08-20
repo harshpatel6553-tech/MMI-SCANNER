@@ -86,7 +86,7 @@ export function useStocks(
 
   const sectorData = useMemo(() => {
     const map = new Map<string, { stocks: StockData[], totalStocks: number, avgChange: number, gainers: number, losers: number }>();
-    allStocks.forEach(s => {
+    filteredAndSorted.forEach(s => {
       const sector = s.sector || 'Unknown';
       if (!map.has(sector)) {
         map.set(sector, { stocks: [], totalStocks: 0, avgChange: 0, gainers: 0, losers: 0 });
