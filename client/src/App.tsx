@@ -1,203 +1,102 @@
-import { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { SocketProvider } from './context/SocketContext';
-import { useStocks } from './hooks/useStocks';
-import { useAlerts } from './hooks/useAlerts';
-import { useWatchlist } from './hooks/useWatchlist';
-import { Header } from './components/Header/Header';
-import { SearchBar } from './components/SearchBar/SearchBar';
-import { FilterPanel } from './components/Filters/FilterPanel';
-import { StockTable } from './components/StockTable/StockTable';
-import { MarketBreadth } from './components/MarketBreadth/MarketBreadth';
-import { ViewTabs } from './components/ViewTabs/ViewTabs';
-import { Heatmap } from './components/Heatmap/Heatmap';
-import { SectorBreakdown } from './components/SectorBreakdown/SectorBreakdown';
-import { LiveNewsFeed } from './components/LiveNewsFeed/LiveNewsFeed';
-import { EarningsResults } from './components/EarningsResults/EarningsResults';
-import { PromoterWatch } from './components/PromoterWatch/PromoterWatch';
-import { NewsTicker } from './components/NewsTicker/NewsTicker';
-import { AlertToast } from './components/Alerts/AlertToast';
-import { AlertPanel } from './components/Alerts/AlertPanel';
-import { StatusBar } from './components/StatusBar/StatusBar';
-import { AnimatedBackground } from './components/AnimatedBackground/AnimatedBackground';
-import { LoadingScreen } from './components/LoadingScreen/LoadingScreen';
-import { StockDetailModal } from './components/StockDetailModal/StockDetailModal';
-import { TechnicalScanner } from './components/TechnicalScanner/TechnicalScanner';
-import { PaperTradingDashboard } from './components/PaperTrading/PaperTradingDashboard';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { DashboardProvider, useDashboard } from './contexts/DashboardContext';
+import { Sidebar } from './components/Sidebar/Sidebar';
+import { Topbar } from './components/Topbar/Topbar';
+import { StatsWidget } from './components/Widgets/StatsWidget';
+import { AdvanceDeclineWidget } from './components/Widgets/AdvanceDeclineWidget';
+import { TopMoversWidget } from './components/Widgets/TopMoversWidget';
+import { SectorPulseWidget } from './components/Widgets/SectorPulseWidget';
+import { LiveNewsWidget } from './components/Widgets/LiveNewsWidget';
+import { WatchlistWidget } from './components/Widgets/WatchlistWidget';
+import { MarketTableWidget } from './components/Widgets/MarketTableWidget';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { useAuth } from './context/AuthContext';
 import { Login } from './components/Login/Login';
 import { Paywall } from './components/Paywall/Paywall';
-import { AdminDashboard } from './components/AdminDashboard/AdminDashboard';
-import { UpdatePasswordModal } from './components/UpdatePasswordModal/UpdatePasswordModal';
-import { AnimatePresence } from 'framer-motion';
-import { AnimatedView } from './components/Motion/AnimatedView';
-import type { FilterOptions, SortField, SortOrder, StockData } from './types';
-import './App.css';
+import './App.css'; // Assume CSS is loaded here properly
 
 function AppContent() {
-  const [filters, setFilters] = useState<FilterOptions>({
-    index: 'ALL',
-    priceMin: 0,
-    priceMax: 0,
-    volumeMin: 0,
-    search: '',
-  });
-  const [sortField, setSortField] = useState<SortField>('symbol');
-  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
-  const [activeTab, setActiveTab] = useState<'table' | 'heatmap' | 'sectors' | 'watchlist' | 'news' | 'technical' | 'results' | 'paper' | 'promoter'>('table');
-  const [selectedStock, setSelectedStock] = useState<StockData | null>(null);
-
-  const { stocks, allStocks, stats, priceFlash, sectorData } = useStocks(filters, sortField, sortOrder);
-  const { toasts, alertHistory, dismissToast, clearAll } = useAlerts();
-  const { watchlist, toggle: toggleWatchlist, count: watchlistCount } = useWatchlist();
-
-  const handleSort = useCallback((field: SortField) => {
-    setSortField(prev => {
-      if (prev === field) {
-        setSortOrder(o => o === 'asc' ? 'desc' : 'asc');
-        return field;
-      }
-      setSortOrder('asc');
-      return field;
-    });
-  }, []);
-
-  const handleSearch = useCallback((search: string) => {
-    setFilters(prev => ({ ...prev, search }));
-  }, []);
-
-  // Filter stocks for watchlist view
-  const watchlistStocks = activeTab === 'watchlist'
-    ? stocks.filter(s => watchlist.has(s.symbol))
-    : stocks;
-
+  const { preferences, toggleWidget, isCustomizing, setIsCustomizing } = useDashboard();
+  
   return (
     <div className="app">
-      <AnimatedBackground />
-      <Header />
-      <NewsTicker />
-
-      <main className="app-main">
-        {(activeTab === 'table' || activeTab === 'watchlist') && (
-          <div className="app-controls">
-            <SearchBar
-              value={filters.search}
-              onChange={handleSearch}
-              matchCount={activeTab === 'watchlist' ? watchlistStocks.length : stocks.length}
-            />
-            <FilterPanel
-              filters={filters}
-              onChange={setFilters}
-              stats={stats}
-            />
+      <Sidebar />
+      <div className="main">
+        <Topbar />
+        
+        <div className="content">
+          <div className="page-head">
+            <div className="eyebrow">Overview · Thu, 20 Aug 2026</div>
+            <div className="page-title">Today's tape is running green.</div>
+            <div className="page-sub">377 advancers vs 123 decliners across 503 tracked stocks — here's what's moving.</div>
           </div>
-        )}
 
-        <MarketBreadth stats={stats} />
-        <ViewTabs
-          activeTab={activeTab}
-          onTabChange={(tab) => setActiveTab(tab as any)}
-          watchlistCount={watchlistCount}
-        />
+          {preferences.showStats && <StatsWidget />}
+          {preferences.showAdvanceDecline && <AdvanceDeclineWidget />}
 
-        <AnimatePresence mode="wait">
-          {activeTab === 'table' && (
-            <AnimatedView key="table">
-              <div className="app-table">
-                <StockTable
-                  stocks={stocks}
-                  priceFlash={priceFlash}
-                  sortField={sortField}
-                  sortOrder={sortOrder}
-                  onSort={handleSort}
-                  isLoading={allStocks.length === 0}
-                  watchlist={watchlist}
-                  onToggleWatchlist={toggleWatchlist}
-                  onRowClick={setSelectedStock}
-                />
-              </div>
-            </AnimatedView>
-          )}
+          <div className="grid-2">
+            {preferences.showTopMovers && <TopMoversWidget />}
+            {preferences.showSectorPulse && <SectorPulseWidget />}
+          </div>
 
-          {activeTab === 'watchlist' && (
-            <AnimatedView key="watchlist">
-              <div className="app-table">
-                <StockTable
-                  stocks={watchlistStocks}
-                  priceFlash={priceFlash}
-                  sortField={sortField}
-                  sortOrder={sortOrder}
-                  onSort={handleSort}
-                  isLoading={allStocks.length === 0}
-                  watchlist={watchlist}
-                  onToggleWatchlist={toggleWatchlist}
-                  onRowClick={setSelectedStock}
-                />
-              </div>
-            </AnimatedView>
-          )}
+          <div className="grid-2">
+            {preferences.showLiveNews && <LiveNewsWidget />}
+            {preferences.showWatchlist && <WatchlistWidget />}
+          </div>
 
-          {activeTab === 'heatmap' && (
-            <AnimatedView key="heatmap">
-              <Heatmap stocks={allStocks} />
-            </AnimatedView>
-          )}
+          {preferences.showMarketTable && <MarketTableWidget />}
+        </div>
+      </div>
 
-          {activeTab === 'sectors' && (
-            <AnimatedView key="sectors">
-              <SectorBreakdown sectorData={sectorData} />
-            </AnimatedView>
-          )}
+      {/* Floating Customize Button */}
+      <div 
+        style={{
+          position: 'fixed', 
+          bottom: 20, 
+          right: 20, 
+          background: 'var(--bg-surface)', 
+          border: '1px solid var(--border)', 
+          padding: 10, 
+          borderRadius: 8,
+          cursor: 'pointer',
+          zIndex: 100,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8
+        }}
+        onClick={() => setIsCustomizing(!isCustomizing)}
+      >
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--text-1)" strokeWidth="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+        <span style={{ color: 'var(--text-1)', fontSize: 13, fontWeight: 600 }}>Customize Layout</span>
+      </div>
 
-          {activeTab === 'technical' && (
-            <AnimatedView key="technical">
-              <div className="app-table">
-                <TechnicalScanner 
-                  stocks={stocks}
-                  priceFlash={priceFlash}
-                  onRowClick={setSelectedStock}
-                />
-              </div>
-            </AnimatedView>
-          )}
-
-          {activeTab === 'news' && (
-            <AnimatedView key="news">
-              <LiveNewsFeed 
-                onStockClick={(sym) => {
-                  const s = allStocks.find(x => x.symbol === sym);
-                  if (s) setSelectedStock(s);
-                }} 
+      {/* Customize Panel */}
+      {isCustomizing && (
+        <div style={{
+          position: 'fixed',
+          bottom: 70,
+          right: 20,
+          background: 'var(--bg-surface-2)',
+          border: '1px solid var(--border)',
+          borderRadius: 12,
+          padding: 16,
+          width: 250,
+          zIndex: 100
+        }}>
+          <h3 style={{ fontSize: 14, marginBottom: 12, color: 'var(--text-1)' }}>Dashboard Widgets</h3>
+          {Object.entries(preferences).map(([key, value]) => (
+            <div key={key} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 13, color: 'var(--text-2)' }}>
+              <span>{key.replace('show', '')}</span>
+              <input 
+                type="checkbox" 
+                checked={value as boolean} 
+                onChange={() => toggleWidget(key as keyof typeof preferences)} 
               />
-            </AnimatedView>
-          )}
-
-          {activeTab === 'results' && (
-            <AnimatedView key="results">
-              <EarningsResults />
-            </AnimatedView>
-          )}
-
-          {activeTab === 'paper' && (
-            <AnimatedView key="paper">
-              <PaperTradingDashboard />
-            </AnimatedView>
-          )}
-
-          {activeTab === 'promoter' && (
-            <AnimatedView key="promoter">
-              <PromoterWatch />
-            </AnimatedView>
-          )}
-        </AnimatePresence>
-      </main>
-
-      <StatusBar stockCount={allStocks.length} />
-
-      {/* Overlays */}
-      <AlertToast toasts={toasts} onDismiss={dismissToast} />
-      <AlertPanel alerts={alertHistory} onClearAll={clearAll} />
-      <StockDetailModal stock={selectedStock} onClose={() => setSelectedStock(null)} />
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -205,7 +104,7 @@ function AppContent() {
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, isTrialExpired, loading } = useAuth();
   
-  if (loading) return <div className="app" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: 'var(--bg-color)', color: 'white' }}>Verifying Account...</div>;
+  if (loading) return <div className="app" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: 'var(--bg-app)', color: 'white' }}>Verifying Account...</div>;
   if (!user) return <Navigate to="/login" replace />;
   if (isTrialExpired) return <Navigate to="/paywall" replace />;
   
@@ -213,29 +112,22 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
-  const [showLoading, setShowLoading] = useState(true);
-
   return (
     <SocketProvider>
-      {showLoading && <LoadingScreen onComplete={() => setShowLoading(false)} />}
-      {!showLoading && (
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/paywall" element={<Paywall />} />
-          <Route path="/admin" element={
-            <ProtectedRoute>
-              <AdminDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/" element={
-            <ProtectedRoute>
-              <AppContent />
-            </ProtectedRoute>
-          } />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      )}
-      <UpdatePasswordModal />
+      <AuthProvider>
+        <DashboardProvider>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/paywall" element={<Paywall />} />
+            <Route path="/" element={
+              <ProtectedRoute>
+                <AppContent />
+              </ProtectedRoute>
+            } />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </DashboardProvider>
+      </AuthProvider>
     </SocketProvider>
   );
 }

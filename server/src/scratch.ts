@@ -1,0 +1,1 @@
+import YahooFinance from 'yahoo-finance2'; const yf = new YahooFinance(); yf.quote(['RELIANCE.NS', 'TCS.NS']).then(console.log);
