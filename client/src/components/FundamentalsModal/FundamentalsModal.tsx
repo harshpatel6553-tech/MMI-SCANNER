@@ -31,7 +31,9 @@ export function FundamentalsModal({ stocks }: { stocks: StockData[] }) {
     setLoading(true);
     setError('');
     
-    fetch(`/api/stocks/${selectedStock}/fundamentals`)
+    const API_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
+    
+    fetch(`${API_URL}/api/stocks/${selectedStock}/fundamentals`)
       .then(res => {
         if (!res.ok) throw new Error('Failed to fetch fundamentals');
         return res.json();
