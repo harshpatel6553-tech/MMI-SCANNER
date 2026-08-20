@@ -18,10 +18,7 @@ export function Topbar({ allStocks }: TopbarProps) {
       title: `${stock.symbol} - ${stock.name}`,
       section: (stock.sector || 'Stocks') as any,
       icon: <ArrowRight size={16} />,
-      action: () => {
-        setSearchQuery(stock.symbol);
-        setSelectedStock(stock.symbol);
-      },
+      action: () => setSelectedStock(stock.symbol),
     }));
     items.unshift({
       id: 'clear',
