@@ -31,7 +31,10 @@ class ScreenerService {
     }
 
     try {
-      const result = await yahooFinance.quoteSummary(cleanSymbol, {
+      // yahoo-finance2 v4 requires instantiation
+      const yf = new (yahooFinance as any)({ suppressNotices: ['yahooSurvey'] });
+      
+      const result = await yf.quoteSummary(cleanSymbol, {
         modules: ['summaryDetail', 'defaultKeyStatistics', 'financialData', 'price']
       }) as any;
 
