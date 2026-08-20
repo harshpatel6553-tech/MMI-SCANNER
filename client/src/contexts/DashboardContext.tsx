@@ -26,11 +26,14 @@ interface DashboardContextType {
   resetPreferences: () => void;
   isCustomizing: boolean;
   setIsCustomizing: (val: boolean) => void;
+  activeTab: string;
+  setActiveTab: (tab: string) => void;
 }
 
 const DashboardContext = createContext<DashboardContextType | undefined>(undefined);
 
 export function DashboardProvider({ children }: { children: ReactNode }) {
+  const [activeTab, setActiveTab] = useState('Overview');
   const [preferences, setPreferences] = useState<DashboardPreferences>(() => {
     const saved = localStorage.getItem('mmi-dashboard-prefs');
     return saved ? JSON.parse(saved) : DEFAULT_PREFERENCES;
@@ -48,7 +51,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   const resetPreferences = () => setPreferences(DEFAULT_PREFERENCES);
 
   return (
-    <DashboardContext.Provider value={{ preferences, toggleWidget, resetPreferences, isCustomizing, setIsCustomizing }}>
+    <DashboardContext.Provider value={{ preferences, toggleWidget, resetPreferences, isCustomizing, setIsCustomizing, activeTab, setActiveTab }}>
       {children}
     </DashboardContext.Provider>
   );

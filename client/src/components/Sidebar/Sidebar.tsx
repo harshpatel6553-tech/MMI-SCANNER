@@ -1,6 +1,9 @@
 import React from 'react';
+import { useDashboard } from '../../contexts/DashboardContext';
 
 export function Sidebar() {
+  const { activeTab, setActiveTab } = useDashboard();
+
   return (
     <aside className="sidebar">
       <div className="brand">
@@ -14,13 +17,22 @@ export function Sidebar() {
       <div className="nav-scroll">
         <div className="nav-group">
           <div className="nav-label">Markets</div>
-          <div className="nav-item active">
+          <div className={`nav-item ${activeTab === 'Overview' ? 'active' : ''}`} onClick={() => setActiveTab('Overview')}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
             <span>Overview</span>
           </div>
-          <div className="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 3h18v18H3z"/><path d="M3 9h18M3 15h18M9 3v18"/></svg><span>Table</span><span className="nav-badge">503</span></div>
-          <div className="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="10" rx="1"/></svg><span>Heatmap</span></div>
-          <div className="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="9"/><path d="M12 3v9l6 3"/></svg><span>Sectors</span></div>
+          <div className={`nav-item ${activeTab === 'Table' ? 'active' : ''}`} onClick={() => setActiveTab('Table')}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 3h18v18H3z"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>
+            <span>Table</span><span className="nav-badge">503</span>
+          </div>
+          <div className={`nav-item ${activeTab === 'Heatmap' ? 'active' : ''}`} onClick={() => setActiveTab('Heatmap')}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="10" rx="1"/></svg>
+            <span>Heatmap</span>
+          </div>
+          <div className={`nav-item ${activeTab === 'Sectors' ? 'active' : ''}`} onClick={() => setActiveTab('Sectors')}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="9"/><path d="M12 3v9l6 3"/></svg>
+            <span>Sectors</span>
+          </div>
         </div>
 
         <div className="nav-group">

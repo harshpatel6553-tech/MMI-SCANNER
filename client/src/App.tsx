@@ -14,10 +14,10 @@ import { MarketTableWidget } from './components/Widgets/MarketTableWidget';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Login } from './components/Login/Login';
 import { Paywall } from './components/Paywall/Paywall';
-import './App.css'; // Assume CSS is loaded here properly
+
 
 function AppContent() {
-  const { preferences, toggleWidget, isCustomizing, setIsCustomizing } = useDashboard();
+  const { preferences, toggleWidget, isCustomizing, setIsCustomizing, activeTab } = useDashboard();
   
   return (
     <div className="app">
@@ -27,25 +27,31 @@ function AppContent() {
         
         <div className="content">
           <div className="page-head">
-            <div className="eyebrow">Overview · Thu, 20 Aug 2026</div>
-            <div className="page-title">Today's tape is running green.</div>
+            <div className="eyebrow">{activeTab} · Thu, 20 Aug 2026</div>
+            <div className="page-title">
+              {activeTab === 'Overview' ? "Today's tape is running green." : activeTab}
+            </div>
             <div className="page-sub">377 advancers vs 123 decliners across 503 tracked stocks — here's what's moving.</div>
           </div>
 
-          {preferences.showStats && <StatsWidget />}
-          {preferences.showAdvanceDecline && <AdvanceDeclineWidget />}
+          {activeTab === 'Overview' && (
+            <>
+              {preferences.showStats && <StatsWidget />}
+              {preferences.showAdvanceDecline && <AdvanceDeclineWidget />}
 
-          <div className="grid-2">
-            {preferences.showTopMovers && <TopMoversWidget />}
-            {preferences.showSectorPulse && <SectorPulseWidget />}
-          </div>
+              <div className="grid-2">
+                {preferences.showTopMovers && <TopMoversWidget />}
+                {preferences.showSectorPulse && <SectorPulseWidget />}
+              </div>
 
-          <div className="grid-2">
-            {preferences.showLiveNews && <LiveNewsWidget />}
-            {preferences.showWatchlist && <WatchlistWidget />}
-          </div>
+              <div className="grid-2">
+                {preferences.showLiveNews && <LiveNewsWidget />}
+                {preferences.showWatchlist && <WatchlistWidget />}
+              </div>
+            </>
+          )}
 
-          {preferences.showMarketTable && <MarketTableWidget />}
+          {activeTab === 'Table' && <MarketTableWidget />}
         </div>
       </div>
 
