@@ -20,6 +20,7 @@ import { PaperTradingDashboard } from './components/PaperTrading/PaperTradingDas
 import { AdminDashboard } from './components/AdminDashboard/AdminDashboard';
 import { AlertPanel } from './components/Alerts/AlertPanel';
 import { AlertToast } from './components/Alerts/AlertToast';
+import { FundamentalsModal } from './components/FundamentalsModal/FundamentalsModal';
 import { useAlerts } from './hooks/useAlerts';
 import { useStocks } from './hooks/useStocks';
 import { Routes, Route, Navigate } from 'react-router-dom';
@@ -83,6 +84,7 @@ function AppContent() {
       
       {/* Alert Overlay Components */}
       <AlertPanel alerts={alertHistory} onClearAll={clearAll} />
+      <FundamentalsModal stocks={allStocks} />
       <AlertToast toasts={toasts} onDismiss={dismissToast} />
 
       {/* Floating Customize Button */}
