@@ -8,16 +8,20 @@ function formatVol(v: number) {
   return v.toString();
 }
 
-export function MarketTableWidget() {
+interface MarketTableWidgetProps {
+  fullView?: boolean;
+}
+
+export function MarketTableWidget({ fullView = false }: MarketTableWidgetProps) {
   const { stocks } = useStocks({ index: 'ALL', priceMin: 0, priceMax: 0, volumeMin: 0, search: '' }, 'volume', 'desc');
 
-  const rows = stocks.slice(0, 10);
+  const rows = fullView ? stocks : stocks.slice(0, 10);
 
   return (
     <div className="card table-card">
       <div className="card-head">
         <span className="card-title">Market Table</span>
-        <a className="card-link" href="#">Open full table →</a>
+        {!fullView && <a className="card-link" href="#">Open full table →</a>}
       </div>
       <table>
         <thead>
