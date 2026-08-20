@@ -84,28 +84,6 @@ export function useStocks(
     return { total: allStocks.length, gainers, losers, unchanged, advanceDeclineRatio, breadthPercent, volumeSpikes };
   }, [allStocks]);
 
-  const sectorData = useMemo(() => {
-    const map = new Map<string, { stocks: StockData[], totalStocks: number, avgChange: number, gainers: number, losers: number }>();
-    filteredAndSorted.forEach(s => {
-      const sector = s.sector || 'Unknown';
-      if (!map.has(sector)) {
-        map.set(sector, { stocks: [], totalStocks: 0, avgChange: 0, gainers: 0, losers: 0 });
-      }
-      const entry = map.get(sector)!;
-      entry.stocks.push(s);
-      entry.totalStocks++;
-      if (s.change > 0) entry.gainers++;
-      else if (s.change < 0) entry.losers++;
-    });
-    // compute avgChange per sector
-    map.forEach(entry => {
-      if (entry.totalStocks > 0) {
-        entry.avgChange = +(entry.stocks.reduce((sum, s) => sum + s.changePercent, 0) / entry.totalStocks).toFixed(2);
-      }
-    });
-    return map;
-  }, [allStocks]);
-
   const filteredAndSorted = useMemo(() => {
     let result = allStocks;
 
@@ -117,7 +95,7 @@ export function useStocks(
     // Filter by search
     if (filters.search) {
       const q = filters.search.toLowerCase();
-      result = result.filter(s =>
+      result = result.filter(s => 
         s.symbol.toLowerCase().includes(q) ||
         s.name.toLowerCase().includes(q)
       );
@@ -153,6 +131,31 @@ export function useStocks(
 
     return result;
   }, [allStocks, filters, sortField, sortOrder]);
+
+  const sectorData = useMemo(() => {
+    const map = new Map<string, { stocks: StockData[], totalStocks: number, avgChange: number, gainers: number, losers: number }>();
+    filteredAndSorted.forEach(s => {
+      const sector = s.sector || 'Unknown';
+      if (!map.has(sector)) {
+        map.set(sector, { stocks: [], totalStocks: 0, avgChange: 0, gainers: 0, losers: 0 });
+      }
+      const entry = map.get(sector)!;
+      entry.stocks.push(s);
+      entry.totalStocks += 1;
+      entry.avgChange += s.changePercent;
+      if (s.changePercent > 0) entry.gainers += 1;
+      if (s.changePercent < 0) entry.losers += 1;
+    });
+
+    // Finalize averages
+    for (const [_, entry] of map.entries()) {
+      if (entry.totalStocks > 0) {
+        entry.avgChange = entry.avgChange / entry.totalStocks;
+      }
+    }
+
+    return map;
+  }, [filteredAndSorted]);
 
   return {
     stocks: filteredAndSorted,
