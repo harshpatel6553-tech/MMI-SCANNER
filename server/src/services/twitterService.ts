@@ -6,7 +6,7 @@ const RAPIDAPI_HOST = 'twitter-x-api8.p.rapidapi.com';
 class TwitterService {
   private tweetCache = new Map<string, { data: any; timestamp: number }>();
   private idCache = new Map<string, string>(); // caches username -> userId
-  private readonly CACHE_TTL_MS = 15 * 60 * 1000; 
+  private readonly CACHE_TTL_MS = 0; // Caching disabled: always fetch fresh data 
 
   /**
    * Resolves a Twitter username (handle) to their numeric User ID using the API.
