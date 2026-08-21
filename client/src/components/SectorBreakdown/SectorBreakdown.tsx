@@ -56,25 +56,25 @@ export function SectorBreakdown({ sectorData }: SectorBreakdownProps) {
               </span>
             </div>
             
-            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px', fontSize: '10px', fontWeight: 600}}>
-               <div style={{display: 'flex', gap: '6px', alignItems: 'center'}}>
-                  <span style={{color: 'var(--text-3)'}}>Top</span>
-                  <span style={{color: 'var(--text-3)'}}>^</span>
-                  <span style={{color: 'var(--text-1)', marginLeft: '2px', textTransform: 'uppercase'}}>{topGainer?.symbol || '-'}</span>
-                  <span style={{color: 'var(--text-1)', fontFamily: 'var(--font-mono)'}}>
-                     {topGainer ? `${topGainer.changePercent >= 0 ? '+' : ''}${topGainer.changePercent.toFixed(2)}%` : '-'}
-                  </span>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', fontSize: '9px', fontWeight: 600}}>
+               <div style={{display: 'flex', flexWrap: 'wrap', gap: '6px 12px', flex: 1}}>
+                 <div style={{display: 'flex', gap: '4px', alignItems: 'center'}}>
+                    <span style={{color: 'var(--text-3)'}}>Top ^</span>
+                    <span style={{color: 'var(--text-1)', textTransform: 'uppercase'}}>{topGainer?.symbol || '-'}</span>
+                    <span style={{color: 'var(--text-1)', fontFamily: 'var(--font-mono)'}}>
+                       {topGainer ? `${topGainer.changePercent >= 0 ? '+' : ''}${topGainer.changePercent.toFixed(2)}%` : '-'}
+                    </span>
+                 </div>
+                 <div style={{display: 'flex', gap: '4px', alignItems: 'center'}}>
+                    <span style={{color: 'var(--text-3)'}}>Top v</span>
+                    <span style={{color: 'var(--text-1)', textTransform: 'uppercase'}}>{topLoser?.symbol || '-'}</span>
+                    <span style={{color: 'var(--text-1)', fontFamily: 'var(--font-mono)'}}>
+                       {topLoser ? `${topLoser.changePercent.toFixed(2)}%` : '-'}
+                    </span>
+                 </div>
                </div>
-               <div style={{display: 'flex', gap: '6px', alignItems: 'center'}}>
-                  <span style={{color: 'var(--text-3)'}}>Top</span>
-                  <span style={{color: 'var(--text-3)'}}>v</span>
-                  <span style={{color: 'var(--text-1)', marginLeft: '2px', textTransform: 'uppercase'}}>{topLoser?.symbol || '-'}</span>
-                  <span style={{color: 'var(--text-1)', fontFamily: 'var(--font-mono)'}}>
-                     {topLoser ? `${topLoser.changePercent.toFixed(2)}%` : '-'}
-                  </span>
-                  <div style={{cursor: 'pointer', padding: '4px', marginLeft: '2px', color: 'var(--text-2)'}} onClick={() => setExpandedSector(isExpanded ? null : sector)}>
-                    {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                  </div>
+               <div style={{cursor: 'pointer', padding: '4px', marginLeft: '4px', color: 'var(--text-2)'}} onClick={() => setExpandedSector(isExpanded ? null : sector)}>
+                 {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                </div>
             </div>
 
