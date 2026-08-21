@@ -31,7 +31,17 @@ class TwitterService {
       const data = await response.json();
       
       // Standard RapidAPI Twitter formats usually return the ID in user.id, user.rest_id, or data.user.rest_id
-      const id = data?.user?.rest_id || data?.user?.id || data?.data?.user?.rest_id || data?.data?.user?.id;
+      const id = data?.user?.rest_id 
+              || data?.user?.id 
+              || data?.data?.user?.rest_id 
+              || data?.data?.user?.id 
+              || data?.user_id 
+              || data?.id 
+              || data?.rest_id 
+              || data?.data?.id
+              || data?.result?.rest_id
+              || data?.data?.user?.result?.rest_id
+              || data?.data?.user?.result?.id;
       
       if (id) {
         this.idCache.set(username, id);

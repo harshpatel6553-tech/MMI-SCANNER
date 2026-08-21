@@ -24,18 +24,31 @@ router.get('/', async (req: Request, res: Response) => {
         const raw = await twitterService.getTweetsByUsername(username);
         if (raw.error) return [];
         
-        // Extract array of tweet objects
-        let items = raw.data?.user?.result?.timeline?.timeline?.instructions?.[1]?.entries || raw.data || raw || [];
-        
-        // Ensure items is actually an array to prevent "items.map is not a function" crashes
-        if (!Array.isArray(items)) {
-           // Fallback for different API response structures
-           if (items && typeof items === 'object') {
-              items = Object.values(items).find(v => Array.isArray(v)) || [];
-           } else {
-              items = [];
-           }
-        }
+        // Helper to deeply find an array of tweets in the unknown RapidAPI JSON structure
+        const findTweetArray = (obj: any): any[] => {
+          if (!obj || typeof obj !== 'object') return [];
+          if (Array.isArray(obj)) return obj.length > 0 ? obj : [];
+          
+          // First check known Twitter paths
+          const known = obj.data?.user?.result?.timeline?.timeline?.instructions?.[1]?.entries
+                     || obj.data?.user?.result?.timeline_v2?.timeline?.instructions?.find((i: any) => i.type === 'TimelineAddEntries')?.entries
+                     || obj.timeline
+                     || obj.tweets
+                     || obj.data?.tweets;
+          if (Array.isArray(known) && known.length > 0) return known;
+
+          // Recursively search for any array that looks like it contains tweets
+          for (const val of Object.values(obj)) {
+            if (Array.isArray(val) && val.length > 0) return val;
+            if (val && typeof val === 'object') {
+              const found = findTweetArray(val);
+              if (found.length > 0) return found;
+            }
+          }
+          return [];
+        };
+
+        const items = findTweetArray(raw);
         
         return items.map((t: any, index: number) => {
           const text = t.text || t.full_text || t.content?.itemContent?.tweet_results?.result?.legacy?.full_text || 'Breaking News Update';
