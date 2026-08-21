@@ -55,7 +55,7 @@ export function AlertToast({ toasts, onDismiss }: AlertToastProps) {
               animate={{ opacity: 1, x: 0, scale: 1 }}
               exit={{ opacity: 0, x: 100, scale: 0.9 }}
               transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-              className={`relative overflow-hidden pointer-events-auto p-4 shadow-lg backdrop-blur-sm ${getToastStyle(toast.alertType)}`}
+              className={`relative z-0 overflow-hidden pointer-events-auto p-4 shadow-2xl backdrop-blur-xl before:absolute before:inset-0 before:bg-[#0b0b0d] before:bg-opacity-95 before:-z-10 ${getToastStyle(toast.alertType)}`}
             >
               <div className="flex gap-3">
                 <div className="flex-shrink-0 text-xl leading-none">
