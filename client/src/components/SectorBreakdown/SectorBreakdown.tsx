@@ -39,6 +39,7 @@ export function SectorBreakdown({ sectorData }: SectorBreakdownProps) {
     <div className="sector-breakdown-container" style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px 24px'}}>
       {sortedSectors.map(([sector, data]) => {
         const topGainer = [...data.stocks].sort((a, b) => b.changePercent - a.changePercent)[0];
+        const topLoser = [...data.stocks].sort((a, b) => a.changePercent - b.changePercent)[0];
         const up = data.avgChange >= 0;
 
         return (
@@ -56,13 +57,21 @@ export function SectorBreakdown({ sectorData }: SectorBreakdownProps) {
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', fontSize: '9.5px', fontWeight: 600}}>
                <div style={{display: 'flex', gap: '6px', alignItems: 'center'}}>
                   <span style={{color: 'var(--text-2)'}}>Top</span>
-                  <span style={{color: topGainer?.changePercent >= 0 ? 'var(--text-2)' : 'var(--text-2)'}}>^</span>
+                  <span style={{color: 'var(--text-2)'}}>^</span>
                   <span style={{color: 'var(--text-1)', marginLeft: '2px'}}>{topGainer?.symbol || '-'}</span>
                   <span style={{color: 'var(--text-2)', fontFamily: 'var(--font-mono)'}}>
                      {topGainer ? `${topGainer.changePercent >= 0 ? '+' : ''}${topGainer.changePercent.toFixed(2)}%` : '-'}
                   </span>
                </div>
-               <ChevronDown size={14} color="var(--text-3)" style={{cursor: 'pointer'}} onClick={() => setExpandedSector(expandedSector === sector ? null : sector)} />
+               <div style={{display: 'flex', gap: '6px', alignItems: 'center'}}>
+                  <span style={{color: 'var(--text-2)'}}>Top</span>
+                  <span style={{color: 'var(--text-2)'}}>v</span>
+                  <span style={{color: 'var(--text-1)', marginLeft: '2px'}}>{topLoser?.symbol || '-'}</span>
+                  <span style={{color: 'var(--text-2)', fontFamily: 'var(--font-mono)'}}>
+                     {topLoser ? `${topLoser.changePercent.toFixed(2)}%` : '-'}
+                  </span>
+                  <ChevronDown size={14} color="var(--text-3)" style={{cursor: 'pointer', marginLeft: '4px'}} onClick={() => setExpandedSector(expandedSector === sector ? null : sector)} />
+               </div>
             </div>
           </div>
         );
