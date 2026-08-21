@@ -58,7 +58,7 @@ class AIService {
         let results: AISentimentResult[] = [];
 
         if (isUsingGroq) {
-          // Use Groq API (Llama 3)
+          // Use Groq API (mixtral-8x7b-32768)
           const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -66,7 +66,7 @@ class AIService {
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-              model: 'llama3-8b-8192',
+              model: 'mixtral-8x7b-32768',
               messages: [{ role: 'user', content: prompt }],
               temperature: 0.1,
               response_format: { type: 'json_object' }
@@ -93,17 +93,16 @@ class AIService {
                 items: {
                   type: Type.OBJECT,
                   properties: {
-                    sentiment: { type: Type.STRING, enum: ['Bullish', 'Bearish', 'Neutral'] },
+                    sentiment: { type: Type.STRING },
                     affectedStocks: { type: Type.ARRAY, items: { type: Type.STRING } }
-                  },
-                  required: ["sentiment", "affectedStocks"],
+                  }
                 }
               }
             }
           };
 
           const response = await this.ai!.models.generateContent({
-            model: 'gemini-2.0-flash',
+            model: 'gemini-3.6-flash',
             contents: prompt,
             config: {
               responseMimeType: "application/json",
