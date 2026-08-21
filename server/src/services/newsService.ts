@@ -30,7 +30,12 @@ class NewsService extends EventEmitter {
     return this.newsCache;
   }
 
+  private isFetching = false;
+
   private async fetchTweets(): Promise<void> {
+    if (this.isFetching) return;
+    this.isFetching = true;
+
     try {
       const accountsToFollow = ['RedboxIndia', 'yatinmota'];
       let allFetchedTweets: any[] = [];
@@ -144,10 +149,11 @@ class NewsService extends EventEmitter {
         }
       }
 
-      // Combine old cache with new tweets, keeping the top 100 latest in memory for deduplication
-      const combinedNews = [...newTweets, ...this.newsCache]
-        .sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime())
-        .slice(0, 100);
+      // Combine old cache with new tweets, deduplicate again to be absolutely safe, and keep top 100
+      let combinedNews = [...newTweets, ...this.newsCache]
+        .sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
+        
+      combinedNews = Array.from(new Map(combinedNews.map(item => [item.id, item])).values()).slice(0, 100);
         
       this.newsCache = combinedNews;
       logger.debug(`Fetched ${newTweets.length} new tweets from multiple accounts.`);
@@ -161,6 +167,8 @@ class NewsService extends EventEmitter {
 
     } catch (error) {
       logger.error('Error in fetchTweets:', error instanceof Error ? error.message : String(error));
+    } finally {
+      this.isFetching = false;
     }
   }
 
