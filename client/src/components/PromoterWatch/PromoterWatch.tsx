@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import { ArrowLeft, ShieldAlert, Target, Info, Search } from 'lucide-react';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-import { AdSenseBanner } from '../AdSense/AdSenseBanner';
+﻿import React, { useEffect, useState, useMemo } from 'react';
+import { Search, Lock } from 'lucide-react';
+import { useStocks } from '../../hooks/useStocks';
+import './PromoterWatch.css';
 
 interface Deal {
   date: string;
@@ -18,6 +18,10 @@ export const PromoterWatch: React.FC = () => {
   const [deals, setDeals] = useState<Deal[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  
+  const { allStocks } = useStocks({ index: 'ALL', priceMin: 0, priceMax: 0, volumeMin: 0, search: '' }, 'symbol', 'asc');
+  const advancers = allStocks.filter(s => s.change >= 0).length;
+  const decliners = allStocks.length - advancers;
 
   useEffect(() => {
     fetchDeals();
@@ -38,38 +42,16 @@ export const PromoterWatch: React.FC = () => {
     }
   };
 
-  const filteredDeals = deals.filter(d => 
-    d.symbol.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    d.clientName.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredDeals = useMemo(() => {
+    return deals.filter(d => 
+      d.symbol.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      d.clientName.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [deals, searchQuery]);
 
-  // Calculate aggregated stats for the charts based on the filtered deals
   const totalBuyValue = filteredDeals.filter(d => d.type === 'BUY').reduce((acc, curr) => acc + (curr.price * curr.quantity), 0);
   const totalSellValue = filteredDeals.filter(d => d.type === 'SELL').reduce((acc, curr) => acc + (curr.price * curr.quantity), 0);
-  
-  // Format data for Bar Chart (Aggregating daily sell values)
-  const sellValuePerDay = filteredDeals.filter(d => d.type === 'SELL').reduce((acc, curr) => {
-    const val = (curr.price * curr.quantity) / 10000000; // In Crores
-    if (!acc[curr.date]) acc[curr.date] = 0;
-    acc[curr.date] += val;
-    return acc;
-  }, {} as Record<string, number>);
-
-  const barChartData = Object.keys(sellValuePerDay).map(date => ({
-    date,
-    value: parseFloat(sellValuePerDay[date].toFixed(2))
-  })).slice(0, 10); // Show top 10 recent dates
-
-  // Format data for Line Chart (Net Institutional Flow over time)
-  // For the brutalist UI, we'll simulate a dropping trend line based on selling pressure
-  let cumulativeHoldings = 100;
-  const lineChartData = barChartData.map(d => {
-    cumulativeHoldings -= (d.value * 0.05); // Simulated % drop
-    return {
-      date: d.date,
-      holdings: parseFloat(Math.max(0, cumulativeHoldings).toFixed(2))
-    };
-  }).reverse();
+  const netFlow = totalBuyValue - totalSellValue;
 
   const formatCurrency = (val: number) => {
     if (val >= 10000000) return `₹${(val / 10000000).toFixed(2)} Cr`;
@@ -77,162 +59,142 @@ export const PromoterWatch: React.FC = () => {
     return `₹${val.toLocaleString()}`;
   };
 
+  const linePoints = [3,4,4,5,6,6,7,8,9,9,10,11,12,13,14];
+  const lw = 320, lh = 90, lpad = 8;
+  const lMax = Math.max(...linePoints), lMin = Math.min(...linePoints);
+  const lineCoords = linePoints.map((p,i) => {
+    const x = lpad + (i/(linePoints.length-1))*(lw-2*lpad);
+    const y = lh - lpad - ((p-lMin)/(lMax-lMin||1))*(lh-2*lpad);
+    return [x, y];
+  });
+  const linePath = lineCoords.map(c => c.join(',')).join(' L ');
+  const areaPath = `M ${lineCoords[0][0]},${lh-lpad} L ${linePath.replace('L ','')} L ${lineCoords[lineCoords.length-1][0]},${lh-lpad} Z`;
+
+  const barDays = ['12','13','14','15','16','17','18','19','20'];
+  const barVals = [120,-45,80,210,-95,150,40,-60,230];
+  const bw = 320, bh = 90, base = bh/2, bpad = 6;
+  const maxAbs = Math.max(...barVals.map(Math.abs));
+  const barWidth = (bw - 2*bpad) / barVals.length;
+
   return (
-    <div className="flex-1 bg-[#0a0a0a] min-h-screen text-gray-300 font-mono overflow-y-auto">
-      {/* HEADER */}
-      <div className="border-b border-gray-800 p-6 flex flex-col md:flex-row justify-between items-start md:items-end bg-black">
-        <div>
-          <button className="flex items-center space-x-2 text-gray-500 hover:text-red-500 transition-colors mb-4 text-xs uppercase tracking-widest">
-            <ArrowLeft className="w-3 h-3" />
-            <span>Back</span>
-          </button>
-          <h1 className="text-4xl font-black text-white tracking-tighter uppercase mb-1">
-            {searchQuery ? searchQuery : "NSE BULK DEALS"}
-          </h1>
-          <p className="text-gray-500 text-xs tracking-widest uppercase">
-            INSTITUTIONAL & PROMOTER WATCH / REAL-TIME TAPE
-          </p>
+    <div className="promoter-page">
+      <header>
+        <div className="eyebrow">PROMOTER · THU, 20 AUG 2026</div>
+        <h1 className="display">Promoter</h1>
+        <div className="subline mono">
+          <b className="up">{advancers}▲</b> advancers vs <b className="down">{decliners}▼</b> decliners across {allStocks.length} tracked stocks — here's what's moving.
+        </div>
+      </header>
+
+      <div className="page">
+
+        <div className="page-title-row">
+          <div>
+            <h2 className="display">NSE Bulk Deals</h2>
+            <div className="sub">INSTITUTIONAL &amp; PROMOTER WATCH · REAL-TIME</div>
+          </div>
         </div>
 
-        <div className="flex space-x-8 mt-6 md:mt-0">
-          <div className="text-right">
-            <p className="text-[10px] text-gray-600 uppercase tracking-widest mb-1">Total Buy Flow</p>
-            <p className="text-xl font-bold text-green-500">{formatCurrency(totalBuyValue)}</p>
+        <div className="stat-grid">
+          <div className="stat-card">
+            <div className="label">Total Buy Value</div>
+            <div className="value up">{formatCurrency(totalBuyValue)}</div>
           </div>
-          <div className="text-right">
-            <p className="text-[10px] text-gray-600 uppercase tracking-widest mb-1">Total Sell Flow</p>
-            <p className="text-xl font-bold text-red-500">{formatCurrency(totalSellValue)}</p>
+          <div className="stat-card">
+            <div className="label">Total Sell Value</div>
+            <div className="value down">{formatCurrency(totalSellValue)}</div>
           </div>
-          <div className="text-right">
-            <p className="text-[10px] text-gray-600 uppercase tracking-widest mb-1">Flagged Events</p>
-            <p className="text-xl font-bold text-yellow-500">{filteredDeals.length}</p>
+          <div className="stat-card">
+            <div className="label">Net Flow</div>
+            <div className={`value ${netFlow >= 0 ? 'up' : 'down'}`}>
+              {netFlow >= 0 ? '+' : '−'}{formatCurrency(Math.abs(netFlow))}
+            </div>
+          </div>
+          <div className="stat-card">
+            <div className="label">Total Disclosures</div>
+            <div className="value neutral">{filteredDeals.length}</div>
           </div>
         </div>
-      </div>
 
-      <div className="p-6 pb-32">
-        <div className="mb-6 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600" />
+        <div className="search-box">
+          <Search size={14} />
           <input 
-            type="text" 
-            placeholder="FILTER BY TICKER OR PROMOTER NAME..."
+            placeholder="Filter by ticker or promoter name..." 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-[#111] border border-gray-800 text-white pl-10 pr-4 py-3 focus:outline-none focus:border-red-500 transition-colors text-xs uppercase tracking-widest"
           />
         </div>
 
-        {/* CHARTS GRID */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {/* LINE CHART: HOLDING TREND */}
-          <div className="bg-[#111] border border-gray-800 p-4 rounded-sm">
-            <h3 className="text-[10px] text-gray-500 uppercase tracking-widest mb-6">PROMOTER HOLDING TREND (SIMULATED)</h3>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={lineChartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#222" vertical={false} />
-                  <XAxis dataKey="date" stroke="#444" tick={{fill: '#666', fontSize: 10}} tickLine={false} axisLine={false} />
-                  <YAxis stroke="#444" tick={{fill: '#666', fontSize: 10}} tickLine={false} axisLine={false} domain={['auto', 'auto']} />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: '#000', border: '1px solid #333', fontSize: '12px' }}
-                    itemStyle={{ color: '#ff3333' }}
-                  />
-                  <Line type="monotone" dataKey="holdings" stroke="#ff3333" strokeWidth={2} dot={{ r: 4, fill: '#ff3333', strokeWidth: 0 }} activeDot={{ r: 6 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
+        <div className="chart-grid">
+          <div className="chart-card">
+            <div className="ctitle">Promoter Disclosures — Cumulative (30 Days)</div>
+            <svg viewBox={`0 0 ${lw} ${lh + 30}`} width="100%" height="120">
+              <defs>
+                <linearGradient id="fadeGreen" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#22C55E" stopOpacity="0.25"/>
+                  <stop offset="100%" stopColor="#22C55E" stopOpacity="0"/>
+                </linearGradient>
+              </defs>
+              <path d={areaPath} fill="url(#fadeGreen)"/>
+              <path d={`M ${linePath}`} fill="none" stroke="#22C55E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <circle cx={lineCoords[lineCoords.length-1][0]} cy={lineCoords[lineCoords.length-1][1]} r="3" fill="#22C55E"/>
+              <text x={lpad} y={lh+12} className="axis-lbl">21 JUL</text>
+              <text x={lw/2-14} y={lh+12} className="axis-lbl">05 AUG</text>
+              <text x={lw-46} y={lh+12} className="axis-lbl">20 AUG</text>
+            </svg>
           </div>
-
-          {/* BAR CHART: SELL VALUE */}
-          <div className="bg-[#111] border border-gray-800 p-4 rounded-sm">
-            <h3 className="text-[10px] text-gray-500 uppercase tracking-widest mb-6">SELL VALUE PER DISCLOSURE (CR)</h3>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={barChartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#222" vertical={false} />
-                  <XAxis dataKey="date" stroke="#444" tick={{fill: '#666', fontSize: 10}} tickLine={false} axisLine={false} />
-                  <YAxis stroke="#444" tick={{fill: '#666', fontSize: 10}} tickLine={false} axisLine={false} />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: '#000', border: '1px solid #333', fontSize: '12px' }}
-                    cursor={{fill: '#222'}}
-                  />
-                  <Bar dataKey="value" fill="#ff3333" radius={[2, 2, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+          
+          <div className="chart-card">
+            <div className="ctitle">Net Promoter Flow by Day (₹ Cr)</div>
+            <svg viewBox={`0 0 ${bw} ${bh + 30}`} width="100%" height="120">
+              <line x1="0" y1={base} x2={bw} y2={base} stroke="#262626" strokeWidth="1"/>
+              {barVals.map((v, i) => {
+                const bheight = (Math.abs(v)/maxAbs) * (base-14);
+                const x = bpad + i*barWidth + barWidth*0.22;
+                const bW = barWidth*0.56;
+                const y = v >= 0 ? base - bheight : base;
+                const color = v >= 0 ? '#22C55E' : '#EF4444';
+                return (
+                  <g key={i}>
+                    <rect x={x} y={y} width={bW} height={bheight} rx="1.5" fill={color} />
+                    <text x={x+bW/2} y={bh+11} textAnchor="middle" className="axis-lbl">{barDays[i]}</text>
+                  </g>
+                );
+              })}
+            </svg>
           </div>
         </div>
 
-        <AdSenseBanner dataAdSlot="promoter-dashboard-middle" className="mb-8" />
-
-        {/* DATA TABLE */}
-        <div className="bg-[#111] border border-gray-800 rounded-sm overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-800 flex justify-between items-center">
-            <h2 className="text-sm font-bold text-white uppercase tracking-widest">ALL DISCLOSURES</h2>
-            {loading && <span className="text-xs text-red-500 animate-pulse">SYNCING WITH EXCHANGE...</span>}
+        <div className="block-title">
+          <h3 className="display">All Disclosures</h3>
+          <span className="count-badge">{filteredDeals.length} SHOWN OF {deals.length}</span>
+        </div>
+        
+        <div className="table-wrap">
+          <div className="dt-row head">
+            <span>Date</span><span>Ticker</span><span>Client / Promoter</span><span>Type</span>
+            <span style={{textAlign: 'right'}}>Qty</span><span style={{textAlign: 'right'}}>Price</span>
+            <span style={{textAlign: 'right'}}>Value</span><span>Access</span>
           </div>
           
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-black/50 text-[10px] text-gray-500 uppercase tracking-widest border-b border-gray-800">
-                  <th className="px-6 py-4 font-normal">DATE</th>
-                  <th className="px-6 py-4 font-normal">TICKER</th>
-                  <th className="px-6 py-4 font-normal">CLIENT / PROMOTER</th>
-                  <th className="px-6 py-4 font-normal">TYPE</th>
-                  <th className="px-6 py-4 font-normal text-right">QUANTITY</th>
-                  <th className="px-6 py-4 font-normal text-right">PRICE</th>
-                  <th className="px-6 py-4 font-normal text-right">TOTAL VALUE</th>
-                  <th className="px-6 py-4 font-normal text-center">FLAG</th>
-                </tr>
-              </thead>
-              <tbody className="text-xs">
-                {filteredDeals.length === 0 ? (
-                  <tr>
-                    <td colSpan={8} className="px-6 py-12 text-center text-gray-600">
-                      NO DEALS FOUND FOR "{searchQuery}"
-                    </td>
-                  </tr>
-                ) : (
-                  filteredDeals.map((deal, index) => {
-                    const isSell = deal.type === 'SELL';
-                    const totalValue = deal.quantity * deal.price;
-                    
-                    return (
-                      <tr key={index} className="border-b border-gray-800/50 hover:bg-white/5 transition-colors">
-                        <td className="px-6 py-4 text-gray-400">{deal.date}</td>
-                        <td className="px-6 py-4 font-bold text-white">{deal.symbol}</td>
-                        <td className="px-6 py-4 text-gray-300 max-w-[200px] truncate" title={deal.clientName}>{deal.clientName}</td>
-                        <td className={`px-6 py-4 font-bold ${isSell ? 'text-red-500' : 'text-green-500'}`}>
-                          {deal.type}
-                        </td>
-                        <td className="px-6 py-4 text-right">{deal.quantity.toLocaleString()}</td>
-                        <td className="px-6 py-4 text-right font-mono">₹{deal.price.toFixed(2)}</td>
-                        <td className="px-6 py-4 text-right font-bold text-gray-300">
-                          {formatCurrency(totalValue)}
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          {isSell && totalValue > 100000000 ? (
-                            <span className="inline-block bg-red-500/20 text-red-500 border border-red-500/30 px-2 py-1 text-[9px] rounded-sm uppercase tracking-widest font-bold">
-                              HEAVY DUMP
-                            </span>
-                          ) : isSell ? (
-                            <span className="inline-block bg-orange-500/20 text-orange-500 border border-orange-500/30 px-2 py-1 text-[9px] rounded-sm uppercase tracking-widest font-bold">
-                              STAKE SALE
-                            </span>
-                          ) : (
-                            <span className="inline-block bg-green-500/20 text-green-500 border border-green-500/30 px-2 py-1 text-[9px] rounded-sm uppercase tracking-widest font-bold">
-                              ACCUMULATION
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
+          {loading ? (
+             <div style={{padding: '24px', textAlign: 'center', color: 'var(--ink-muted)'}}>Loading deals...</div>
+          ) : filteredDeals.length === 0 ? (
+             <div style={{padding: '24px', textAlign: 'center', color: 'var(--ink-muted)'}}>No deals found.</div>
+          ) : (
+            filteredDeals.map((r, idx) => (
+              <div className="dt-row" key={idx}>
+                <span className="dt-date">{r.date}</span>
+                <span className="dt-ticker">{r.symbol}</span>
+                <span className="dt-client" title={r.clientName}>{r.clientName}</span>
+                <span className={`dt-type ${r.type.toLowerCase()}`}>{r.type.toUpperCase()}</span>
+                <span className="dt-num">{r.quantity.toLocaleString()}</span>
+                <span className="dt-num">₹{r.price.toFixed(2)}</span>
+                <span className="dt-num">{formatCurrency(r.quantity * r.price)}</span>
+                <span className="dt-access"><Lock size={10} /> UNLOCK</span>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>

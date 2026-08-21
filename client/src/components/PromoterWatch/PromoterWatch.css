@@ -1,0 +1,126 @@
+.promoter-page {
+  --bg-void: #0c0e11; 
+  --bg-panel: var(--bg-surface);
+  --bg-panel-hi: var(--bg-surface-2);
+  --line: var(--border-soft);
+  --accent: var(--amber);
+  --pulse-green: var(--up);
+  --pulse-red: var(--down);
+  --ink: var(--text-1);
+  --ink-muted: var(--text-2);
+  --ink-faint: var(--text-3);
+
+  background: var(--bg-void);
+  color: var(--ink);
+  font-family: var(--font-body);
+  padding-bottom: 48px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.promoter-page .mono { font-family: var(--font-mono); }
+.promoter-page .display { font-family: var(--font-display); }
+
+.promoter-page header { padding: 28px 32px 20px; border-bottom: 1px solid var(--line); }
+.promoter-page .eyebrow {
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: .14em;
+  color: var(--accent); text-transform: uppercase; margin-bottom: 10px;
+}
+.promoter-page h1 { font-family: var(--font-display); font-size: 32px; font-weight: 700; letter-spacing: -.01em; }
+.promoter-page .subline { margin-top: 8px; font-size: 13.5px; color: var(--ink-muted); }
+.promoter-page .subline b.up { color: var(--pulse-green); font-weight: 600; }
+.promoter-page .subline b.down { color: var(--pulse-red); font-weight: 600; }
+
+.promoter-page .page { padding: 24px 32px; max-width: 1180px; margin: 0 auto; }
+
+.promoter-page .back-link {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--font-mono); font-size: 11px;
+  color: var(--ink-muted); cursor: pointer; margin-bottom: 18px;
+}
+.promoter-page .back-link:hover { color: var(--ink); }
+
+.promoter-page .page-title-row {
+  display: flex; justify-content: space-between; align-items: flex-end;
+  flex-wrap: wrap; gap: 14px; margin-bottom: 20px;
+}
+.promoter-page .page-title-row h2 { font-family: var(--font-display); font-size: 23px; font-weight: 700; }
+.promoter-page .page-title-row .sub {
+  font-family: var(--font-mono); font-size: 11px; color: var(--ink-muted);
+  letter-spacing: .03em; margin-top: 5px;
+}
+
+.promoter-page .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+@media (max-width: 760px) { .promoter-page .stat-grid { grid-template-columns: repeat(2, 1fr); } }
+
+.promoter-page .stat-card { background: var(--bg-panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; }
+.promoter-page .stat-card .label {
+  font-family: var(--font-mono); font-size: 9.5px; letter-spacing: .07em;
+  color: var(--ink-muted); text-transform: uppercase; margin-bottom: 9px;
+}
+.promoter-page .stat-card .value { font-family: var(--font-mono); font-size: 19px; font-weight: 600; }
+.promoter-page .value.up { color: var(--pulse-green); } 
+.promoter-page .value.down { color: var(--pulse-red); } 
+.promoter-page .value.neutral { color: var(--ink); }
+
+.promoter-page .search-box {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--bg-panel); border: 1px solid var(--line);
+  border-radius: 7px; padding: 10px 14px; margin-bottom: 20px;
+}
+.promoter-page .search-box svg { opacity: .4; flex-shrink: 0; }
+.promoter-page .search-box input {
+  background: none; border: none; outline: none; width: 100%;
+  color: var(--ink); font-family: var(--font-body); font-size: 12.5px;
+}
+.promoter-page .search-box input::placeholder { color: var(--ink-faint); }
+
+.promoter-page .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 26px; }
+@media (max-width: 760px) { .promoter-page .chart-grid { grid-template-columns: 1fr; } }
+
+.promoter-page .chart-card { background: var(--bg-panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; }
+.promoter-page .chart-card .ctitle {
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: .06em;
+  color: var(--ink-muted); text-transform: uppercase; margin-bottom: 14px;
+}
+.promoter-page .axis-lbl { font-family: var(--font-mono); font-size: 9px; fill: var(--ink-faint); }
+
+.promoter-page .block-title { display: flex; align-items: center; gap: 9px; margin-bottom: 12px; }
+.promoter-page .block-title h3 { font-family: var(--font-display); font-size: 14px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+.promoter-page .count-badge {
+  font-family: var(--font-mono); font-size: 10px; color: var(--ink-muted);
+  background: rgba(255,255,255,.05); padding: 2px 8px; border-radius: 8px;
+}
+
+.promoter-page .table-wrap { background: var(--bg-panel); border: 1px solid var(--line); border-radius: 8px; overflow-x: auto; }
+.promoter-page .dt-row {
+  display: grid;
+  grid-template-columns: 82px 82px 1fr 58px 92px 76px 96px 108px;
+  gap: 10px; align-items: center;
+  padding: 11px 16px; border-bottom: 1px solid var(--line);
+  min-width: 760px;
+}
+.promoter-page .dt-row.head {
+  font-family: var(--font-mono); font-size: 9px; letter-spacing: .06em;
+  color: var(--ink-faint); text-transform: uppercase;
+}
+.promoter-page .dt-row:not(.head):hover { background: var(--bg-panel-hi); }
+.promoter-page .dt-row:last-child { border-bottom: none; }
+.promoter-page .dt-date { font-family: var(--font-mono); font-size: 11px; color: var(--ink-muted); }
+.promoter-page .dt-ticker { font-family: var(--font-mono); font-size: 12px; font-weight: 700; color: var(--ink); }
+.promoter-page .dt-client { font-size: 12px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.promoter-page .dt-type {
+  font-family: var(--font-mono); font-size: 9.5px; font-weight: 700; letter-spacing: .03em;
+  padding: 3px 0; border-radius: 4px; text-align: center; width: 48px;
+}
+.promoter-page .dt-type.buy { color: var(--pulse-green); background: rgba(52, 211, 153, 0.12); }
+.promoter-page .dt-type.sell { color: var(--pulse-red); background: rgba(248, 113, 113, 0.12); }
+.promoter-page .dt-num { font-family: var(--font-mono); font-size: 11.5px; color: var(--ink); text-align: right; }
+.promoter-page .dt-access {
+  display: inline-flex; align-items: center; gap: 5px; justify-self: start;
+  font-family: var(--font-mono); font-size: 9.5px; font-weight: 600; letter-spacing: .02em;
+  color: var(--ink-muted); border: 1px solid var(--line);
+  padding: 5px 10px; border-radius: 6px; cursor: pointer; transition: all .12s ease;
+}
+.promoter-page .dt-access:hover { border-color: var(--accent); color: var(--accent); }
+.promoter-page .dt-access svg { opacity: .7; flex-shrink: 0; }
