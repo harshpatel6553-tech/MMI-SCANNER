@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import type { StockData } from '../../types';
 import './TradeModal.css';
@@ -7,22 +7,26 @@ interface TradeModalProps {
   isOpen: boolean;
   onClose: () => void;
   stock: StockData;
-  onTradeComplete?: () => void;
 }
 
-export function TradeModal({ isOpen, onClose, stock, onTradeComplete }: TradeModalProps) {
+export function TradeModal({ isOpen, onClose, stock }: TradeModalProps) {
   const { profile } = useAuth();
   const [side, setSide] = useState<'BUY' | 'SELL'>('BUY');
-  const [quantity, setQuantity] = useState<number>(1);
+  const [quantity, setQuantity] = useState<number | string>(1);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  if (!isOpen) return null;
+  if (!isOpen || !stock) return null;
 
-  const totalCost = (quantity * stock.price).toFixed(2);
+  const parsedQty = typeof quantity === 'string' ? parseFloat(quantity) || 0 : quantity;
+  const totalCost = (parsedQty * stock.price).toFixed(2);
 
   const executeTrade = async () => {
     if (!profile) return;
+    if (parsedQty <= 0) {
+      setError('Quantity must be greater than 0');
+      return;
+    }
     setIsLoading(true);
     setError(null);
 
@@ -35,7 +39,7 @@ export function TradeModal({ isOpen, onClose, stock, onTradeComplete }: TradeMod
           userId: profile.id,
           symbol: stock.symbol,
           side,
-          quantity: Number(quantity),
+          quantity: parsedQty,
           price: stock.price
         })
       });
@@ -45,8 +49,6 @@ export function TradeModal({ isOpen, onClose, stock, onTradeComplete }: TradeMod
         throw new Error(data.error || 'Trade failed');
       }
 
-      alert(data.message);
-      if (onTradeComplete) onTradeComplete();
       onClose();
     } catch (err: any) {
       setError(err.message);
@@ -56,63 +58,56 @@ export function TradeModal({ isOpen, onClose, stock, onTradeComplete }: TradeMod
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content trade-modal" onClick={e => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2>Trade {stock.symbol}</h2>
-          <button className="close-btn" onClick={onClose}>&times;</button>
+    <div className="tm-overlay" onClick={onClose}>
+      <div className="tm-modal" onClick={e => e.stopPropagation()}>
+        <button className="tm-close" onClick={onClose}>&times;</button>
+
+        <div className="tm-header">
+          <span className="tm-lbl">LIVE PRICE</span>
+          <span className="tm-price">₹{stock.price.toFixed(2)}</span>
         </div>
 
-        <div className="trade-body">
-          <div className="trade-price-row">
-            <span className="live-label">LIVE PRICE</span>
-            <span className={`live-price ${stock.change >= 0 ? 'bullish' : 'bearish'}`}>
-              ₹{stock.price.toFixed(2)}
-            </span>
-          </div>
-
-          <div className="trade-sides">
-            <button 
-              className={`side-btn buy ${side === 'BUY' ? 'active' : ''}`}
-              onClick={() => setSide('BUY')}
-            >
-              BUY
-            </button>
-            <button 
-              className={`side-btn sell ${side === 'SELL' ? 'active' : ''}`}
-              onClick={() => setSide('SELL')}
-            >
-              SELL
-            </button>
-          </div>
-
-          <div className="trade-input-group">
-            <label>Quantity</label>
-            <input 
-              type="number" 
-              min="1" 
-              value={quantity} 
-              onChange={e => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-            />
-          </div>
-
-          <div className="trade-summary">
-            <div className="summary-row">
-              <span>Order Value:</span>
-              <span>₹{totalCost}</span>
-            </div>
-          </div>
-
-          {error && <div className="trade-error">{error}</div>}
-
+        <div className="tm-sides">
           <button 
-            className={`execute-btn ${side.toLowerCase()}`}
-            onClick={executeTrade}
-            disabled={isLoading}
+            className={`tm-side-btn buy ${side === 'BUY' ? 'active' : ''}`}
+            onClick={() => setSide('BUY')}
           >
-            {isLoading ? 'Processing...' : `Confirm ${side}`}
+            BUY
+          </button>
+          <button 
+            className={`tm-side-btn sell ${side === 'SELL' ? 'active' : ''}`}
+            onClick={() => setSide('SELL')}
+          >
+            SELL
           </button>
         </div>
+
+        <div className="tm-qty-group">
+          <label className="tm-qty-lbl">Quantity</label>
+          <input 
+            type="number" 
+            className="tm-qty-input" 
+            value={quantity} 
+            onChange={(e) => setQuantity(e.target.value)}
+            min="1"
+            autoFocus
+          />
+        </div>
+
+        <div className="tm-val-row">
+          <span className="tm-val-lbl">Order Value:</span>
+          <span className="tm-val-num">₹{totalCost}</span>
+        </div>
+
+        <button 
+          className="tm-submit" 
+          onClick={executeTrade}
+          disabled={isLoading || parsedQty <= 0}
+        >
+          {isLoading ? 'Processing...' : `Confirm ${side}`}
+        </button>
+
+        {error && <div className="tm-error">{error}</div>}
       </div>
     </div>
   );
