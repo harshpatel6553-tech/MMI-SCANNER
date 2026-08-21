@@ -1,8 +1,10 @@
 import React from 'react';
 import { useStocks } from '../../hooks/useStocks';
+import { useDashboard } from '../../contexts/DashboardContext';
 
 export function SectorPulseWidget() {
   const { sectorData } = useStocks({ index: 'ALL', priceMin: 0, priceMax: 0, volumeMin: 0, search: '' }, 'symbol', 'asc');
+  const { setActiveTab } = useDashboard();
 
   const sectors = Array.from(sectorData.entries()).map(([n, d]) => ({
     n,
@@ -13,7 +15,7 @@ export function SectorPulseWidget() {
     <div className="card">
       <div className="card-head">
         <span className="card-title">Sector Pulse</span>
-        <a className="card-link" href="#">Sectors →</a>
+        <a className="card-link" href="#" onClick={(e) => { e.preventDefault(); setActiveTab('Sectors'); }}>Sectors →</a>
       </div>
       <div className="sector-grid">
         {sectors.map(s => {

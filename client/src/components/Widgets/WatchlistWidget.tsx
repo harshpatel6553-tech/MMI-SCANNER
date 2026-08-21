@@ -1,8 +1,10 @@
 import React from 'react';
 import { useStocks } from '../../hooks/useStocks';
+import { useDashboard } from '../../contexts/DashboardContext';
 
 export function WatchlistWidget() {
   const { allStocks } = useStocks({ index: 'ALL', priceMin: 0, priceMax: 0, volumeMin: 0, search: '' }, 'symbol', 'asc');
+  const { setActiveTab } = useDashboard();
   
   const symbols = ['TCS', 'ASTRAL', 'IFCI'];
   const watch = allStocks.filter(s => symbols.includes(s.symbol));
@@ -11,7 +13,7 @@ export function WatchlistWidget() {
     <div className="card">
       <div className="card-head">
         <span className="card-title">Watchlist</span>
-        <a className="card-link" href="#">Manage →</a>
+        <a className="card-link" href="#" onClick={(e) => { e.preventDefault(); setActiveTab('Watchlist'); }}>Manage →</a>
       </div>
       <div>
         {watch.map(w => {
