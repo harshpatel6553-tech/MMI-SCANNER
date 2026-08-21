@@ -32,95 +32,57 @@ class NewsService extends EventEmitter {
 
   private async fetchTweets(): Promise<void> {
     try {
-      // Define the list of Twitter accounts to follow
       const accountsToFollow = ['RedboxIndia', 'yatinmota'];
       let allFetchedTweets: any[] = [];
 
-      const fetchPromises = accountsToFollow.map(async (screenname) => {
-        try {
-          // Use axios instead of native fetch because native fetch returns empty string for Nitter
-          const { default: axios } = await import('axios');
-          
-          if (this.rapidApiKeys.length === 0) {
-             const rawKeys = process.env.RAPIDAPI_KEY || process.env.RAPID_API_KEY || process.env.TWITTER_API_KEY || process.env.TWITTERAPI_KEY || process.env.X_RAPIDAPI_KEY || '';
-             if (rawKeys.includes(',')) {
-                 this.rapidApiKeys = rawKeys.split(',').map(k => k.trim()).filter(k => k);
-             } else if (rawKeys) {
-                 this.rapidApiKeys = [rawKeys];
-             }
-             
-             // Also dynamically load any numbered keys like RAPIDAPI_KEY_1, RAPIDAPI_KEY_2, etc.
-             for (let i = 1; i <= 20; i++) {
-                 const k = process.env[`RAPIDAPI_KEY_${i}`] || process.env[`TWITTERAPI_KEY_${i}`] || process.env[`TWITTER_API_KEY_${i}`];
-                 if (k && !this.rapidApiKeys.includes(k)) {
-                     this.rapidApiKeys.push(k);
-                 }
-             }
-          }
-          
-          if (this.rapidApiKeys.length > 0) {
-            let fetchSuccess = false;
+      // Use the newly centralized twitterService that handles user ID resolution and fetching
+      const { twitterService } = await import('./twitterService.js');
 
-            while (this.rapidApiKeys.length > 0 && !fetchSuccess) {
-              const rapidApiKey = this.rapidApiKeys[this.currentKeyIndex % this.rapidApiKeys.length];
-              this.currentKeyIndex++; // rotate to the next key for the next attempt
-              
-              try {
-                 const rapidRes = await axios.get('https://twitter-search-only.p.rapidapi.com/timeline.php', {
-                   params: { screenname: screenname },
-                   headers: {
-                     'X-RapidAPI-Key': rapidApiKey,
-                     'X-RapidAPI-Host': 'twitter-search-only.p.rapidapi.com'
-                   },
-                   timeout: 10000
-                 });
-                 
-                 if (rapidRes.status === 200 && rapidRes.data) {
-                   let tweets: any[] = [];
-                   if (rapidRes.data.data && Array.isArray(rapidRes.data.data.tweets)) {
-                     tweets = rapidRes.data.data.tweets;
-                   } else if (Array.isArray(rapidRes.data)) {
-                     tweets = rapidRes.data;
-                   } else if (rapidRes.data.timeline) {
-                     tweets = rapidRes.data.timeline;
-                   }
-                   
-                   if (tweets.length > 0) {
-                     logger.info(`Fetched ${tweets.length} real-time tweets for ${screenname} via RapidAPI!`);
-                     fetchSuccess = true;
-                     return tweets.map((t: any) => ({
-                       full_text: t.full_text || t.note_tweet?.text || t.extended_tweet?.full_text || t.text || '',
-                       created_at: t.created_at || t.timestamp || new Date().toUTCString(),
-                       _sourceAccount: screenname,
-                       id_str: t.tweet_id || t.id_str || t.id || ''
-                     }));
-                   } else {
-                     // Empty timeline, but API call succeeded
-                     fetchSuccess = true; 
-                     return [];
-                   }
-                 }
-              } catch (rapidErr: any) {
-                 const status = rapidErr.response?.status;
-                 if (status === 429 || status === 403) {
-                    logger.warn(`RapidAPI Key ${rapidApiKey.substring(0,6)}... exhausted or invalid (HTTP ${status}). Removing from rotation.`);
-                    this.rapidApiKeys = this.rapidApiKeys.filter(k => k !== rapidApiKey);
-                    // Loop will continue and try the next key immediately!
-                 } else {
-                    logger.warn(`RapidAPI fetch failed for ${screenname}: ${rapidErr.message}`);
-                    break; // Stop retrying for unknown errors (like 500s or timeouts)
-                 }
+      const fetchPromises = accountsToFollow.map(async (username) => {
+        try {
+          const raw = await twitterService.getTweetsByUsername(username);
+          if (raw.error) return [];
+
+          // Helper to deeply find an array of tweets in the unknown RapidAPI JSON structure
+          const findTweetArray = (obj: any): any[] => {
+            if (!obj || typeof obj !== 'object') return [];
+            if (Array.isArray(obj)) return obj.length > 0 ? obj : [];
+            
+            const known = obj.data?.user?.result?.timeline?.timeline?.instructions?.[1]?.entries
+                       || obj.data?.user?.result?.timeline_v2?.timeline?.instructions?.find((i: any) => i.type === 'TimelineAddEntries')?.entries
+                       || obj.timeline
+                       || obj.tweets
+                       || obj.data?.tweets;
+            if (Array.isArray(known) && known.length > 0) return known;
+
+            for (const val of Object.values(obj)) {
+              if (Array.isArray(val) && val.length > 0) return val;
+              if (val && typeof val === 'object') {
+                const found = findTweetArray(val);
+                if (found.length > 0) return found;
               }
             }
-          }
-          
-          if (this.rapidApiKeys.length === 0) {
-            logger.warn(`All RapidAPI keys exhausted or no keys configured! Cannot fetch news for ${screenname}.`);
-          }
+            return [];
+          };
 
+          let tweets = findTweetArray(raw);
+          
+          if (tweets.length > 0) {
+            logger.info(`Fetched ${tweets.length} real-time tweets for ${username} via twitterService!`);
+            return tweets.map((t: any) => {
+               const text = t.text || t.full_text || t.content?.itemContent?.tweet_results?.result?.legacy?.full_text || '';
+               const date = t.created_at || t.content?.itemContent?.tweet_results?.result?.legacy?.created_at || new Date().toISOString();
+               return {
+                 full_text: text,
+                 created_at: date,
+                 _sourceAccount: username,
+                 id_str: t.tweet_id || t.id_str || t.id || ''
+               };
+            }).filter((t: any) => t.full_text && t.full_text !== 'Breaking News Update');
+          }
           return [];
         } catch (err) {
-           logger.error(`Error fetching news for ${screenname}: ${err}`);
+           logger.error(`Error fetching news for ${username}: ${err}`);
            return [];
         }
       });
