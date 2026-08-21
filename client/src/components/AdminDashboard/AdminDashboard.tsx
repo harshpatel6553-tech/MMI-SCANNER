@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../supabaseClient';
 import { useAuth } from '../../context/AuthContext';
@@ -12,6 +12,11 @@ interface Profile {
   subscription_status: string;
 }
 
+type FilterState = {
+  email: string;
+  status: string;
+};
+
 export function AdminDashboard() {
   const navigate = useNavigate();
   const { profile, signOut } = useAuth();
@@ -19,35 +24,24 @@ export function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [onlineUsers, setOnlineUsers] = useState<{ email: string; connectedAt: string }[]>([]);
   const { socket } = useSocketContext();
+  
+  const [filters, setFilters] = useState<FilterState>({ email: '', status: 'all' });
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
+  useEffect(() => { fetchUsers(); }, []);
 
-  // Listen for live online user updates from the server
   useEffect(() => {
     if (!socket) return;
-
-    // Request the current online user list
     socket.emit('admin:request-online-users');
-
-    // Listen for real-time updates
     socket.on('admin:online-users', (users: { email: string; connectedAt: string }[]) => {
       setOnlineUsers(users);
     });
-
-    return () => {
-      socket.off('admin:online-users');
-    };
+    return () => { socket.off('admin:online-users'); };
   }, [socket]);
 
   const fetchUsers = async () => {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('trial_start_date', { ascending: false });
-
+      const { data, error } = await supabase.from('profiles').select('*').order('trial_start_date', { ascending: false });
       if (error) throw error;
       setUsers(data || []);
     } catch (err) {
@@ -59,84 +53,114 @@ export function AdminDashboard() {
 
   const handleGrantAccess = async (userId: string, tier: 'monthly' | 'yearly' | 'three_years') => {
     try {
-      let statusString = 'active'; // fallback
+      let statusString = 'active';
       if (tier === 'monthly') {
-        const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + 30);
-        statusString = `monthly:${expiresAt.toISOString()}`;
+        const expiresAt = new Date(); expiresAt.setDate(expiresAt.getDate() + 30); statusString = `monthly:${expiresAt.toISOString()}`;
       } else if (tier === 'yearly') {
-        const expiresAt = new Date();
-        expiresAt.setFullYear(expiresAt.getFullYear() + 1);
-        statusString = `yearly:${expiresAt.toISOString()}`;
+        const expiresAt = new Date(); expiresAt.setFullYear(expiresAt.getFullYear() + 1); statusString = `yearly:${expiresAt.toISOString()}`;
       } else if (tier === 'three_years') {
-        const expiresAt = new Date();
-        expiresAt.setFullYear(expiresAt.getFullYear() + 3);
-        statusString = `three_years:${expiresAt.toISOString()}`;
+        const expiresAt = new Date(); expiresAt.setFullYear(expiresAt.getFullYear() + 3); statusString = `three_years:${expiresAt.toISOString()}`;
       }
-
-      const { data, error } = await supabase
-        .from('profiles')
-        .update({ subscription_status: statusString })
-        .eq('id', userId);
-
+      const { error } = await supabase.from('profiles').update({ subscription_status: statusString }).eq('id', userId);
       if (error) throw error;
-      
-      // Update local state
-      setUsers(users.map(u => 
-        u.id === userId ? { ...u, subscription_status: statusString } : u
-      ));
+      setUsers(users.map(u => u.id === userId ? { ...u, subscription_status: statusString } : u));
     } catch (err) {
-      console.error('Error granting access:', err);
-      alert('Failed to grant access');
+      console.error('Error granting access:', err); alert('Failed to grant access');
     }
   };
 
   const handleRevoke = async (userId: string) => {
     if (!window.confirm("Are you sure you want to revoke this user's access?")) return;
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .update({ subscription_status: 'expired' })
-        .eq('id', userId)
-        .select();
-
+      const { error } = await supabase.from('profiles').update({ subscription_status: 'expired' }).eq('id', userId);
       if (error) throw error;
-      
-      if (!data || data.length === 0) {
-        throw new Error("Permission Denied: Could not update the database. Check Supabase RLS policies.");
-      }
-      
-      
-      // Update local state
-      setUsers(users.map(u => 
-        u.id === userId ? { ...u, subscription_status: 'expired' } : u
-      ));
+      setUsers(users.map(u => u.id === userId ? { ...u, subscription_status: 'expired' } : u));
     } catch (err) {
-      console.error('Error revoking user:', err);
-      alert('Failed to revoke user');
+      console.error('Error revoking access:', err); alert('Failed to revoke access');
     }
   };
 
-  const handleForceRefresh = async () => {
-    if (!window.confirm("Are you sure you want to force ALL online users to instantly refresh their browsers?")) return;
+  const handleBulkRevoke = async () => {
+    if (!window.confirm(`Are you sure you want to revoke access for ${selectedIds.length} users?`)) return;
     try {
-      const socketUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
-      const response = await fetch(`${socketUrl}/api/admin/force-refresh`, { method: 'POST' });
-      if (!response.ok) throw new Error('Failed to broadcast refresh command');
-      alert('Force-refresh command sent successfully!');
+      // Note: In a real app, this should be a bulk RPC call or done in a loop/batch
+      for (const id of selectedIds) {
+        await supabase.from('profiles').update({ subscription_status: 'expired' }).eq('id', id);
+      }
+      setUsers(users.map(u => selectedIds.includes(u.id) ? { ...u, subscription_status: 'expired' } : u));
+      setSelectedIds([]);
     } catch (err) {
-      console.error(err);
-      alert('Error sending force-refresh command');
+      console.error('Error in bulk revoke:', err); alert('Failed to bulk revoke access');
     }
   };
 
-  const formatStatus = (status: string) => {
-    if (status.startsWith('three_years:')) return '3 Years';
-    if (status === 'active') return 'Lifetime'; // Fallback for old lifetime accounts
-    if (status.startsWith('monthly:')) return 'Monthly';
-    if (status.startsWith('yearly:')) return 'Yearly';
-    if (status === 'trialing') return 'Trialing';
-    return 'Expired';
+  const handleForceRefresh = () => {
+    if (!socket) return;
+    if (!window.confirm("Are you sure you want to force all users to refresh?")) return;
+    socket.emit('admin:force-refresh-all');
+    alert('Force refresh signal sent to all online users.');
+  };
+  
+  const computedUsers = useMemo(() => {
+    return users.map(u => {
+      let trialDaysLeft = 0;
+      let badgeStatus = u.subscription_status || 'Trialing';
+
+      if (u.subscription_status === 'active') badgeStatus = 'Lifetime';
+      else if (u.subscription_status?.startsWith('monthly:')) badgeStatus = 'Monthly';
+      else if (u.subscription_status?.startsWith('yearly:')) badgeStatus = 'Yearly';
+      else if (u.subscription_status?.startsWith('three_years:')) badgeStatus = '3 Years';
+      else {
+        const trialStart = new Date(u.trial_start_date).getTime();
+        const daysElapsed = Math.floor((new Date().getTime() - trialStart) / (1000 * 60 * 60 * 24));
+        trialDaysLeft = Math.max(0, 14 - daysElapsed);
+        if (trialDaysLeft === 0 || u.subscription_status === 'expired') badgeStatus = 'Expired';
+        else badgeStatus = 'Trialing';
+      }
+      return { ...u, computedStatus: badgeStatus, trialDaysLeft };
+    });
+  }, [users]);
+
+  const filteredItems = useMemo(() => {
+    const q = filters.email.trim().toLowerCase();
+    return computedUsers.filter(item => {
+      const matchesEmail = q ? item.email.toLowerCase().includes(q) : true;
+      const matchesStatus = filters.status === 'all' ? true : item.computedStatus.toLowerCase() === filters.status.toLowerCase();
+      return matchesEmail && matchesStatus;
+    });
+  }, [computedUsers, filters]);
+
+  const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+  const visibleIds = filteredItems.map(item => item.id);
+  const allSelected = visibleIds.length > 0 && visibleIds.every(id => selectedIdSet.has(id));
+  const someSelected = visibleIds.some(id => selectedIdSet.has(id)) && !allSelected;
+
+  const updateFilter = <K extends keyof FilterState>(key: K, value: FilterState[K]) => {
+    setFilters(current => ({ ...current, [key]: value }));
+  };
+
+  const toggleAll = (checked: boolean) => {
+    if (checked) return setSelectedIds(current => Array.from(new Set([...current, ...visibleIds])));
+    setSelectedIds(current => current.filter(id => !visibleIds.includes(id)));
+  };
+
+  const toggleRow = (id: string, checked: boolean) => {
+    setSelectedIds(current => {
+      if (checked) return current.includes(id) ? current : [...current, id];
+      return current.filter(item => item !== id);
+    });
+  };
+
+  const getBadgeStyle = (status: string) => {
+    switch(status) {
+      case 'Lifetime': return 'border-none bg-purple-600/10 text-purple-600';
+      case 'Monthly': 
+      case 'Yearly': 
+      case '3 Years': return 'border-none bg-blue-600/10 text-blue-600';
+      case 'Trialing': return 'border-none bg-green-600/10 text-green-600';
+      case 'Expired': return 'border-none bg-red-600/10 text-red-600';
+      default: return 'border-none bg-gray-600/10 text-gray-600';
+    }
   };
 
   if (!profile?.is_admin) {
@@ -144,7 +168,6 @@ export function AdminDashboard() {
       <div className="admin-container">
         <div className="glass-card" style={{ padding: '2rem', textAlign: 'center' }}>
           <h2>Access Denied</h2>
-          <p>You must be an administrator to view this page.</p>
           <button className="signout-btn" onClick={() => navigate('/')}>Go Back</button>
         </div>
       </div>
@@ -152,7 +175,7 @@ export function AdminDashboard() {
   }
 
   return (
-    <div className="admin-container">
+    <div className="admin-container pb-20">
       <div className="admin-header">
         <h2>Admin Dashboard</h2>
         <div className="admin-actions">
@@ -161,154 +184,185 @@ export function AdminDashboard() {
         </div>
       </div>
 
-      <div className="admin-card glass-card" style={{ marginBottom: '1.5rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-          <h3 style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: 0 }}>
-            <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', background: '#4ade80', boxShadow: '0 0 8px #4ade80', animation: 'pulse 2s infinite' }}></span>
-            Live Users — {onlineUsers.length} Online
+      <div className="admin-card glass-card mb-8">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="flex items-center gap-2 m-0 text-lg font-semibold">
+            <span className="inline-block w-2.5 h-2.5 rounded-full bg-green-400 shadow-[0_0_8px_#4ade80] animate-pulse"></span>
+            Live Users � {onlineUsers.length} Online
           </h3>
           <button 
-            className="action-btn revoke" 
+            className="px-4 py-1.5 rounded-md text-sm font-medium border transition-colors bg-red-500/15 border-red-500/40 text-red-500 hover:bg-red-500/20"
             onClick={handleForceRefresh}
-            style={{ background: 'rgba(239, 68, 68, 0.15)', borderColor: 'rgba(239, 68, 68, 0.4)', padding: '6px 14px' }}
           >
-            ⚠️ Force Refresh All Users
+            ? Force Refresh All Users
           </button>
         </div>
         {onlineUsers.length === 0 ? (
-          <p style={{ color: 'var(--text-secondary)', padding: '1rem 0' }}>No users currently online</p>
+          <p className="text-gray-400 py-4">No users currently online</p>
         ) : (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '1rem' }}>
+          <div className="flex flex-wrap gap-2 mt-4">
             {onlineUsers.map((u, i) => (
-              <div key={i} style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '8px 14px',
-                borderRadius: '8px',
-                background: 'rgba(74, 222, 128, 0.08)',
-                border: '1px solid rgba(74, 222, 128, 0.2)',
-                fontSize: '0.85rem',
-                color: '#4ade80',
-              }}>
-                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#4ade80', flexShrink: 0 }}></span>
-                <span style={{ color: 'var(--text-primary)' }}>{u.email}</span>
-                <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
-                  since {new Date(u.connectedAt).toLocaleTimeString()}
-                </span>
+              <div key={i} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-green-400/10 border border-green-400/20 text-sm text-green-400">
+                <span className="w-2 h-2 rounded-full bg-green-400 shrink-0"></span>
+                <span className="text-gray-200">{u.email}</span>
+                <span className="text-xs text-gray-500">since {new Date(u.connectedAt).toLocaleTimeString()}</span>
               </div>
             ))}
           </div>
         )}
       </div>
 
-      <div className="admin-card glass-card">
-        <h3>User Management</h3>
-        
-        {loading ? (
-          <p>Loading users...</p>
-        ) : (
-          <div className="table-responsive">
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>Email</th>
-                  <th>Signed Up</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map(u => {
-                  const date = new Date(u.trial_start_date).toLocaleDateString();
-                  
-                  // Calculate trial logic identically to AuthContext
-                  let isTrialExpired = false;
-                  let trialDaysLeft = 0;
-                  let badgeStatus = u.subscription_status;
+      <div className="overflow-hidden rounded-xl border border-white/10 shadow-sm mb-12" style={{ background: '#0b0b0d' }}>
+        <div className="grid gap-4 border-b border-dashed border-white/10 px-4 py-5 md:grid-cols-2 lg:grid-cols-4">
+          
+          <div className="space-y-2">
+            <label htmlFor="email-filter" className="text-sm font-medium text-gray-300">Email Address</label>
+            <div className="relative">
+              <input
+                id="email-filter"
+                className="flex h-10 w-full rounded-md border border-white/10 bg-transparent px-3 py-2 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-sky-500 pl-9"
+                value={filters.email}
+                onChange={(e) => updateFilter('email', e.target.value)}
+                placeholder="Search user email"
+                type="text"
+              />
+              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              </div>
+            </div>
+          </div>
 
-                  if (u.subscription_status === 'active') {
-                    badgeStatus = 'Lifetime';
-                  } else if (u.subscription_status?.startsWith('monthly:')) {
-                    badgeStatus = 'Monthly';
-                  } else if (u.subscription_status?.startsWith('yearly:')) {
-                    badgeStatus = 'Yearly';
-                  } else {
-                    // It's a trial or expired
-                    const trialStart = new Date(u.trial_start_date).getTime();
-                    const now = new Date().getTime();
-                    const daysElapsed = Math.floor((now - trialStart) / (1000 * 60 * 60 * 24));
-                    trialDaysLeft = Math.max(0, 14 - daysElapsed);
-                    
-                    if (trialDaysLeft === 0 || u.subscription_status === 'expired') {
-                      isTrialExpired = true;
-                      badgeStatus = 'Expired';
-                    } else {
-                      badgeStatus = 'Trialing';
-                    }
-                  }
+          <div className="space-y-2">
+            <label htmlFor="status-filter" className="text-sm font-medium text-gray-300">Subscription Status</label>
+            <select
+              id="status-filter"
+              className="flex h-10 w-full rounded-md border border-white/10 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-sky-500 appearance-none"
+              style={{ backgroundColor: '#131316', color: '#fff' }}
+              value={filters.status}
+              onChange={(e) => updateFilter('status', e.target.value)}
+            >
+              <option value="all">All Statuses</option>
+              <option value="trialing">Trialing</option>
+              <option value="monthly">Monthly</option>
+              <option value="yearly">Yearly</option>
+              <option value="lifetime">Lifetime</option>
+              <option value="expired">Expired</option>
+            </select>
+          </div>
+          
+          <div className="space-y-2 flex flex-col justify-end lg:col-span-2">
+             {selectedIdSet.size > 0 && (
+                <div className="flex gap-4 items-center justify-end">
+                   <span className="text-sm text-gray-400">{selectedIdSet.size} selected</span>
+                   <button 
+                     onClick={handleBulkRevoke}
+                     className="h-10 px-4 rounded-md bg-red-500/10 text-red-500 border border-red-500/20 text-sm hover:bg-red-500/20"
+                   >
+                     Bulk Revoke
+                   </button>
+                </div>
+             )}
+          </div>
+          
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm whitespace-nowrap [&_td]:align-middle">
+            <thead>
+              <tr className="border-b border-dashed border-white/10 hover:bg-white/5">
+                <th className="h-12 w-12 px-4 font-medium text-gray-400">
+                  <input 
+                    type="checkbox" 
+                    checked={allSelected} 
+                    ref={input => { if (input) input.indeterminate = someSelected; }}
+                    onChange={(e) => toggleAll(e.target.checked)}
+                    className="rounded border-white/20 bg-transparent accent-sky-500" 
+                  />
+                </th>
+                <th className="h-12 px-4 text-[11px] font-medium uppercase tracking-[0.14em] text-gray-500">User Email</th>
+                <th className="h-12 px-4 text-[11px] font-medium uppercase tracking-[0.14em] text-gray-500">Signed Up</th>
+                <th className="h-12 px-4 text-[11px] font-medium uppercase tracking-[0.14em] text-gray-500">Status</th>
+                <th className="h-12 px-4 text-[11px] font-medium uppercase tracking-[0.14em] text-gray-500 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredItems.length > 0 ? (
+                filteredItems.map((item) => {
+                  const isSelected = selectedIdSet.has(item.id);
+                  const date = new Date(item.trial_start_date).toLocaleDateString();
 
                   return (
-                    <tr key={u.id}>
-                      <td>{u.email}</td>
-                      <td>{date}</td>
-                      <td>
-                        <div className="status-cell">
-                          <span className={`status-badge ${badgeStatus.toLowerCase()}`}>
-                            {badgeStatus}
+                    <tr 
+                      key={item.id} 
+                      className={`border-b border-white/5 transition-colors hover:bg-white/5 ${isSelected ? 'bg-sky-500/10' : ''}`}
+                    >
+                      <td className="py-3 px-4">
+                        <input 
+                          type="checkbox" 
+                          checked={isSelected} 
+                          onChange={(e) => toggleRow(item.id, e.target.checked)}
+                          className="rounded border-white/20 bg-transparent accent-sky-500" 
+                        />
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="font-medium text-gray-200">{item.email}</div>
+                        <div className="text-xs text-gray-500">{item.id.substring(0,8)}...</div>
+                      </td>
+                      <td className="py-3 px-4 text-gray-400">{date}</td>
+                      <td className="py-3 px-4">
+                        <div className="flex flex-col gap-1 items-start">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getBadgeStyle(item.computedStatus)}`}>
+                            {item.computedStatus}
                           </span>
-                          {(badgeStatus === 'Monthly' || badgeStatus === 'Yearly') && u.subscription_status && (
-                            <span className="expires-date text-muted" style={{ display: 'block', fontSize: '0.75rem', marginTop: '4px' }}>
-                              Exp: {new Date(u.subscription_status.replace('monthly:', '').replace('yearly:', '')).toLocaleDateString()}
+                          
+                          {(item.computedStatus === 'Monthly' || item.computedStatus === 'Yearly' || item.computedStatus === '3 Years') && item.subscription_status && (
+                            <span className="text-[10px] text-gray-500">
+                              Exp: {new Date(item.subscription_status.split(':')[1]).toLocaleDateString()}
                             </span>
                           )}
-                          {badgeStatus === 'Trialing' && (
-                            <span className="expires-date text-muted" style={{ display: 'block', fontSize: '0.75rem', marginTop: '4px', color: '#60a5fa' }}>
-                              Exp: {new Date(new Date(u.trial_start_date).getTime() + 14 * 24 * 60 * 60 * 1000).toLocaleDateString()} 
-                              <br/>
-                              ({trialDaysLeft} days left)
+                          
+                          {item.computedStatus === 'Trialing' && (
+                            <span className="text-[10px] text-sky-400">
+                              Exp: {new Date(new Date(item.trial_start_date).getTime() + 14 * 24 * 60 * 60 * 1000).toLocaleDateString()} ({item.trialDaysLeft} days)
                             </span>
                           )}
                         </div>
                       </td>
-                      <td>
-                        <div className="admin-action-buttons" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      <td className="py-3 px-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
                           <button 
-                            className="action-btn approve"
-                            onClick={() => handleGrantAccess(u.id, 'monthly')}
-                            style={{ background: 'rgba(59, 130, 246, 0.15)', color: '#60a5fa', borderColor: 'rgba(59, 130, 246, 0.3)' }}
+                            onClick={() => handleGrantAccess(item.id, 'monthly')}
+                            className="px-2 py-1 text-xs rounded bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-colors border border-blue-500/20"
                           >
-                            + Monthly
+                            + 1M
                           </button>
                           <button 
-                            className="action-btn approve"
-                            onClick={() => handleGrantAccess(u.id, 'yearly')}
-                            style={{ background: 'rgba(168, 85, 247, 0.15)', color: '#c084fc', borderColor: 'rgba(168, 85, 247, 0.3)' }}
+                            onClick={() => handleGrantAccess(item.id, 'yearly')}
+                            className="px-2 py-1 text-xs rounded bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 transition-colors border border-purple-500/20"
                           >
-                            + Yearly
+                            + 1Y
                           </button>
                           <button 
-                            className="action-btn grant"
-                            onClick={() => handleGrantAccess(u.id, 'three_years')}
-                            style={{ background: 'rgba(245, 158, 11, 0.2)', borderColor: 'rgba(245, 158, 11, 0.4)', color: '#fcd34d' }}
+                            onClick={() => handleRevoke(item.id)}
+                            className="px-2 py-1 text-xs rounded bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors border border-red-500/20"
                           >
-                            + 3 Years
-                          </button>
-                          <button 
-                            className="action-btn revoke"
-                            onClick={() => handleRevoke(u.id)}
-                          >
-                            Revoke All
+                            Revoke
                           </button>
                         </div>
                       </td>
                     </tr>
                   );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+                })
+              ) : (
+                <tr>
+                  <td colSpan={5} className="py-12 text-center text-gray-500">
+                    No users found matching your filters.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
