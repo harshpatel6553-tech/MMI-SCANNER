@@ -1,9 +1,7 @@
 import { useState, useMemo } from 'react';
 import type { StockData } from '../../types';
-import { formatPrice, formatPercent } from '../../utils/formatters';
-import { StaggerList } from '../Motion/StaggerList';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, ChevronUp, PieChart } from 'lucide-react';
+import { formatPercent } from '../../utils/formatters';
+import { ChevronDown, PieChart } from 'lucide-react';
 import './SectorBreakdown.css';
 
 interface SectorEntry {
@@ -26,107 +24,49 @@ export function SectorBreakdown({ sectorData }: SectorBreakdownProps) {
       .sort((a, b) => b[1].avgChange - a[1].avgChange);
   }, [sectorData]);
 
-  const handleToggle = (sector: string) => {
-    setExpandedSector(prev => prev === sector ? null : sector);
-  };
-
-  return (
-    <div className="sector-breakdown-container">
-      {sortedSectors.length === 0 && (
+  if (sortedSectors.length === 0) {
+    return (
+      <div className="sector-breakdown-container">
         <div className="sector-empty">
           <div className="sector-empty-icon"><PieChart size={32} /></div>
           <div>Waiting for sector data...</div>
         </div>
-      )}
-      <StaggerList className="sector-grid" staggerDelay={0.05}>
-        {sortedSectors.map(([sector, data]) => {
-          const isExpanded = expandedSector === sector;
-          const topGainer = [...data.stocks].sort((a, b) => b.changePercent - a.changePercent)[0];
-          const topLoser = [...data.stocks].sort((a, b) => a.changePercent - b.changePercent)[0];
-          const unchangedCount = data.totalStocks - data.gainers - data.losers;
-          const gainerPct = data.totalStocks > 0 ? (data.gainers / data.totalStocks) * 100 : 0;
-          const unchangedPct = data.totalStocks > 0 ? (unchangedCount / data.totalStocks) * 100 : 0;
-          const loserPct = data.totalStocks > 0 ? (data.losers / data.totalStocks) * 100 : 0;
+      </div>
+    );
+  }
 
-          return (
-            <motion.div
-              layout
-              key={sector}
-              className={`sector-card glass-card ${isExpanded ? 'expanded' : ''}`}
-            >
-              <div className="sector-card-header" onClick={() => handleToggle(sector)}>
-                <div className="sector-card-title">
-                  <span className="sector-name">{sector}</span>
-                  <span className="pill pill-accent sector-count-pill">{data.totalStocks}</span>
-                </div>
-                <div className={`sector-avg-change ${data.avgChange >= 0 ? 'positive' : 'negative'}`}>
-                  {formatPercent(data.avgChange)}
-                </div>
+  return (
+    <div className="sector-breakdown-container" style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px 24px'}}>
+      {sortedSectors.map(([sector, data]) => {
+        const topGainer = [...data.stocks].sort((a, b) => b.changePercent - a.changePercent)[0];
+        const up = data.avgChange >= 0;
+
+        return (
+          <div key={sector} style={{borderBottom: '1px solid var(--border-soft)', paddingBottom: '16px', display: 'flex', flexDirection: 'column'}}>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+              <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                 <span style={{fontWeight: 700, fontSize: '13px', color: 'var(--text-1)'}}>{sector}</span>
+                 <span style={{fontSize: '9px', color: 'var(--text-3)', fontWeight: 600}}>{data.totalStocks}</span>
               </div>
-
-              <div className="sector-mini-bar">
-                <div className="sector-bar-segment bar-gainers" style={{ width: `${gainerPct}%` }} />
-                <div className="sector-bar-segment bar-unchanged" style={{ width: `${unchangedPct}%` }} />
-                <div className="sector-bar-segment bar-losers" style={{ width: `${loserPct}%` }} />
-              </div>
-
-              <div className="sector-extremes">
-                {topGainer && (
-                  <div className="sector-extreme">
-                    <span className="sector-extreme-label">Top <ChevronUp size={12} className="inline" /></span>
-                    <span className="positive">{topGainer.symbol}</span>
-                    <span className="positive">{formatPercent(topGainer.changePercent)}</span>
-                  </div>
-                )}
-                {topLoser && (
-                  <div className="sector-extreme">
-                    <span className="sector-extreme-label">Top <ChevronDown size={12} className="inline" /></span>
-                    <span className="negative">{topLoser.symbol}</span>
-                    <span className="negative">{formatPercent(topLoser.changePercent)}</span>
-                  </div>
-                )}
-              </div>
-
-              <div className="sector-expand-hint">
-                <span className="sector-expand-icon">
-                  {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                </span>
-              </div>
-
-              <AnimatePresence>
-                {isExpanded && (
-                  <motion.div 
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-                    className="overflow-hidden"
-                  >
-                    <div className="sector-detail-table">
-                      <div className="sector-detail-header">
-                        <span>Symbol</span>
-                        <span>Price</span>
-                        <span>Change %</span>
-                      </div>
-                      {data.stocks
-                        .sort((a, b) => b.changePercent - a.changePercent)
-                        .map(stock => (
-                          <div key={stock.symbol} className="sector-detail-row">
-                            <span className="sector-detail-symbol">{stock.symbol}</span>
-                            <span className="sector-detail-price">{formatPrice(stock.price)}</span>
-                            <span className={`sector-detail-change ${stock.changePercent >= 0 ? 'positive' : 'negative'}`}>
-                              {formatPercent(stock.changePercent)}
-                            </span>
-                          </div>
-                        ))}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
-          );
-        })}
-      </StaggerList>
+              <span style={{fontWeight: 700, fontSize: '14.5px', fontFamily: 'var(--font-mono)', color: 'var(--text-1)'}}>
+                 {up ? '+' : ''}{data.avgChange.toFixed(2)}%
+              </span>
+            </div>
+            
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', fontSize: '9.5px', fontWeight: 600}}>
+               <div style={{display: 'flex', gap: '6px', alignItems: 'center'}}>
+                  <span style={{color: 'var(--text-2)'}}>Top</span>
+                  <span style={{color: topGainer?.changePercent >= 0 ? 'var(--text-2)' : 'var(--text-2)'}}>^</span>
+                  <span style={{color: 'var(--text-1)', marginLeft: '2px'}}>{topGainer?.symbol || '-'}</span>
+                  <span style={{color: 'var(--text-2)', fontFamily: 'var(--font-mono)'}}>
+                     {topGainer ? `${topGainer.changePercent >= 0 ? '+' : ''}${topGainer.changePercent.toFixed(2)}%` : '-'}
+                  </span>
+               </div>
+               <ChevronDown size={14} color="var(--text-3)" style={{cursor: 'pointer'}} onClick={() => setExpandedSector(expandedSector === sector ? null : sector)} />
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
