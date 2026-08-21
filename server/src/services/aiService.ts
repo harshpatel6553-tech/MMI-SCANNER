@@ -66,7 +66,7 @@ class AIService {
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-              model: 'llama3-70b-8192',
+              model: 'llama3-8b-8192',
               messages: [{ role: 'user', content: prompt }],
               temperature: 0.1,
               response_format: { type: 'json_object' }
@@ -75,15 +75,16 @@ class AIService {
 
           if (!groqRes.ok) {
             const errBody = await groqRes.text();
-            throw new Error(`Groq API Error: ${groqRes.status} - ${errBody}`);
+            logger.warn(`Groq API Error: ${groqRes.status} - ${errBody}. Falling back to Gemini if available...`);
+            if (!this.hasValidKey) throw new Error(`Groq failed and no Gemini fallback available.`);
+          } else {
+            const jsonResponse = await groqRes.json();
+            const parsed = JSON.parse(jsonResponse.choices[0].message.content);
+            results = parsed.results;
           }
+        }
 
-          const jsonResponse = await groqRes.json();
-          const parsed = JSON.parse(jsonResponse.choices[0].message.content);
-          results = parsed.results;
-
-        } else {
-          // Use Google Gemini API
+        if (results.length === 0 && this.hasValidKey) {
           const responseSchema: Schema = {
             type: Type.OBJECT,
             properties: {
@@ -123,8 +124,6 @@ class AIService {
           throw new Error('AI did not return a valid results array');
         }
 
-        // Llama 3 (8B) sometimes hallucinates extra items at the end of the array or stops early.
-        // Instead of completely failing the batch, we gracefully align the array length.
         if (results.length > headlines.length) {
           results = results.slice(0, headlines.length);
         } else if (results.length < headlines.length) {
