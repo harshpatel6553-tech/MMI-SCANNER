@@ -9,7 +9,7 @@ export function SectorPulseWidget() {
   const sectors = Array.from(sectorData.entries()).map(([n, d]) => ({
     n,
     v: d.avgChange
-  })).slice(0, 6);
+  })).sort((a, b) => b.v - a.v).slice(0, 6);
 
   return (
     <div className="card">
