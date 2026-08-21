@@ -71,20 +71,41 @@ export function AlertPanel({ alerts, onClearAll }: AlertPanelProps) {
                       const typeClass = alert.alertType === 'DAY_HIGH' ? 'high' : alert.alertType === 'DAY_LOW' ? 'low' : alert.alertType === 'NEWS' ? 'news' : 'spike';
                       const typeLabel = alert.alertType === 'DAY_HIGH' ? 'HIGH' : alert.alertType === 'DAY_LOW' ? 'LOW' : alert.alertType === 'NEWS' ? '📰 NEWS' : '⚡ SPIKE';
 
+                      const isHigh = alert.alertType === 'DAY_HIGH';
+                      const isLow = alert.alertType === 'DAY_LOW';
+                      const isNews = alert.alertType === 'NEWS';
+                      
+                      let rowStyle = '';
+                      let badgeStyle = '';
+                      
+                      if (isHigh) {
+                        rowStyle = 'rounded-md border-l-[8px] border-green-600 bg-green-600/10 text-green-600 dark:border-green-400 dark:bg-green-400/10 dark:text-green-400';
+                        badgeStyle = 'bg-green-500/20 text-green-500 border border-green-500/30';
+                      } else if (isLow) {
+                        rowStyle = 'rounded-none border-0 border-l-[8px] border-red-600 bg-red-600/10 text-red-600 dark:border-red-500 dark:bg-red-500/10 dark:text-red-500';
+                        badgeStyle = 'bg-red-500/20 text-red-500 border border-red-500/30';
+                      } else if (isNews) {
+                        rowStyle = 'rounded-md border-l-[8px] border-blue-600 bg-blue-600/10 text-blue-600 dark:border-blue-400 dark:bg-blue-400/10 dark:text-blue-400';
+                        badgeStyle = 'bg-blue-500/20 text-blue-500 border border-blue-500/30';
+                      } else {
+                        rowStyle = 'rounded-md border-l-[8px] border-purple-600 bg-purple-600/10 text-purple-600 dark:border-purple-400 dark:bg-purple-400/10 dark:text-purple-400';
+                        badgeStyle = 'bg-purple-500/20 text-purple-500 border border-purple-500/30';
+                      }
+
                       return (
-                        <div key={alert.id} className="alert-item">
-                          <span className={`alert-item-type ${typeClass}`}>
+                        <div key={alert.id} className={`flex items-center gap-3 py-2.5 px-3 mb-2 shadow-sm backdrop-blur-sm transition-all hover:brightness-110 ${rowStyle}`}>
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded leading-none ${badgeStyle}`}>
                             {typeLabel}
                           </span>
-                          <span className="alert-item-symbol">{alert.symbol}</span>
+                          <span className="font-bold text-sm tracking-wide text-white flex-shrink-0">{alert.symbol}</span>
                           {alert.alertType === 'NEWS' ? (
-                            <span className="alert-item-price" style={{flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontSize: '12px'}} title={alert.name}>
+                            <span className="flex-1 text-xs opacity-90 truncate" title={alert.name}>
                               {alert.name}
                             </span>
                           ) : (
-                            <span className="alert-item-price">{formatPrice(alert.price)}</span>
+                            <span className="flex-1 text-sm font-semibold tabular-nums text-right">{formatPrice(alert.price)}</span>
                           )}
-                          <span className="alert-item-time">{formatTime(alert.createdAt)}</span>
+                          <span className="text-[10px] font-medium opacity-60 flex-shrink-0">{formatTime(alert.createdAt)}</span>
                         </div>
                       );
                     })}
