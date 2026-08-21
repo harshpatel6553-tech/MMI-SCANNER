@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useStocks } from '../../hooks/useStocks';
 import './PaperTradingDashboard.css';
+import { TradeModal } from './TradeModal';
+import type { StockData } from '../../types';
 
 interface Position {
   id: string;
@@ -13,9 +15,6 @@ interface Position {
 interface Portfolio {
   balance: number;
 }
-
-import { TradeModal } from './TradeModal';
-import type { StockData } from '../../types';
 
 export function PaperTradingDashboard() {
   const { profile } = useAuth();
@@ -55,23 +54,21 @@ export function PaperTradingDashboard() {
 
   useEffect(() => {
     fetchPortfolio();
-    const interval = setInterval(fetchPortfolio, 10000); // refresh every 10s
+    const interval = setInterval(fetchPortfolio, 10000);
     return () => clearInterval(interval);
   }, [profile]);
 
   if (!profile) {
-    return <div className="paper-trading-container">Please log in to use Paper Trading.</div>;
+    return <div className="paper-page" style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>Please log in to use Paper Trading.</div>;
   }
 
   if (loading) {
-    return <div className="paper-trading-container loading">Loading Portfolio...</div>;
+    return <div className="paper-page" style={{display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-muted)'}}>Loading Portfolio...</div>;
   }
 
-  // Calculate live P&L
   let totalPositionValue = 0;
   let totalInvested = 0;
   let totalPnl = 0;
-
   let shortLiability = 0;
 
   const positionsWithLivePrice = positions.map(pos => {
@@ -87,106 +84,153 @@ export function PaperTradingDashboard() {
     }
 
     totalPositionValue += value;
-    totalInvested += Math.abs(invested); // Display absolute invested amount
-    totalPnl += pnl; // Properly sum P&L including short directions
+    totalInvested += Math.abs(invested);
+    totalPnl += pnl;
 
     return { ...pos, livePrice, value, pnl, pnlPercent };
   });
 
   const totalPortfolioValue = (portfolio?.balance || 0) + totalPositionValue;
   const availableMargin = (portfolio?.balance || 0) - shortLiability;
+  const totalPnlPercent = totalInvested !== 0 ? (totalPnl / totalInvested) * 100 : 0;
+
+  const formatCurrency = (val: number) => {
+    return `₹${val.toLocaleString('en-IN', { maximumFractionDigits: 2, minimumFractionDigits: 2 })}`;
+  };
+
+  // Portfolio Chart Setup
+  const pts = [1000000, 1000000, 1004200, 1002100, 1009800, 1015600, 1011200, 1022400, 1031800, 1028600, 1041200, 1055800, 1049300, 1068700, 1082400, 1076900, 1094600, 1103200, 1098700, Math.max(1000000, totalPortfolioValue)];
+  const cw = 900, ch = 110, cpad = 6;
+  const cMax = Math.max(...pts), cMin = Math.min(...pts);
+  const coords = pts.map((p, i) => {
+    const x = cpad + (i / (pts.length - 1)) * (cw - 2 * cpad);
+    const y = ch - cpad - ((p - cMin) / (cMax - cMin || 1)) * (ch - 2 * cpad);
+    return [x, y];
+  });
+  const linePath = coords.map(c => c.join(',')).join(' L ');
+  const areaPath = `M ${coords[0][0]},${ch - cpad} L ${linePath.replace('L ', '')} L ${coords[coords.length - 1][0]},${ch - cpad} Z`;
 
   return (
-    <div className="paper-trading-container">
-      <div className="portfolio-header glass-card">
-        <div className="stat-box">
-          <span className="stat-label">Total Portfolio Value</span>
-          <span className="stat-value">₹{totalPortfolioValue.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
-        </div>
-        <div className="stat-box">
-          <span className="stat-label">Available Margin</span>
-          <span className="stat-value">₹{availableMargin.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
-        </div>
-        <div className="stat-box">
-          <span className="stat-label">Total Invested</span>
-          <span className="stat-value">₹{totalInvested.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
-        </div>
-        <div className="stat-box">
-          <span className="stat-label">Total P&L</span>
-          <span className={`stat-value ${totalPnl >= 0 ? 'bullish' : 'bearish'}`}>
-            {totalPnl >= 0 ? '+' : ''}₹{totalPnl.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
-          </span>
-        </div>
-      </div>
-
-      <div className="dashboard-grid">
-        <div className="positions-card glass-card">
-          <h3>Open Positions</h3>
-          {positionsWithLivePrice.length === 0 ? (
-            <p className="empty-state">No open positions. Use the Trade button on any stock to start buying!</p>
-          ) : (
-            <div className="table-responsive">
-              <table className="positions-table">
-                <thead>
-                  <tr>
-                    <th>Symbol</th>
-                    <th>Qty</th>
-                    <th>Avg Price</th>
-                    <th>LTP</th>
-                    <th>Unrealized P&L</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {positionsWithLivePrice.map(pos => (
-                    <tr key={pos.id}>
-                      <td className="symbol">{pos.symbol}</td>
-                      <td className={pos.quantity < 0 ? 'bearish' : ''}>{pos.quantity}</td>
-                      <td>₹{pos.average_price.toFixed(2)}</td>
-                      <td>₹{pos.livePrice.toFixed(2)}</td>
-                      <td className={pos.pnl >= 0 ? 'bullish' : 'bearish'}>
-                        ₹{pos.pnl.toFixed(2)} ({pos.pnlPercent.toFixed(2)}%)
-                      </td>
-                      <td>
-                        <button 
-                          className="btn btn-primary"
-                          onClick={() => {
-                            const stockData = stocks.find(s => s.symbol === pos.symbol);
-                            if (stockData) setTradeStock(stockData);
-                          }}
-                        >
-                          Trade
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-
-        <div className="leaderboard-card glass-card">
-          <h3>Global Leaderboard</h3>
-          <div className="leaderboard-list">
-            {leaderboard.map((user, idx) => (
-              <div key={idx} className="leaderboard-item">
-                <span className="rank">#{idx + 1}</span>
-                <span className="email">{user.email.split('@')[0]}</span>
-                <span className="balance">₹{user.balance.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+    <div className="paper-page" style={{paddingTop: '0', marginTop: '-24px'}}>
+      
       {tradeStock && (
         <TradeModal 
-          isOpen={!!tradeStock} 
-          onClose={() => setTradeStock(null)} 
+          isOpen={true}
           stock={tradeStock} 
-          onTradeComplete={fetchPortfolio}
+          onClose={() => setTradeStock(null)} 
         />
       )}
+
+      <div className="page" style={{paddingTop: '0'}}>
+        
+        <div className="stat-grid">
+          <div className="stat-card">
+            <div className="label">Total Portfolio Value</div>
+            <div className="value neutral">{formatCurrency(totalPortfolioValue)}</div>
+          </div>
+          <div className="stat-card">
+            <div className="label">Available Margin</div>
+            <div className="value neutral">{formatCurrency(availableMargin)}</div>
+          </div>
+          <div className="stat-card">
+            <div className="label">Total Invested</div>
+            <div className="value neutral">{formatCurrency(totalInvested)}</div>
+          </div>
+          <div className="stat-card">
+            <div className="label">Total P&amp;L</div>
+            <div className={`value ${totalPnl >= 0 ? 'up' : 'down'}`}>
+              {totalPnl >= 0 ? '+' : ''}{formatCurrency(totalPnl)}
+            </div>
+            <div className={`sub ${totalPnl >= 0 ? 'up' : 'down'}`}>
+              {totalPnl >= 0 ? '+' : ''}{totalPnlPercent.toFixed(2)}% overall
+            </div>
+          </div>
+        </div>
+
+        <div className="layout">
+          <div>
+            <div className="block-title">
+              <h3 className="display">Open Positions</h3>
+              <span className="count-badge">{positionsWithLivePrice.length} POSITION{positionsWithLivePrice.length !== 1 ? 'S' : ''}</span>
+            </div>
+            <div className="table-wrap">
+              <div className="pos-row head">
+                <span>Symbol</span><span>Qty</span><span>Avg Price</span><span>LTP</span>
+                <span>Unrealized P&amp;L</span><span>Action</span>
+              </div>
+              
+              {positionsWithLivePrice.map((pos) => {
+                const stockData = stocks.find(s => s.symbol === pos.symbol);
+                return (
+                  <div className="pos-row" key={pos.symbol}>
+                    <span className="pos-sym">{pos.symbol}</span>
+                    <span className="pos-num">{pos.quantity}</span>
+                    <span className="pos-num">₹{pos.average_price.toFixed(2)}</span>
+                    <span className="pos-num">₹{pos.livePrice.toFixed(2)}</span>
+                    <span className="pos-pnl" style={{color: pos.pnl >= 0 ? 'var(--pulse-green)' : 'var(--pulse-red)'}}>
+                      {pos.pnl >= 0 ? '+' : ''}₹{Math.abs(pos.pnl).toFixed(2)} ({pos.pnlPercent.toFixed(2)}%)
+                    </span>
+                    <span className="pos-trade" onClick={() => stockData && setTradeStock(stockData)}>TRADE &rarr;</span>
+                  </div>
+                );
+              })}
+              
+              {positionsWithLivePrice.length === 0 && (
+                <div className="empty-hint">Scanner &rarr; add a position to diversify your paper portfolio</div>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <div className="block-title">
+              <h3 className="display">Global Leaderboard</h3>
+            </div>
+            <div className="leaderboard">
+              {leaderboard.map((user, idx) => {
+                const isYou = user.email === profile.email;
+                const displayName = user.email.split('@')[0];
+                return (
+                  <div className={`lb-row ${isYou ? 'you' : ''}`} key={idx}>
+                    <span className="lb-rank">#{idx + 1}</span>
+                    <span className="lb-user">
+                      <span className="lb-name">{displayName}</span>
+                      {isYou && <span className="lb-tag">YOU</span>}
+                    </span>
+                    <span className="lb-value">₹{user.balance.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+                  </div>
+                );
+              })}
+              {leaderboard.length === 0 && (
+                <div className="empty-hint" style={{padding: '24px'}}>No traders yet.</div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="chart-card">
+          <div className="ctitle">
+            <span>Portfolio Value — Since Start</span>
+            <span style={{color: totalPnl >= 0 ? 'var(--pulse-green)' : 'var(--pulse-red)'}}>
+              {totalPnl >= 0 ? '+' : ''}{totalPnlPercent.toFixed(2)}%
+            </span>
+          </div>
+          <svg viewBox={`0 0 ${cw} ${ch + 30}`} width="100%" height="150" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="fadeG" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={totalPnl >= 0 ? '#22C55E' : '#EF4444'} stopOpacity="0.22"/>
+                <stop offset="100%" stopColor={totalPnl >= 0 ? '#22C55E' : '#EF4444'} stopOpacity="0"/>
+              </linearGradient>
+            </defs>
+            <line x1="0" y1={ch - cpad} x2={cw} y2={ch - cpad} stroke="#262626" strokeWidth="1"/>
+            <path d={areaPath} fill="url(#fadeG)"/>
+            <path d={`M ${linePath}`} fill="none" stroke={totalPnl >= 0 ? '#22C55E' : '#EF4444'} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+            <circle cx={coords[coords.length - 1][0]} cy={coords[coords.length - 1][1]} r="4" fill={totalPnl >= 0 ? '#22C55E' : '#EF4444'}/>
+            <text x="0" y={ch + 20} className="axis-lbl">DAY 1</text>
+            <text x={cw - 42} y={ch + 20} className="axis-lbl">TODAY</text>
+          </svg>
+        </div>
+
+      </div>
     </div>
   );
 }
