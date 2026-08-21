@@ -1,116 +1,118 @@
-/**
- * @module technicalService
- * @description Service to calculate technical indicators (like MACD) for stocks.
- * Uses yahoo-finance2 to fetch historical weekly data and technicalindicators library
- * to calculate MACD signals.
- */
-
-import { MACD } from 'technicalindicators';
+import { MACD, RSI, EMA } from 'technicalindicators';
 import logger from '../utils/logger.js';
 import { NIFTY_500_STOCKS } from '../data/nifty500.js';
 
+interface TechData {
+  macdWeeklyBuy: boolean;
+  rsiDaily: number;
+  emaCrossDaily: boolean;
+}
 
 class TechnicalService {
-  /** Cache of MACD Weekly Buy signals keyed by NSE symbol */
-  private macdCache: Map<string, boolean> = new Map();
+  private cache: Map<string, TechData> = new Map();
 
-  /**
-   * Fetches weekly historical data and calculates MACD (12, 26, 9)
-   */
-  async calculateWeeklyMACD(symbol: string): Promise<boolean> {
+  async calculateTechnicals(symbol: string): Promise<TechData | null> {
     try {
       const yahooSymbol = `${symbol}.NS`;
       
-      const url = `https://query1.finance.yahoo.com/v7/finance/spark?symbols=${encodeURIComponent(yahooSymbol)}&range=1y&interval=1wk`;
-      const response = await fetch(url, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          Accept: 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        return false;
-      }
-
-      const data = await response.json() as any;
-      const result = data?.spark?.result?.[0]?.response?.[0];
-      const quote = result?.indicators?.quote?.[0];
-
-      if (!quote || !quote.close || quote.close.length < 35) {
-        return false; // Not enough data points
-      }
-
-      // Filter out null values
-      const closePrices = quote.close.filter((p: any): p is number => p !== null);
-
-      if (closePrices.length < 35) return false;
-
-      const macdInput = {
-        values: closePrices,
-        fastPeriod: 12,
-        slowPeriod: 26,
-        signalPeriod: 9,
-        SimpleMAOscillator: false,
-        SimpleMASignal: false
-      };
-
-      const macdResult = MACD.calculate(macdInput);
-      if (!macdResult || macdResult.length < 2) return false;
-
-      const latest = macdResult[macdResult.length - 1];
-      const previous = macdResult[macdResult.length - 2];
-      const previous2 = macdResult[macdResult.length - 3];
-
-      if (latest && previous && previous2 && 
-          latest.MACD !== undefined && latest.signal !== undefined && 
-          previous.MACD !== undefined && previous.signal !== undefined &&
-          previous2.MACD !== undefined && previous2.signal !== undefined) {
-        
-        // Crossover this week (MACD line crosses above Signal line)
-        const crossoverThisWeek = previous.MACD <= previous.signal && latest.MACD > latest.signal;
-        
-        // Crossover last week (and still holding the buy trend this week)
-        const crossoverLastWeek = previous2.MACD <= previous2.signal && previous.MACD > previous.signal && latest.MACD > latest.signal;
-
-        return crossoverThisWeek || crossoverLastWeek;
-      }
+      // We need BOTH weekly and daily data. 
+      // Let's do two fetch calls in parallel.
+      const weeklyUrl = `https://query1.finance.yahoo.com/v7/finance/spark?symbols=${encodeURIComponent(yahooSymbol)}&range=1y&interval=1wk`;
+      const dailyUrl = `https://query1.finance.yahoo.com/v7/finance/spark?symbols=${encodeURIComponent(yahooSymbol)}&range=6mo&interval=1d`;
       
-      return false;
+      const [weeklyRes, dailyRes] = await Promise.all([
+        fetch(weeklyUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } }),
+        fetch(dailyUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } })
+      ]);
+
+      if (!weeklyRes.ok || !dailyRes.ok) return null;
+
+      const weeklyData = await weeklyRes.json() as any;
+      const dailyData = await dailyRes.json() as any;
+
+      const wQuote = weeklyData?.spark?.result?.[0]?.response?.[0]?.indicators?.quote?.[0];
+      const dQuote = dailyData?.spark?.result?.[0]?.response?.[0]?.indicators?.quote?.[0];
+
+      if (!wQuote?.close || !dQuote?.close) return null;
+
+      const wClose = wQuote.close.filter((p: any) => p !== null) as number[];
+      const dClose = dQuote.close.filter((p: any) => p !== null) as number[];
+
+      let macdBuy = false;
+      let rsi = 50;
+      let emaCross = false;
+
+      // --- MACD Weekly (12,26,9) ---
+      if (wClose.length >= 35) {
+        const macdResult = MACD.calculate({ values: wClose, fastPeriod: 12, slowPeriod: 26, signalPeriod: 9, SimpleMAOscillator: false, SimpleMASignal: false });
+        if (macdResult.length >= 3) {
+          const latest = macdResult[macdResult.length - 1];
+          const prev = macdResult[macdResult.length - 2];
+          const prev2 = macdResult[macdResult.length - 3];
+          if (latest.MACD !== undefined && latest.signal !== undefined && 
+              prev.MACD !== undefined && prev.signal !== undefined && 
+              prev2.MACD !== undefined && prev2.signal !== undefined) {
+             const crossThisWeek = prev.MACD <= prev.signal && latest.MACD > latest.signal;
+             const crossLastWeek = prev2.MACD <= prev2.signal && prev.MACD > prev.signal && latest.MACD > latest.signal;
+             macdBuy = crossThisWeek || crossLastWeek;
+          }
+        }
+      }
+
+      // --- RSI Daily (14) ---
+      if (dClose.length >= 15) {
+        const rsiResult = RSI.calculate({ values: dClose, period: 14 });
+        if (rsiResult.length > 0) {
+          rsi = rsiResult[rsiResult.length - 1]!;
+        }
+      }
+
+      // --- EMA Cross Daily (13, 34) ---
+      if (dClose.length >= 35) {
+        const ema13 = EMA.calculate({ values: dClose, period: 13 });
+        const ema34 = EMA.calculate({ values: dClose, period: 34 });
+        
+        if (ema13.length >= 2 && ema34.length >= 2) {
+          const e13_latest = ema13[ema13.length - 1]!;
+          const e13_prev = ema13[ema13.length - 2]!;
+          
+          const e34_latest = ema34[ema34.length - 1]!;
+          const e34_prev = ema34[ema34.length - 2]!;
+          
+          // Bullish cross: previously 13 <= 34, now 13 > 34
+          emaCross = (e13_prev <= e34_prev) && (e13_latest > e34_latest);
+        }
+      }
+
+      return { macdWeeklyBuy: macdBuy, rsiDaily: rsi, emaCrossDaily: emaCross };
     } catch (err) {
-      logger.error(`Failed to calculate MACD for ${symbol}: ${err}`);
-      return false;
+      logger.error(`Failed to calculate technicals for ${symbol}: ${err}`);
+      return null;
     }
   }
 
-  /**
-   * Background task to calculate MACD for all stocks
-   */
-  async updateAllStocksMACD() {
-    logger.info('Starting weekly MACD background calculation for all stocks...');
+  async updateAllStocksTechnicals() {
+    logger.info('Starting daily/weekly technicals background calculation for all stocks...');
     
-    // We only process in small batches to respect Yahoo Finance rate limits
     const batchSize = 5;
     for (let i = 0; i < NIFTY_500_STOCKS.length; i += batchSize) {
       const batch = NIFTY_500_STOCKS.slice(i, i + batchSize);
       await Promise.all(
         batch.map(async (stock) => {
-          const isBuy = await this.calculateWeeklyMACD(stock.symbol);
-          this.macdCache.set(stock.symbol, isBuy);
+          const tech = await this.calculateTechnicals(stock.symbol);
+          if (tech) {
+            this.cache.set(stock.symbol, tech);
+          }
         })
       );
-      // Wait 1 second between batches to avoid rate limits
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 1200));
     }
     
-    logger.info('Finished calculating weekly MACD for all stocks.');
+    logger.info('Finished calculating technicals for all stocks.');
   }
 
-  /**
-   * Get the cached MACD signal for a stock
-   */
-  getSignal(symbol: string): boolean {
-    return this.macdCache.get(symbol) ?? false;
+  getTechnicals(symbol: string): TechData | null {
+    return this.cache.get(symbol) || null;
   }
 }
 

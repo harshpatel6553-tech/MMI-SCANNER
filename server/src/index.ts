@@ -445,7 +445,7 @@ async function loadInitialStocksFromSupabase(): Promise<void> {
           fiftyTwoWeekLow: row.fifty_two_week_low,
           marketCap: row.market_cap,
           lastUpdated: row.updated_at || new Date().toISOString(),
-          macdWeeklyBuy: technicalService.getSignal(row.symbol)
+          ...(technicalService.getTechnicals(row.symbol) || { macdWeeklyBuy: false, rsiDaily: 50, emaCrossDaily: false })
         };
         stockService.preloadStock(stockData);
       }
@@ -491,8 +491,8 @@ async function startServer(): Promise<void> {
     
     // Start Weekly MACD Calculation Loop (Runs every hour)
     logger.info('🔄 Starting Technical MACD background calculation...');
-    technicalService.updateAllStocksMACD();
-    setInterval(() => technicalService.updateAllStocksMACD(), 60 * 60 * 1000);
+    technicalService.updateAllStocksTechnicals();
+    setInterval(() => technicalService.updateAllStocksTechnicals(), 60 * 60 * 1000);
 
     // Initial fetch — run immediately
     logger.info('🔄 Starting initial Nifty 50 data fetch...');

@@ -21,6 +21,8 @@ export interface StockData {
   fiftyTwoWeekLow: number;
   marketCap: number;
   macdWeeklyBuy?: boolean;
+  rsiDaily?: number;
+  emaCrossDaily?: boolean;
 }
 
 export interface StockAlert {

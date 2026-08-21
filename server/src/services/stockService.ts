@@ -152,7 +152,7 @@ class StockService {
             fiftyTwoWeekHigh: meta.fiftyTwoWeekHigh ?? 0,
             fiftyTwoWeekLow: meta.fiftyTwoWeekLow ?? 0,
             marketCap: meta.marketCap ?? 0,
-            macdWeeklyBuy: technicalService.getSignal(cleanSymbol),
+            ...(technicalService.getTechnicals(cleanSymbol) || { macdWeeklyBuy: false, rsiDaily: 50, emaCrossDaily: false }),
           };
 
           results.push(stockData);

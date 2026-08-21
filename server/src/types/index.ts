@@ -58,6 +58,10 @@ export interface StockData {
   marketCap: number;
   /** Weekly MACD Buy signal */
   macdWeeklyBuy?: boolean;
+  /** Daily RSI (14) Value */
+  rsiDaily?: number;
+  /** Daily EMA (13, 34) Bullish Crossover */
+  emaCrossDaily?: boolean;
 }
 
 /** Alert generated when a stock hits its intraday high or low */

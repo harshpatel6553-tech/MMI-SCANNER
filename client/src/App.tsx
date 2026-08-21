@@ -13,6 +13,7 @@ import { WatchlistWidget } from './components/Widgets/WatchlistWidget';
 import { MarketTableWidget } from './components/Widgets/MarketTableWidget';
 import { Heatmap } from './components/Heatmap/Heatmap';
 import { SectorBreakdown } from './components/SectorBreakdown/SectorBreakdown';
+import { TechnicalScanner } from './components/TechnicalScanner/TechnicalScanner';
 import { LiveNewsFeed } from './components/LiveNewsFeed/LiveNewsFeed';
 import { EarningsResults } from './components/EarningsResults/EarningsResults';
 import { PromoterWatch } from './components/PromoterWatch/PromoterWatch';
@@ -72,7 +73,7 @@ function AppContent() {
           {activeTab === 'Table' && <MarketTableWidget fullView={true} />}
           {activeTab === 'Heatmap' && <Heatmap stocks={stocks} />}
           {activeTab === 'Sectors' && <SectorBreakdown sectorData={sectorData} />}
-          {activeTab === 'Technical' && <div className="card" style={{padding: 24}}>Technical Scanner under construction.</div>}
+          {activeTab === 'Technical' && <TechnicalScanner />}
           {activeTab === 'Watchlist' && <div className="card" style={{padding: 24}}>Full Watchlist view under construction. Use Overview widget.</div>}
           {activeTab === 'LiveNews' && <LiveNewsFeed />}
           {activeTab === 'Results' && <EarningsResults />}
