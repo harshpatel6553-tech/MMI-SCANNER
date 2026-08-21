@@ -37,6 +37,9 @@ function AppContent() {
   const { allStocks, stats, sectorData, stocks } = useStocks({ 
     index: 'ALL', priceMin: 0, priceMax: 0, volumeMin: 0, search: searchQuery 
   }, 'volume', 'desc');
+
+  const advancers = allStocks.filter(s => s.change >= 0).length;
+  const decliners = allStocks.length - advancers;
   
   return (
     <div className="app">
@@ -50,7 +53,9 @@ function AppContent() {
             <div className="page-title">
               {activeTab === 'Overview' ? "Today's tape is running green." : activeTab}
             </div>
-            <div className="page-sub">377 advancers vs 123 decliners across 503 tracked stocks — here's what's moving.</div>
+            <div className="page-sub">
+               <b style={{color: 'var(--up)', fontWeight: 600}}>{advancers}▲</b> advancers vs <b style={{color: 'var(--down)', fontWeight: 600}}>{decliners}▼</b> decliners across {allStocks.length} tracked stocks — here's what's moving.
+            </div>
           </div>
 
           {activeTab === 'Overview' && (

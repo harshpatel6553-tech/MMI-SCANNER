@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Search, Lock } from 'lucide-react';
 import { useStocks } from '../../hooks/useStocks';
 import './PromoterWatch.css';
@@ -77,16 +77,8 @@ export const PromoterWatch: React.FC = () => {
   const barWidth = (bw - 2*bpad) / barVals.length;
 
   return (
-    <div className="promoter-page">
-      <header>
-        <div className="eyebrow">PROMOTER · THU, 20 AUG 2026</div>
-        <h1 className="display">Promoter</h1>
-        <div className="subline mono">
-          <b className="up">{advancers}▲</b> advancers vs <b className="down">{decliners}▼</b> decliners across {allStocks.length} tracked stocks — here's what's moving.
-        </div>
-      </header>
-
-      <div className="page">
+    <div className="promoter-page" style={{paddingTop: '0', marginTop: '-24px'}}>
+      <div className="page" style={{paddingTop: '0'}}>
 
         <div className="page-title-row">
           <div>
