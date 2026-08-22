@@ -1,65 +1,39 @@
-# ============================================
-# BUILD STAGE
-# ============================================
-FROM node:22-bookworm-slim AS builder
+﻿FROM node:20-slim
 
-# Install build tools in case native modules need them
-RUN apt-get update && \
-    apt-get install -y python3 make g++ && \
-    rm -rf /var/lib/apt/lists/*
+# Install latest chrome dev package and fonts to support major charsets
+RUN apt-get update \
+    && apt-get install -y wget gnupg python3 python3-pip python3-pandas \
+    && wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
+    && sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list' \
+    && apt-get update \
+    && apt-get install -y google-chrome-stable fonts-ipafont-gothic fonts-wqy-zenhei fonts-thai-tlwg fonts-kacst fonts-freefont-ttf libxss1 \
+      --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
 
-# Set working directory for the server
-WORKDIR /app/server
+WORKDIR /usr/src/app
 
-# Copy package configuration files
+# Copy package files from the server directory
 COPY server/package*.json ./
 
-# Prevent Puppeteer from downloading Chromium during build (saves memory and avoids network timeouts)
+# Prevent Puppeteer from downloading Chromium during build
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV PUPPETEER_SKIP_DOWNLOAD=true
 
-# Install all dependencies (including TypeScript devDependencies)
-RUN npm install
+# Install dependencies
+RUN npm ci
 
-# Copy the server source code
+# Copy server source code
 COPY server/ ./
 
-# Build the TypeScript code to JavaScript (output will be in server/dist)
+# Build the TypeScript project
 RUN npm run build
 
-# ============================================
-# RUN STAGE
-# ============================================
-FROM node:22-bookworm-slim AS runner
+# Expose port
+EXPOSE 5000
 
-# Install Python 3, pip, and pandas (needed for NSE bulk deal scraper)
-RUN apt-get update && \
-    apt-get install -y python3 python3-pip python3-pandas --no-install-recommends && \
-    rm -rf /var/lib/apt/lists/*
+# Set environment variables for Puppeteer to use the installed Chrome
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable
+ENV PORT=5000
 
-# Set working directory
-WORKDIR /app/server
-
-# Copy package files
-COPY server/package*.json ./
-
-# Prevent Puppeteer from downloading Chromium during production install
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-ENV PUPPETEER_SKIP_DOWNLOAD=true
-
-# Install only production dependencies (saves memory and disk space)
-RUN npm install --omit=dev
-
-# Copy compiled JavaScript files from the builder stage
-COPY --from=builder /app/server/dist ./dist
-
-
-# Set environment
-ENV NODE_ENV=production
-
-# Render automatically exposes PORT, but we default to 10000
-ENV PORT=10000
-EXPOSE 10000
-
-# Start the server
-CMD ["node", "dist/index.js"]
+# Start the application
+CMD [ "npm", "start" ]
