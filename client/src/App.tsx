@@ -164,22 +164,88 @@ function Maintenance() {
       flexDirection: 'column',
       justifyContent: 'center',
       alignItems: 'center',
-      background: '#0b0b0d', // fallback if var(--bg-app) is missing
-      backgroundColor: 'var(--bg-app)',
-      color: 'var(--text-1)',
-      fontFamily: 'Outfit, sans-serif',
+      background: '#070907', 
+      color: '#ffffff',
+      fontFamily: 'Space Grotesk, Outfit, sans-serif',
       padding: '20px',
       textAlign: 'center',
-      boxSizing: 'border-box'
+      boxSizing: 'border-box',
+      position: 'relative',
+      overflow: 'hidden'
     }}>
-      <div style={{ maxWidth: '600px', border: '1px solid var(--border)', padding: '48px', borderRadius: '12px', background: 'var(--bg-surface)' }}>
-        <h1 style={{ fontSize: '24px', marginBottom: '16px', letterSpacing: '-0.5px', color: 'var(--text-1)' }}>SYSTEM UNDER MAINTENANCE</h1>
-        <p style={{ fontSize: '15px', color: 'var(--text-2)', lineHeight: '1.6', marginBottom: '32px' }}>
-          We are currently upgrading our backend infrastructure to provide a more stable and powerful real-time scanning experience. The application will be temporarily unavailable.
+      {/* Watermelon Neon Glow Effects */}
+      <div style={{ position: 'absolute', top: '-10%', left: '-10%', width: '40vw', height: '40vw', background: 'radial-gradient(circle, rgba(255, 71, 126, 0.15) 0%, transparent 70%)', filter: 'blur(60px)', zIndex: 0 }}></div>
+      <div style={{ position: 'absolute', bottom: '-10%', right: '-10%', width: '40vw', height: '40vw', background: 'radial-gradient(circle, rgba(6, 214, 160, 0.1) 0%, transparent 70%)', filter: 'blur(60px)', zIndex: 0 }}></div>
+
+      <div style={{ 
+        position: 'relative',
+        zIndex: 1,
+        maxWidth: '700px', 
+        border: '1px solid rgba(255, 71, 126, 0.3)', 
+        padding: '56px', 
+        borderRadius: '24px', 
+        background: 'rgba(15, 18, 15, 0.7)',
+        backdropFilter: 'blur(20px)',
+        boxShadow: '0 24px 48px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)'
+      }}>
+        <div style={{ 
+          display: 'inline-block', 
+          padding: '6px 16px', 
+          background: 'rgba(255, 71, 126, 0.1)', 
+          border: '1px solid rgba(255, 71, 126, 0.5)',
+          borderRadius: '100px',
+          color: '#ff477e',
+          fontSize: '13px',
+          fontWeight: 700,
+          letterSpacing: '1px',
+          marginBottom: '24px',
+          textTransform: 'uppercase'
+        }}>
+          ● Offline for Upgrades
+        </div>
+        
+        <h1 style={{ 
+          fontSize: '42px', 
+          fontWeight: 800, 
+          marginBottom: '20px', 
+          letterSpacing: '-1.5px', 
+          lineHeight: '1.1',
+          background: 'linear-gradient(135deg, #ffffff 0%, #a0a5a0 100%)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent'
+        }}>
+          MARKET MINDS IS <br/>EVOLVING
+        </h1>
+        
+        <p style={{ 
+          fontSize: '18px', 
+          color: '#8a958a', 
+          lineHeight: '1.6', 
+          marginBottom: '40px',
+          maxWidth: '500px',
+          margin: '0 auto 40px auto'
+        }}>
+          We are currently deploying massive upgrades to our real-time scanning infrastructure. The tape will resume shortly.
         </p>
-        <div style={{ padding: '16px', background: 'var(--bg-surface-2)', border: '1px dashed var(--border)', borderRadius: '6px', fontSize: '14px', color: 'var(--text-2)' }}>
-          For further queries, please contact <br/>
-          <b style={{ color: 'var(--text-1)', fontSize: '16px', display: 'inline-block', marginTop: '8px' }}>MARKET MINDS OWNERS</b>
+        
+        <div style={{ 
+          padding: '24px', 
+          background: 'rgba(6, 214, 160, 0.05)', 
+          border: '1px solid rgba(6, 214, 160, 0.2)', 
+          borderRadius: '12px', 
+          fontSize: '15px', 
+          color: '#a0a5a0' 
+        }}>
+          For priority support or further queries, please contact <br/>
+          <b style={{ 
+            color: '#06d6a0', 
+            fontSize: '18px', 
+            display: 'inline-block', 
+            marginTop: '12px',
+            letterSpacing: '0.5px'
+          }}>
+            MARKET MINDS OWNERS
+          </b>
         </div>
       </div>
     </div>
