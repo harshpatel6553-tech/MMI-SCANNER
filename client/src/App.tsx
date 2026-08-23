@@ -155,23 +155,37 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-export default function App() {
+function Maintenance() {
   return (
-    <SocketProvider>
-      <AuthProvider>
-        <DashboardProvider>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/paywall" element={<Paywall />} />
-            <Route path="/" element={
-              <ProtectedRoute>
-                <AppContent />
-              </ProtectedRoute>
-            } />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </DashboardProvider>
-      </AuthProvider>
-    </SocketProvider>
+    <div style={{
+      height: '100vh',
+      width: '100vw',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
+      alignItems: 'center',
+      background: '#0b0b0d', // fallback if var(--bg-app) is missing
+      backgroundColor: 'var(--bg-app)',
+      color: 'var(--text-1)',
+      fontFamily: 'Outfit, sans-serif',
+      padding: '20px',
+      textAlign: 'center',
+      boxSizing: 'border-box'
+    }}>
+      <div style={{ maxWidth: '600px', border: '1px solid var(--border)', padding: '48px', borderRadius: '12px', background: 'var(--bg-surface)' }}>
+        <h1 style={{ fontSize: '24px', marginBottom: '16px', letterSpacing: '-0.5px', color: 'var(--text-1)' }}>SYSTEM UNDER MAINTENANCE</h1>
+        <p style={{ fontSize: '15px', color: 'var(--text-2)', lineHeight: '1.6', marginBottom: '32px' }}>
+          We are currently upgrading our backend infrastructure to provide a more stable and powerful real-time scanning experience. The application will be temporarily unavailable.
+        </p>
+        <div style={{ padding: '16px', background: 'var(--bg-surface-2)', border: '1px dashed var(--border)', borderRadius: '6px', fontSize: '14px', color: 'var(--text-2)' }}>
+          For further queries, please contact <br/>
+          <b style={{ color: 'var(--text-1)', fontSize: '16px', display: 'inline-block', marginTop: '8px' }}>MARKET MINDS OWNERS</b>
+        </div>
+      </div>
+    </div>
   );
+}
+
+export default function App() {
+  return <Maintenance />;
 }
