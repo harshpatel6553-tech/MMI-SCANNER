@@ -164,7 +164,7 @@ function Maintenance() {
       flexDirection: 'column',
       justifyContent: 'center',
       alignItems: 'center',
-      background: '#070907', 
+      background: '#040504', 
       color: '#ffffff',
       fontFamily: 'Space Grotesk, Outfit, sans-serif',
       padding: '20px',
@@ -174,8 +174,48 @@ function Maintenance() {
       overflow: 'hidden'
     }}>
       {/* Watermelon Neon Glow Effects */}
-      <div style={{ position: 'absolute', top: '-10%', left: '-10%', width: '40vw', height: '40vw', background: 'radial-gradient(circle, rgba(255, 71, 126, 0.15) 0%, transparent 70%)', filter: 'blur(60px)', zIndex: 0 }}></div>
-      <div style={{ position: 'absolute', bottom: '-10%', right: '-10%', width: '40vw', height: '40vw', background: 'radial-gradient(circle, rgba(6, 214, 160, 0.1) 0%, transparent 70%)', filter: 'blur(60px)', zIndex: 0 }}></div>
+      <div style={{ position: 'absolute', top: '-10%', left: '-10%', width: '40vw', height: '40vw', background: 'radial-gradient(circle, rgba(255, 71, 126, 0.12) 0%, transparent 70%)', filter: 'blur(60px)', zIndex: 0 }}></div>
+      <div style={{ position: 'absolute', bottom: '-10%', right: '-10%', width: '40vw', height: '40vw', background: 'radial-gradient(circle, rgba(6, 214, 160, 0.08) 0%, transparent 70%)', filter: 'blur(60px)', zIndex: 0 }}></div>
+
+      {/* Backend Telemetry Background */}
+      <div style={{
+        position: 'absolute',
+        top: 0, left: 0, right: 0, bottom: 0,
+        zIndex: 0,
+        opacity: 0.15,
+        fontFamily: 'monospace',
+        fontSize: '12px',
+        color: '#06d6a0',
+        textAlign: 'left',
+        padding: '40px',
+        lineHeight: '1.8',
+        pointerEvents: 'none',
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap: '40px',
+        userSelect: 'none'
+      }}>
+        <div>
+          {Array.from({length: 40}).map((_, i) => (
+            <div key={`l-${i}`}>
+              <span style={{color: '#ff477e'}}>[SYS.MAINTENANCE]</span> {new Date(Date.now() - i * 10000).toISOString()} - Re-routing data streams... [OFFLINE]<br/>
+              <span style={{color: '#ffffff'}}>[SUPABASE.DB]</span> Disconnecting active WebSocket pool [PID: {Math.floor(Math.random() * 9000 + 1000)}]... OK<br/>
+              <span style={{color: '#06d6a0'}}>[SCRAPER.PUPPETEER]</span> Terminating invisible Chromium instances... SHUTDOWN<br/>
+              <br/>
+            </div>
+          ))}
+        </div>
+        <div>
+          {Array.from({length: 40}).map((_, i) => (
+            <div key={`r-${i}`}>
+              <span style={{color: '#ffffff'}}>[ENGINE.CORE]</span> Updating Nifty 50 & 500 tracking arrays... IN PROGRESS<br/>
+              <span style={{color: '#ff477e'}}>[API.YAHOO]</span> Rate limit reset sequence initiated [Wait: {Math.floor(Math.random() * 10)}ms]<br/>
+              <span style={{color: '#06d6a0'}}>[MARKET.MINDS]</span> Awaiting new deployment artifact from ghcr.io...<br/>
+              <br/>
+            </div>
+          ))}
+        </div>
+      </div>
 
       <div style={{ 
         position: 'relative',
