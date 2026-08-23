@@ -1,4 +1,4 @@
-﻿FROM node:20-slim
+FROM node:20-slim
 
 # Install latest chrome dev package and fonts to support major charsets
 RUN apt-get update \
@@ -20,7 +20,7 @@ ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV PUPPETEER_SKIP_DOWNLOAD=true
 
 # Install dependencies
-RUN npm ci
+RUN npm install
 
 # Copy server source code
 COPY server/ ./
