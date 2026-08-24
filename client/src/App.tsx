@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { SocketProvider } from './context/SocketContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { DashboardProvider, useDashboard } from './contexts/DashboardContext';
@@ -49,12 +49,12 @@ function AppContent() {
         
         <div className="content">
           <div className="page-head">
-            <div className="eyebrow">{activeTab} · Thu, 20 Aug 2026</div>
+            <div className="eyebrow">{activeTab} Â· Thu, 20 Aug 2026</div>
             <div className="page-title">
               {activeTab === 'Overview' ? "Today's tape is running green." : activeTab}
             </div>
             <div className="page-sub">
-               <b style={{color: 'var(--up)', fontWeight: 600}}>{advancers}▲</b> advancers vs <b style={{color: 'var(--down)', fontWeight: 600}}>{decliners}▼</b> decliners across {allStocks.length} tracked stocks — here's what's moving.
+               <b style={{color: 'var(--up)', fontWeight: 600}}>{advancers}â–²</b> advancers vs <b style={{color: 'var(--down)', fontWeight: 600}}>{decliners}â–¼</b> decliners across {allStocks.length} tracked stocks â€” here's what's moving.
             </div>
           </div>
 
@@ -241,7 +241,7 @@ function Maintenance() {
           marginBottom: '24px',
           textTransform: 'uppercase'
         }}>
-          ● Offline for Upgrades
+          â— Offline for Upgrades
         </div>
         
         <h1 style={{ 
@@ -292,6 +292,93 @@ function Maintenance() {
   );
 }
 
-export default function App() {
-  return <Maintenance />;
+function DownloadPortal() {
+  const { user } = useAuth();
+  return (
+    <div style={{
+      height: '100vh',
+      width: '100vw',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
+      alignItems: 'center',
+      background: '#040504',
+      color: '#fff',
+      fontFamily: 'Space Grotesk, Outfit, sans-serif'
+    }}>
+      <h1 style={{ 
+          fontSize: '42px', 
+          fontWeight: 800, 
+          marginBottom: '20px', 
+          letterSpacing: '-1.5px', 
+          background: 'linear-gradient(135deg, #ffffff 0%, #a0a5a0 100%)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent'
+      }}>
+        Welcome to Market Minds
+      </h1>
+      <p style={{ color: '#8a958a', marginBottom: '40px', fontSize: '18px' }}>
+        Signed in as: <b style={{color: '#06d6a0'}}>{user?.email}</b>
+      </p>
+      
+      <div style={{
+        background: 'rgba(15, 18, 15, 0.7)',
+        border: '1px solid rgba(6, 214, 160, 0.3)',
+        padding: '40px',
+        borderRadius: '16px',
+        textAlign: 'center',
+        maxWidth: '500px'
+      }}>
+        <h2 style={{ fontSize: '24px', marginBottom: '16px' }}>Desktop Application Ready</h2>
+        <p style={{ color: '#a0a5a0', marginBottom: '32px', lineHeight: '1.6' }}>
+          To ensure maximum performance and bypass browser limitations, the real-time scanner runs locally on your machine. Download the Windows application below.
+        </p>
+        <a 
+          href="https://your-download-link-goes-here.com" 
+          target="_blank"
+          rel="noreferrer"
+          style={{
+            display: 'inline-block',
+            padding: '16px 32px',
+            background: 'var(--accent)',
+            color: '#fff',
+            textDecoration: 'none',
+            borderRadius: '8px',
+            fontWeight: 'bold',
+            fontSize: '18px',
+            boxShadow: '0 4px 12px rgba(218, 127, 99, 0.3)'
+          }}
+        >
+          Download for Windows (.zip)
+        </a>
+      </div>
+    </div>
+  )
 }
+
+export default function App() {
+  return (
+    <SocketProvider>
+      <AuthProvider>
+        <DashboardProvider>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/paywall" element={<Paywall />} />
+                        <Route path="/" element={
+              <ProtectedRoute>
+                {window.location.hostname !== 'localhost' && window.location.protocol !== 'file:' ? (
+                   <DownloadPortal />
+                ) : (
+                   <AppContent />
+                )}
+              </ProtectedRoute>
+            } />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </DashboardProvider>
+      </AuthProvider>
+    </SocketProvider>
+  );
+}
+
+
