@@ -101,9 +101,20 @@ app.on('ready', () => {
   }
 
   getFreePort((port) => {
-    const serverPath = path.join(__dirname, 'server', 'dist', 'index.js');
+    // In packaged app, files are under resources/app/
+    // In dev, they are relative to __dirname
+    const isPackaged = app.isPackaged;
+    const appRoot = isPackaged ? path.join(process.resourcesPath, 'app') : __dirname;
+    const serverPath = path.join(appRoot, 'server', 'dist', 'index.js');
+    const serverCwd = path.join(appRoot, 'server');
+    
+    console.log('[main] isPackaged:', isPackaged);
+    console.log('[main] serverPath:', serverPath);
+    console.log('[main] serverCwd:', serverCwd);
+    console.log('[main] exists:', fs.existsSync(serverPath));
+
     serverProcess = fork(serverPath, [], {
-      cwd: path.join(__dirname, 'server'),
+      cwd: serverCwd,
       env: { ...process.env, ...externalEnv, PORT: port.toString(), NODE_ENV: 'production', ELECTRON_RUN_AS_NODE: '1' }
     });
 
