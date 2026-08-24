@@ -3,31 +3,49 @@ name: Build and Release Electron App
 on:
   push:
     tags:
-      - 'v*' # Trigger only on version tags (e.g., v1.0.1)
-  workflow_dispatch: # Allow manual triggering
+      - 'v*'
+  workflow_dispatch:
 
 jobs:
   build-and-release:
     runs-on: windows-latest
     permissions:
-      contents: write # Needed to publish a release
+      contents: write
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '22'
 
-      - name: Install Dependencies
+      - name: Install Root Dependencies
         run: npm install
 
-      - name: Build Application
-        run: npm run build:all
+      - name: Install Client Dependencies
+        run: cd client && npm install
 
-      - name: Package and Publish with Electron Builder
-        run: npx electron-builder --win --publish always
+      - name: Install Server Dependencies
+        run: cd server && npm install
+
+      - name: Build Client
+        run: cd client && npm run build
+
+      - name: Build Server
+        run: cd server && npm run build
+
+      - name: Package with Electron Builder
+        run: npx electron-builder --win nsis --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EP_DRAFT: false
+          EP_PRE_RELEASE: false
+
+      - name: Upload Setup EXE as Artifact (backup)
+        uses: actions/upload-artifact@v4
+        with:
+          name: MarketMinds-Setup
+          path: dist-desktop/*.exe
+          if-no-files-found: warn
