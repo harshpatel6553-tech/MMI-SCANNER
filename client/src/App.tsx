@@ -32,21 +32,21 @@ import { Paywall } from './components/Paywall/Paywall';
 function AppContent() {
   const { preferences, toggleWidget, activeTab, isCustomizing, setIsCustomizing, searchQuery } = useDashboard();
   const { toasts, alertHistory, dismissToast, clearAll } = useAlerts();
-  
+
   // Initialize WebSocket and fetch stocks
-  const { allStocks, stats, sectorData, stocks } = useStocks({ 
-    index: 'ALL', priceMin: 0, priceMax: 0, volumeMin: 0, search: searchQuery 
+  const { allStocks, stats, sectorData, stocks } = useStocks({
+    index: 'ALL', priceMin: 0, priceMax: 0, volumeMin: 0, search: searchQuery
   }, 'volume', 'desc');
 
   const advancers = allStocks.filter(s => s.change >= 0).length;
   const decliners = allStocks.length - advancers;
-  
+
   return (
     <div className="app">
       <Sidebar />
       <div className="main">
         <Topbar allStocks={allStocks} />
-        
+
         <div className="content">
           <div className="page-head">
             <div className="eyebrow">{activeTab} Â· Thu, 20 Aug 2026</div>
@@ -54,7 +54,7 @@ function AppContent() {
               {activeTab === 'Overview' ? "Today's tape is running green." : activeTab}
             </div>
             <div className="page-sub">
-               <b style={{color: 'var(--up)', fontWeight: 600}}>{advancers}â–²</b> advancers vs <b style={{color: 'var(--down)', fontWeight: 600}}>{decliners}â–¼</b> decliners across {allStocks.length} tracked stocks â€” here's what's moving.
+              <b style={{ color: 'var(--up)', fontWeight: 600 }}>{advancers}â–²</b> advancers vs <b style={{ color: 'var(--down)', fontWeight: 600 }}>{decliners}â–¼</b> decliners across {allStocks.length} tracked stocks â€” here's what's moving.
             </div>
           </div>
 
@@ -79,7 +79,7 @@ function AppContent() {
           {activeTab === 'Heatmap' && <Heatmap stocks={stocks} />}
           {activeTab === 'Sectors' && <SectorBreakdown sectorData={sectorData} />}
           {activeTab === 'Technical' && <TechnicalScanner />}
-          {activeTab === 'Watchlist' && <div className="card" style={{padding: 24}}>Full Watchlist view under construction. Use Overview widget.</div>}
+          {activeTab === 'Watchlist' && <div className="card" style={{ padding: 24 }}>Full Watchlist view under construction. Use Overview widget.</div>}
           {activeTab === 'LiveNews' && <LiveNewsFeed />}
           {activeTab === 'Results' && <EarningsResults />}
           {activeTab === 'Promoter' && <PromoterWatch />}
@@ -87,21 +87,21 @@ function AppContent() {
           {activeTab === 'Admin' && <AdminDashboard />}
         </div>
       </div>
-      
+
       {/* Alert Overlay Components */}
       <AlertPanel alerts={alertHistory} onClearAll={clearAll} />
       <FundamentalsModal stocks={allStocks} />
       <AlertToast toasts={toasts} onDismiss={dismissToast} />
 
       {/* Floating Customize Button */}
-      <div 
+      <div
         style={{
-          position: 'fixed', 
-          bottom: 20, 
-          right: 20, 
-          background: 'var(--bg-surface)', 
-          border: '1px solid var(--border)', 
-          padding: 10, 
+          position: 'fixed',
+          bottom: 20,
+          right: 20,
+          background: 'var(--bg-surface)',
+          border: '1px solid var(--border)',
+          padding: 10,
           borderRadius: 8,
           cursor: 'pointer',
           zIndex: 100,
@@ -111,7 +111,7 @@ function AppContent() {
         }}
         onClick={() => setIsCustomizing(!isCustomizing)}
       >
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--text-1)" strokeWidth="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--text-1)" strokeWidth="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" /></svg>
         <span style={{ color: 'var(--text-1)', fontSize: 13, fontWeight: 600 }}>Customize Layout</span>
       </div>
 
@@ -132,10 +132,10 @@ function AppContent() {
           {Object.entries(preferences).map(([key, value]) => (
             <div key={key} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 13, color: 'var(--text-2)' }}>
               <span>{key.replace('show', '')}</span>
-              <input 
-                type="checkbox" 
-                checked={value as boolean} 
-                onChange={() => toggleWidget(key as keyof typeof preferences)} 
+              <input
+                type="checkbox"
+                checked={value as boolean}
+                onChange={() => toggleWidget(key as keyof typeof preferences)}
               />
             </div>
           ))}
@@ -147,11 +147,11 @@ function AppContent() {
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, isTrialExpired, loading } = useAuth();
-  
+
   if (loading) return <div className="app" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: 'var(--bg-app)', color: 'white' }}>Verifying Account...</div>;
   if (!user) return <Navigate to="/login" replace />;
   if (isTrialExpired) return <Navigate to="/paywall" replace />;
-  
+
   return <>{children}</>;
 }
 
@@ -164,7 +164,7 @@ function Maintenance() {
       flexDirection: 'column',
       justifyContent: 'center',
       alignItems: 'center',
-      background: '#040504', 
+      background: '#040504',
       color: '#ffffff',
       fontFamily: 'Space Grotesk, Outfit, sans-serif',
       padding: '20px',
@@ -196,42 +196,42 @@ function Maintenance() {
         userSelect: 'none'
       }}>
         <div>
-          {Array.from({length: 40}).map((_, i) => (
+          {Array.from({ length: 40 }).map((_, i) => (
             <div key={`l-${i}`}>
-              <span style={{color: '#ff477e'}}>[SYS.MAINTENANCE]</span> {new Date(Date.now() - i * 10000).toISOString()} - Re-routing data streams... [OFFLINE]<br/>
-              <span style={{color: '#ffffff'}}>[SUPABASE.DB]</span> Disconnecting active WebSocket pool [PID: {Math.floor(Math.random() * 9000 + 1000)}]... OK<br/>
-              <span style={{color: '#06d6a0'}}>[SCRAPER.PUPPETEER]</span> Terminating invisible Chromium instances... SHUTDOWN<br/>
-              <br/>
+              <span style={{ color: '#ff477e' }}>[SYS.MAINTENANCE]</span> {new Date(Date.now() - i * 10000).toISOString()} - Re-routing data streams... [OFFLINE]<br />
+              <span style={{ color: '#ffffff' }}>[SUPABASE.DB]</span> Disconnecting active WebSocket pool [PID: {Math.floor(Math.random() * 9000 + 1000)}]... OK<br />
+              <span style={{ color: '#06d6a0' }}>[SCRAPER.PUPPETEER]</span> Terminating invisible Chromium instances... SHUTDOWN<br />
+              <br />
             </div>
           ))}
         </div>
         <div>
-          {Array.from({length: 40}).map((_, i) => (
+          {Array.from({ length: 40 }).map((_, i) => (
             <div key={`r-${i}`}>
-              <span style={{color: '#ffffff'}}>[ENGINE.CORE]</span> Updating Nifty 50 & 500 tracking arrays... IN PROGRESS<br/>
-              <span style={{color: '#ff477e'}}>[API.YAHOO]</span> Rate limit reset sequence initiated [Wait: {Math.floor(Math.random() * 10)}ms]<br/>
-              <span style={{color: '#06d6a0'}}>[MARKET.MINDS]</span> Awaiting new deployment artifact from ghcr.io...<br/>
-              <br/>
+              <span style={{ color: '#ffffff' }}>[ENGINE.CORE]</span> Updating Nifty 50 & 500 tracking arrays... IN PROGRESS<br />
+              <span style={{ color: '#ff477e' }}>[API.YAHOO]</span> Rate limit reset sequence initiated [Wait: {Math.floor(Math.random() * 10)}ms]<br />
+              <span style={{ color: '#06d6a0' }}>[MARKET.MINDS]</span> Awaiting new deployment artifact from ghcr.io...<br />
+              <br />
             </div>
           ))}
         </div>
       </div>
 
-      <div style={{ 
+      <div style={{
         position: 'relative',
         zIndex: 1,
-        maxWidth: '700px', 
-        border: '1px solid rgba(255, 71, 126, 0.3)', 
-        padding: '56px', 
-        borderRadius: '24px', 
+        maxWidth: '700px',
+        border: '1px solid rgba(255, 71, 126, 0.3)',
+        padding: '56px',
+        borderRadius: '24px',
         background: 'rgba(15, 18, 15, 0.7)',
         backdropFilter: 'blur(20px)',
         boxShadow: '0 24px 48px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)'
       }}>
-        <div style={{ 
-          display: 'inline-block', 
-          padding: '6px 16px', 
-          background: 'rgba(255, 71, 126, 0.1)', 
+        <div style={{
+          display: 'inline-block',
+          padding: '6px 16px',
+          background: 'rgba(255, 71, 126, 0.1)',
           border: '1px solid rgba(255, 71, 126, 0.5)',
           borderRadius: '100px',
           color: '#ff477e',
@@ -243,44 +243,44 @@ function Maintenance() {
         }}>
           â— Offline for Upgrades
         </div>
-        
-        <h1 style={{ 
-          fontSize: '42px', 
-          fontWeight: 800, 
-          marginBottom: '20px', 
-          letterSpacing: '-1.5px', 
+
+        <h1 style={{
+          fontSize: '42px',
+          fontWeight: 800,
+          marginBottom: '20px',
+          letterSpacing: '-1.5px',
           lineHeight: '1.1',
           background: 'linear-gradient(135deg, #ffffff 0%, #a0a5a0 100%)',
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent'
         }}>
-          MARKET MINDS IS <br/>EVOLVING
+          MARKET MINDS IS <br />EVOLVING
         </h1>
-        
-        <p style={{ 
-          fontSize: '18px', 
-          color: '#8a958a', 
-          lineHeight: '1.6', 
+
+        <p style={{
+          fontSize: '18px',
+          color: '#8a958a',
+          lineHeight: '1.6',
           marginBottom: '40px',
           maxWidth: '500px',
           margin: '0 auto 40px auto'
         }}>
           We are currently deploying massive upgrades to our real-time scanning infrastructure. The tape will resume shortly.
         </p>
-        
-        <div style={{ 
-          padding: '24px', 
-          background: 'rgba(6, 214, 160, 0.05)', 
-          border: '1px solid rgba(6, 214, 160, 0.2)', 
-          borderRadius: '12px', 
-          fontSize: '15px', 
-          color: '#a0a5a0' 
+
+        <div style={{
+          padding: '24px',
+          background: 'rgba(6, 214, 160, 0.05)',
+          border: '1px solid rgba(6, 214, 160, 0.2)',
+          borderRadius: '12px',
+          fontSize: '15px',
+          color: '#a0a5a0'
         }}>
-          For priority support or further queries, please contact <br/>
-          <b style={{ 
-            color: '#06d6a0', 
-            fontSize: '18px', 
-            display: 'inline-block', 
+          For priority support or further queries, please contact <br />
+          <b style={{
+            color: '#06d6a0',
+            fontSize: '18px',
+            display: 'inline-block',
             marginTop: '12px',
             letterSpacing: '0.5px'
           }}>
@@ -306,21 +306,21 @@ function DownloadPortal() {
       color: '#fff',
       fontFamily: 'Space Grotesk, Outfit, sans-serif'
     }}>
-      <h1 style={{ 
-          fontSize: '42px', 
-          fontWeight: 800, 
-          marginBottom: '20px', 
-          letterSpacing: '-1.5px', 
-          background: 'linear-gradient(135deg, #ffffff 0%, #a0a5a0 100%)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent'
+      <h1 style={{
+        fontSize: '42px',
+        fontWeight: 800,
+        marginBottom: '20px',
+        letterSpacing: '-1.5px',
+        background: 'linear-gradient(135deg, #ffffff 0%, #a0a5a0 100%)',
+        WebkitBackgroundClip: 'text',
+        WebkitTextFillColor: 'transparent'
       }}>
         Welcome to Market Minds
       </h1>
       <p style={{ color: '#8a958a', marginBottom: '40px', fontSize: '18px' }}>
-        Signed in as: <b style={{color: '#06d6a0'}}>{user?.email}</b>
+        Signed in as: <b style={{ color: '#06d6a0' }}>{user?.email}</b>
       </p>
-      
+
       <div style={{
         background: 'rgba(15, 18, 15, 0.7)',
         border: '1px solid rgba(6, 214, 160, 0.3)',
@@ -333,8 +333,8 @@ function DownloadPortal() {
         <p style={{ color: '#a0a5a0', marginBottom: '32px', lineHeight: '1.6' }}>
           To ensure maximum performance and bypass browser limitations, the real-time scanner runs locally on your machine. Download the Windows application below.
         </p>
-        <a 
-          href="https://your-download-link-goes-here.com" 
+        <a
+          href="https://drive.google.com/drive/folders/1yknU6SfBOWt9niLbj-M-unLl3fmdHBcn"
           target="_blank"
           rel="noreferrer"
           style={{
@@ -364,12 +364,12 @@ export default function App() {
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/paywall" element={<Paywall />} />
-                        <Route path="/" element={
+            <Route path="/" element={
               <ProtectedRoute>
                 {window.location.hostname !== 'localhost' && window.location.protocol !== 'file:' ? (
-                   <DownloadPortal />
+                  <DownloadPortal />
                 ) : (
-                   <AppContent />
+                  <AppContent />
                 )}
               </ProtectedRoute>
             } />
