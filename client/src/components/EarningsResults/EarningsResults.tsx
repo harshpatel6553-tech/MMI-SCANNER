@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useNews } from '../../hooks/useNews';
 import { Calendar, Activity, Zap, Inbox, Search, TrendingUp, BarChart3 } from 'lucide-react';
 import './EarningsResults.css';
@@ -9,7 +9,7 @@ interface CalendarEvent {
   date: string;
 }
 
-const API_URL = (import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000') + '/api';
+const API_URL = (import.meta.env.VITE_SOCKET_URL || window.location.origin) + '/api';
 
 export function EarningsResults() {
   const { news, loading } = useNews();
@@ -130,3 +130,4 @@ export function EarningsResults() {
     </div>
   );
 }
+

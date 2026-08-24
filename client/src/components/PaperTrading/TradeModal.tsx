@@ -31,7 +31,7 @@ export function TradeModal({ isOpen, onClose, stock }: TradeModalProps) {
     setError(null);
 
     try {
-      const socketUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
+      const socketUrl = import.meta.env.VITE_SOCKET_URL || window.location.origin;
       const response = await fetch(`${socketUrl}/api/paper-trading/trade`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

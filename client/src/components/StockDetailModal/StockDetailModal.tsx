@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+﻿import { useEffect, useState, useRef } from 'react';
 import type { StockData } from '../../types';
 import { formatPrice, formatVolume, formatMarketCap, formatPercent, getChangeClass } from '../../utils/formatters';
 import { TradeModal } from '../PaperTrading/TradeModal';
@@ -36,7 +36,7 @@ export function StockDetailModal({ stock, onClose }: StockDetailModalProps) {
       // Fetch Fundamentals
       setLoadingFunds(true);
       setFundamentals(null);
-      const apiUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
+      const apiUrl = import.meta.env.VITE_SOCKET_URL || window.location.origin;
       fetch(`${apiUrl}/api/stocks/${stock.symbol}/fundamentals`)
         .then(res => res.ok ? res.json() : null)
         .then(data => setFundamentals(data))
@@ -92,7 +92,7 @@ export function StockDetailModal({ stock, onClose }: StockDetailModalProps) {
             >
             {/* Close button */}
             <button className="modal-close" onClick={onClose} aria-label="Close">
-              ✕
+              âœ•
             </button>
 
         {/* Header */}
@@ -120,7 +120,7 @@ export function StockDetailModal({ stock, onClose }: StockDetailModalProps) {
             </div>
             <div className={`modal-change ${changeClass}`}>
               <span className="modal-change-arrow">
-                {displayStock.change > 0 ? '▲' : displayStock.change < 0 ? '▼' : '—'}
+                {displayStock.change > 0 ? 'â–²' : displayStock.change < 0 ? 'â–¼' : 'â€”'}
               </span>
               {formatPrice(Math.abs(displayStock.change))}
               {' '}
@@ -200,7 +200,7 @@ export function StockDetailModal({ stock, onClose }: StockDetailModalProps) {
                 <>
                   {displayStock.relativeVolume.toFixed(1)}x
                   {displayStock.volumeSpike && (
-                    <span className="stat-spike-badge" title="Volume Spike">⚡</span>
+                    <span className="stat-spike-badge" title="Volume Spike">âš¡</span>
                   )}
                 </>
               ) : 'N/A'}
@@ -266,3 +266,4 @@ export function StockDetailModal({ stock, onClose }: StockDetailModalProps) {
     </>
   );
 }
+

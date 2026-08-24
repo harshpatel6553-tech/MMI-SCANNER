@@ -1,0 +1,48 @@
+{
+  "name": "mmi-scanner",
+  "productName": "Market Minds Scanner",
+  "version": "1.0.0",
+  "description": "Desktop Stock Scanner",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build:client": "cd client && npm run build",
+    "build:server": "cd server && npm run build",
+    "build:all": "npm run build:client && npm run build:server",
+    "pack": "electron-builder --dir",
+    "dist": "npm run build:all && electron-builder"
+  },
+  "devDependencies": {
+    "electron": "^30.0.0",
+    "electron-builder": "^24.13.3",
+    "electron-winstaller": "^5.4.4"
+  },
+  "build": {
+    "appId": "com.marketminds.scanner",
+    "productName": "Market Minds Scanner",
+    "directories": {
+      "output": "dist-desktop"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "harshpatel6553-tech",
+        "repo": "MMI-SCANNER"
+      }
+    ],
+    "files": [
+      "main.js",
+      "server/dist/**/*",
+      "server/package.json",
+      "server/node_modules/**/*",
+      "client/dist/**/*"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "client/public/favicon.ico"
+    }
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.9"
+  }
+}

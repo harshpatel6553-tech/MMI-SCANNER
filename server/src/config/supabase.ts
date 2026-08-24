@@ -6,20 +6,21 @@
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import logger from '../utils/logger.js';
+import WebSocket from 'ws';
 
-const SUPABASE_URL = process.env.SUPABASE_URL || '';
+if (typeof globalThis.WebSocket === 'undefined') {
+  (globalThis as any).WebSocket = WebSocket;
+}
+
+const SUPABASE_URL = 'https://jrginojnisdbcxyrznra.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '';
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || '';
+const SUPABASE_ANON_KEY = 'sb_publishable_elfyhhsF1Z_uUEjlHpLCSA_VB6fAQ5i';
 
 // Use the service key if available to bypass RLS in the backend, fallback to anon key
 const ACTIVE_KEY = SUPABASE_SERVICE_KEY || SUPABASE_ANON_KEY;
 
 /** Whether Supabase is properly configured with real credentials */
-export const isSupabaseConfigured: boolean =
-  SUPABASE_URL !== '' &&
-  ACTIVE_KEY !== '' &&
-  !SUPABASE_URL.includes('your-project-id') &&
-  !ACTIVE_KEY.includes('your-supabase-anon-key');
+export const isSupabaseConfigured: boolean = true;
 
 /**
  * Supabase client instance.
@@ -83,3 +84,5 @@ export async function testConnection(): Promise<boolean> {
 }
 
 export default supabase;
+
+

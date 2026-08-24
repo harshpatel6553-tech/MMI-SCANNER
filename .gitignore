@@ -15,6 +15,7 @@ dist/
 build/
 client/dist/
 server/dist/
+dist-desktop/
 
 # Logs
 npm-debug.log*

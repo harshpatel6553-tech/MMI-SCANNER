@@ -17,6 +17,9 @@ import 'dotenv/config';
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import http from 'node:http';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { Server as SocketIOServer } from 'socket.io';
 
 import type {
@@ -29,6 +32,7 @@ import logger from './utils/logger.js';
 import stockRoutes from './routes/stockRoutes.js';
 import { newsRoutes } from './routes/newsRoutes.js';
 import dealsRoutes from './routes/dealsRoutes.js';
+import { settingsRoutes } from './routes/settingsRoutes.js';
 import { stockService } from './services/stockService.js';
 import { alertService } from './services/alertService.js';
 import { newsService } from './services/newsService.js';
@@ -68,13 +72,23 @@ const app = express();
 
 app.use(
   cors({
-    origin: ALLOWED_ORIGINS,
+    origin: '*',
     methods: ['GET', 'POST'],
     credentials: true,
   })
 );
 
 app.use(express.json());
+
+// Serve static frontend files if they exist (for Electron Desktop App)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const clientDistPath = path.join(__dirname, '../../client/dist');
+if (fs.existsSync(clientDistPath)) {
+  app.use(express.static(clientDistPath));
+  // Keep the root route handling below for API checks if needed,
+  // but static files will take precedence.
+}
 
 // ── HTTP & Socket.IO Server ────────────────────────────────────
 
@@ -84,9 +98,8 @@ const io = new SocketIOServer<ClientToServerEvents, ServerToClientEvents>(
   httpServer,
   {
     cors: {
-      origin: ALLOWED_ORIGINS,
+      origin: '*', // Allow all origins for the desktop app
       methods: ['GET', 'POST'],
-      credentials: true,
     },
     pingInterval: 25000,
     pingTimeout: 20000,
@@ -102,6 +115,15 @@ setupSocketHandlers(io);
 app.use('/api/stocks', stockRoutes);
 app.use('/api/news', newsRoutes);
 app.use('/api/deals', dealsRoutes);
+
+// SPA Fallback for React Router (Electron Desktop App)
+if (fs.existsSync(clientDistPath)) {
+  app.get('*', (req, res) => {
+    if (!req.path.startsWith('/api')) {
+      res.sendFile(path.join(clientDistPath, 'index.html'));
+    }
+  });
+}
 
 // ── News Alerts ────────────────────────────────────────────────
 

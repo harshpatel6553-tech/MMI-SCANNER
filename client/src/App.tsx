@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { SocketProvider } from './context/SocketContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { DashboardProvider, useDashboard } from './contexts/DashboardContext';
@@ -19,6 +19,7 @@ import { EarningsResults } from './components/EarningsResults/EarningsResults';
 import { PromoterWatch } from './components/PromoterWatch/PromoterWatch';
 import { PaperTradingDashboard } from './components/PaperTrading/PaperTradingDashboard';
 import { AdminDashboard } from './components/AdminDashboard/AdminDashboard';
+import { SettingsPanel } from './components/SettingsPanel/SettingsPanel';
 import { AlertPanel } from './components/Alerts/AlertPanel';
 import { AlertToast } from './components/Alerts/AlertToast';
 import { FundamentalsModal } from './components/FundamentalsModal/FundamentalsModal';
@@ -85,6 +86,7 @@ function AppContent() {
           {activeTab === 'Promoter' && <PromoterWatch />}
           {activeTab === 'PaperTrading' && <PaperTradingDashboard />}
           {activeTab === 'Admin' && <AdminDashboard />}
+          {activeTab === 'Settings' && <SettingsPanel />}
         </div>
       </div>
 

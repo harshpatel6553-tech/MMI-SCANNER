@@ -1,9 +1,12 @@
 import logger from '../utils/logger.js';
+import { configService } from '../services/configService.js';
 
-const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY || '';
 const RAPIDAPI_HOST = 'twitter-x-api8.p.rapidapi.com';
 
 class TwitterService {
+  private get RAPIDAPI_KEY(): string {
+    return configService.getKey('RAPIDAPI_KEY') || '';
+  }
   private tweetCache = new Map<string, { data: any; timestamp: number }>();
   private idCache = new Map<string, string>(); // caches username -> userId
   private readonly CACHE_TTL_MS = 0; // Caching disabled: always fetch fresh data 
@@ -20,7 +23,7 @@ class TwitterService {
       const response = await fetch(`https://${RAPIDAPI_HOST}/user/about?username=${username}`, {
         method: 'GET',
         headers: {
-          'x-rapidapi-key': RAPIDAPI_KEY,
+          'x-rapidapi-key': this.RAPIDAPI_KEY,
           'x-rapidapi-host': RAPIDAPI_HOST,
           'Content-Type': 'application/json'
         }
@@ -58,8 +61,8 @@ class TwitterService {
    * Fetches tweets for a specific numeric user ID.
    */
   async getUserTweets(userId: string): Promise<any> {
-    if (!RAPIDAPI_KEY) {
-      return { error: 'RAPIDAPI_KEY missing in .env' };
+    if (!this.RAPIDAPI_KEY) {
+      return { error: 'RAPIDAPI_KEY missing in settings' };
     }
 
     const cached = this.tweetCache.get(userId);
@@ -71,7 +74,7 @@ class TwitterService {
       const response = await fetch(`https://${RAPIDAPI_HOST}/user/tweets?user_id=${userId}`, {
         method: 'GET',
         headers: {
-          'x-rapidapi-key': RAPIDAPI_KEY,
+          'x-rapidapi-key': this.RAPIDAPI_KEY,
           'x-rapidapi-host': RAPIDAPI_HOST,
           'Content-Type': 'application/json'
         }
@@ -92,7 +95,7 @@ class TwitterService {
    * Helper that resolves the username first, then fetches tweets.
    */
   async getTweetsByUsername(username: string): Promise<any> {
-    if (!RAPIDAPI_KEY) return { error: 'RAPIDAPI_KEY missing in .env' };
+    if (!this.RAPIDAPI_KEY) return { error: 'RAPIDAPI_KEY missing in settings' };
 
     const userId = await this.getUserId(username);
     if (!userId) return { error: `Could not resolve user ID for ${username}` };
@@ -102,3 +105,4 @@ class TwitterService {
 }
 
 export const twitterService = new TwitterService();
+
