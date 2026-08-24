@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+﻿import React, { useEffect, useState, useMemo } from 'react';
 import { Search, Lock } from 'lucide-react';
 import { useStocks } from '../../hooks/useStocks';
 import './PromoterWatch.css';
@@ -12,7 +12,7 @@ interface Deal {
   price: number;
 }
 
-const API_URL = (import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000') + '/api';
+const API_URL = (import.meta.env.VITE_SOCKET_URL || window.location.origin) + '/api';
 
 export const PromoterWatch: React.FC = () => {
   const [deals, setDeals] = useState<Deal[]>([]);
@@ -54,9 +54,9 @@ export const PromoterWatch: React.FC = () => {
   const netFlow = totalBuyValue - totalSellValue;
 
   const formatCurrency = (val: number) => {
-    if (val >= 10000000) return `₹${(val / 10000000).toFixed(2)} Cr`;
-    if (val >= 100000) return `₹${(val / 100000).toFixed(2)} L`;
-    return `₹${val.toLocaleString()}`;
+    if (val >= 10000000) return `â‚¹${(val / 10000000).toFixed(2)} Cr`;
+    if (val >= 100000) return `â‚¹${(val / 100000).toFixed(2)} L`;
+    return `â‚¹${val.toLocaleString()}`;
   };
 
   const linePoints = [3,4,4,5,6,6,7,8,9,9,10,11,12,13,14];
@@ -83,7 +83,7 @@ export const PromoterWatch: React.FC = () => {
         <div className="page-title-row">
           <div>
             <h2 className="display">NSE Bulk Deals</h2>
-            <div className="sub">INSTITUTIONAL &amp; PROMOTER WATCH · REAL-TIME</div>
+            <div className="sub">INSTITUTIONAL &amp; PROMOTER WATCH Â· REAL-TIME</div>
           </div>
         </div>
 
@@ -99,7 +99,7 @@ export const PromoterWatch: React.FC = () => {
           <div className="stat-card">
             <div className="label">Net Flow</div>
             <div className={`value ${netFlow >= 0 ? 'up' : 'down'}`}>
-              {netFlow >= 0 ? '+' : '−'}{formatCurrency(Math.abs(netFlow))}
+              {netFlow >= 0 ? '+' : 'âˆ’'}{formatCurrency(Math.abs(netFlow))}
             </div>
           </div>
           <div className="stat-card">
@@ -119,7 +119,7 @@ export const PromoterWatch: React.FC = () => {
 
         <div className="chart-grid">
           <div className="chart-card">
-            <div className="ctitle">Promoter Disclosures — Cumulative (30 Days)</div>
+            <div className="ctitle">Promoter Disclosures â€” Cumulative (30 Days)</div>
             <svg viewBox={`0 0 ${lw} ${lh + 30}`} width="100%" height="120">
               <defs>
                 <linearGradient id="fadeGreen" x1="0" y1="0" x2="0" y2="1">
@@ -137,7 +137,7 @@ export const PromoterWatch: React.FC = () => {
           </div>
           
           <div className="chart-card">
-            <div className="ctitle">Net Promoter Flow by Day (₹ Cr)</div>
+            <div className="ctitle">Net Promoter Flow by Day (â‚¹ Cr)</div>
             <svg viewBox={`0 0 ${bw} ${bh + 30}`} width="100%" height="120">
               <line x1="0" y1={base} x2={bw} y2={base} stroke="#262626" strokeWidth="1"/>
               {barVals.map((v, i) => {
@@ -181,7 +181,7 @@ export const PromoterWatch: React.FC = () => {
                 <span className="dt-client" title={r.clientName}>{r.clientName}</span>
                 <span className={`dt-type ${r.type.toLowerCase()}`}>{r.type.toUpperCase()}</span>
                 <span className="dt-num">{r.quantity.toLocaleString()}</span>
-                <span className="dt-num">₹{r.price.toFixed(2)}</span>
+                <span className="dt-num">â‚¹{r.price.toFixed(2)}</span>
                 <span className="dt-num">{formatCurrency(r.quantity * r.price)}</span>
                 <span className="dt-access"><Lock size={10} /> UNLOCK</span>
               </div>

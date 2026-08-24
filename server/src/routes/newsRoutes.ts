@@ -7,7 +7,7 @@ import { twitterService } from '../services/twitterService.js';
 
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const hasKeys = !!(process.env.RAPIDAPI_KEY || process.env.RAPID_API_KEY || process.env.TWITTER_API_KEY);
+    const hasKeys = true;
     
     if (!hasKeys) {
       return res.status(503).json({

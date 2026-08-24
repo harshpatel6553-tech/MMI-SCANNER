@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useStocks } from '../../hooks/useStocks';
 import './PaperTradingDashboard.css';
@@ -29,7 +29,7 @@ export function PaperTradingDashboard() {
   const fetchPortfolio = async () => {
     if (!profile) return;
     try {
-      const socketUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
+      const socketUrl = import.meta.env.VITE_SOCKET_URL || window.location.origin;
       const [portRes, leadRes] = await Promise.all([
         fetch(`${socketUrl}/api/paper-trading/portfolio/${profile.id}`),
         fetch(`${socketUrl}/api/paper-trading/leaderboard`)
@@ -95,7 +95,7 @@ export function PaperTradingDashboard() {
   const totalPnlPercent = totalInvested !== 0 ? (totalPnl / totalInvested) * 100 : 0;
 
   const formatCurrency = (val: number) => {
-    return `₹${val.toLocaleString('en-IN', { maximumFractionDigits: 2, minimumFractionDigits: 2 })}`;
+    return `â‚¹${val.toLocaleString('en-IN', { maximumFractionDigits: 2, minimumFractionDigits: 2 })}`;
   };
 
   // Portfolio Chart Setup
@@ -165,10 +165,10 @@ export function PaperTradingDashboard() {
                   <div className="pos-row" key={pos.symbol}>
                     <span className="pos-sym">{pos.symbol}</span>
                     <span className="pos-num">{pos.quantity}</span>
-                    <span className="pos-num">₹{pos.average_price.toFixed(2)}</span>
-                    <span className="pos-num">₹{pos.livePrice.toFixed(2)}</span>
+                    <span className="pos-num">â‚¹{pos.average_price.toFixed(2)}</span>
+                    <span className="pos-num">â‚¹{pos.livePrice.toFixed(2)}</span>
                     <span className="pos-pnl" style={{color: pos.pnl >= 0 ? 'var(--pulse-green)' : 'var(--pulse-red)'}}>
-                      {pos.pnl >= 0 ? '+' : ''}₹{Math.abs(pos.pnl).toFixed(2)} ({pos.pnlPercent.toFixed(2)}%)
+                      {pos.pnl >= 0 ? '+' : ''}â‚¹{Math.abs(pos.pnl).toFixed(2)} ({pos.pnlPercent.toFixed(2)}%)
                     </span>
                     <span className="pos-trade" onClick={() => stockData && setTradeStock(stockData)}>TRADE &rarr;</span>
                   </div>
@@ -196,7 +196,7 @@ export function PaperTradingDashboard() {
                       <span className="lb-name">{displayName}</span>
                       {isYou && <span className="lb-tag">YOU</span>}
                     </span>
-                    <span className="lb-value">₹{user.balance.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+                    <span className="lb-value">â‚¹{user.balance.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
                   </div>
                 );
               })}
@@ -209,7 +209,7 @@ export function PaperTradingDashboard() {
 
         <div className="chart-card">
           <div className="ctitle">
-            <span>Portfolio Value — Since Start</span>
+            <span>Portfolio Value â€” Since Start</span>
             <span style={{color: totalPnl >= 0 ? 'var(--pulse-green)' : 'var(--pulse-red)'}}>
               {totalPnl >= 0 ? '+' : ''}{totalPnlPercent.toFixed(2)}%
             </span>

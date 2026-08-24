@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+﻿import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSocketContext } from '../context/SocketContext';
 
 export interface NewsItem {
@@ -13,7 +13,7 @@ export interface NewsItem {
   isPromoterAction?: boolean;
 }
 
-const API_URL = (import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000') + '/api';
+const API_URL = (import.meta.env.VITE_SOCKET_URL || window.location.origin) + '/api';
 
 export function useNews() {
   const [news, setNews] = useState<NewsItem[]>([]);
@@ -98,3 +98,4 @@ export function useNews() {
 
   return { news, loading, error };
 }
+

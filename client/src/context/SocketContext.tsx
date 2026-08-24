@@ -18,7 +18,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
   const { user, profile } = useAuth();
 
   useEffect(() => {
-    const socketUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
+    const socketUrl = import.meta.env.VITE_SOCKET_URL || window.location.origin;
     const newSocket = io(socketUrl, {
       autoConnect: true,
       reconnection: true,

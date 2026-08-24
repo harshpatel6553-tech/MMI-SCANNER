@@ -1,5 +1,6 @@
 import { GoogleGenAI, Type, Schema } from '@google/genai';
 import logger from '../utils/logger.js';
+import { configService } from './configService.js';
 
 export interface AISentimentResult {
   sentiment: 'Bullish' | 'Bearish' | 'Neutral';
@@ -7,26 +8,17 @@ export interface AISentimentResult {
 }
 
 class AIService {
-  private ai: GoogleGenAI | null = null;
-  public hasValidKey = false;
-
-  constructor() {
-    this.init();
+  public get hasValidKey(): boolean {
+    const key = configService.getKey('GEMINI_API_KEY');
+    return !!(key && key.length > 10);
   }
 
-  private init() {
-    const key = process.env.GEMINI_API_KEY;
+  private get ai(): GoogleGenAI | null {
+    const key = configService.getKey('GEMINI_API_KEY');
     if (key && key.length > 10) {
-      try {
-        this.ai = new GoogleGenAI({ apiKey: key });
-        this.hasValidKey = true;
-        logger.info('🤖 AI Sentiment Engine Initialized.');
-      } catch (e) {
-        logger.error('Failed to initialize AI Engine', e);
-      }
-    } else {
-      logger.warn('GEMINI_API_KEY is missing or invalid. AI Sentiment analysis will be disabled.');
+      return new GoogleGenAI({ apiKey: key });
     }
+    return null;
   }
 
   public async analyzeNewsBatch(headlines: string[]): Promise<AISentimentResult[]> {
@@ -148,3 +140,4 @@ class AIService {
 }
 
 export const aiService = new AIService();
+

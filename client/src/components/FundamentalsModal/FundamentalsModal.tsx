@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { useDashboard } from '../../contexts/DashboardContext';
 import { X, TrendingUp, DollarSign, PieChart, Activity, Briefcase } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -31,7 +31,7 @@ export function FundamentalsModal({ stocks }: { stocks: StockData[] }) {
     setLoading(true);
     setError('');
     
-    const API_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
+    const API_URL = import.meta.env.VITE_SOCKET_URL || window.location.origin;
     
     fetch(`${API_URL}/api/stocks/${selectedStock}/fundamentals`)
       .then(res => {
@@ -134,3 +134,4 @@ function StatCard({ title, value, icon }: { title: string, value: string, icon: 
     </div>
   );
 }
+
