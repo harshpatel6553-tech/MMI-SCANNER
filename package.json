@@ -8,7 +8,8 @@
     "start": "electron .",
     "build:client": "cd client && npm run build",
     "build:server": "cd server && npm run build",
-    "build:all": "npm run build:client && npm run build:server",
+    "install:all": "cd client && npm install && cd ../server && npm install",
+    "build:all": "npm run install:all && npm run build:client && npm run build:server",
     "pack": "electron-builder --dir",
     "dist": "npm run build:all && electron-builder"
   },
