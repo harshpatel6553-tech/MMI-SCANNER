@@ -1,7 +1,7 @@
 {
   "name": "mmi-scanner",
   "productName": "Market Minds Scanner",
-  "version": "1.0.0",
+  "version": "1.0.3",
   "description": "Desktop Stock Scanner",
   "main": "main.js",
   "scripts": {
@@ -36,8 +36,17 @@
       "main.js",
       "server/dist/**/*",
       "server/package.json",
+      "server/package-lock.json",
       "server/node_modules/**/*",
+      "!server/node_modules/.cache/**/*",
       "client/dist/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "server/node_modules",
+        "to": "app/server/node_modules",
+        "filter": ["**/*"]
+      }
     ],
     "win": {
       "target": "nsis",
