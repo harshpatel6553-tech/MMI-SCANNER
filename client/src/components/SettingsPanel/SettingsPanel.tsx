@@ -10,7 +10,8 @@ export function SettingsPanel() {
 
   useEffect(() => {
     // Fetch initial status to show placeholders if keys exist
-    fetch('/api/settings/keys')
+    const apiUrl = import.meta.env.VITE_SOCKET_URL || '';
+    fetch(`${apiUrl}/api/settings/keys`)
       .then(res => res.json())
       .then(data => {
         if (data.success && data.data) {
@@ -32,7 +33,8 @@ export function SettingsPanel() {
       if (rapidApiKey && !rapidApiKey.includes('•••••')) payload.RAPIDAPI_KEY = rapidApiKey;
       if (geminiApiKey && !geminiApiKey.includes('•••••')) payload.GEMINI_API_KEY = geminiApiKey;
 
-      const res = await fetch('/api/settings/keys', {
+      const apiUrl = import.meta.env.VITE_SOCKET_URL || '';
+      const res = await fetch(`${apiUrl}/api/settings/keys`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
