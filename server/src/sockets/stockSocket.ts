@@ -150,6 +150,14 @@ export function setupSocketHandlers(io: TypedServer): void {
       }
     });
 
+    // Handle admin forcing all clients to refresh
+    socket.on('admin:force-refresh-all', () => {
+      if (adminSockets.has(socket.id)) {
+        logger.warn(`dY"O Admin ${socket.id} triggered a global force refresh!`);
+        io.emit('server:force_refresh');
+      }
+    });
+
     // Handle subscription changes
     socket.on('subscribe:index', (index) => {
       const validIndices = ['NIFTY50', 'NIFTY500', 'ALL'] as const;
