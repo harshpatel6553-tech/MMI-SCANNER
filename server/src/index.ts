@@ -98,7 +98,7 @@ const io = new SocketIOServer<ClientToServerEvents, ServerToClientEvents>(
   httpServer,
   {
     cors: {
-      origin: '*', // Allow all origins for the desktop app
+      origin: '*', // Allow all origins
       methods: ['GET', 'POST'],
     },
     pingInterval: 25000,
@@ -117,7 +117,7 @@ app.use('/api/news', newsRoutes);
 app.use('/api/deals', dealsRoutes);
 app.use('/api/settings', settingsRoutes);
 
-// SPA Fallback for React Router (Electron Desktop App)
+// SPA Fallback for React Router
 if (fs.existsSync(clientDistPath)) {
   app.get('*', (req, res) => {
     if (!req.path.startsWith('/api')) {

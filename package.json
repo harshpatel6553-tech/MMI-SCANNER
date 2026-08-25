@@ -1,60 +1,15 @@
 {
   "name": "mmi-scanner",
-  "productName": "Market Minds Scanner",
-  "version": "1.0.15",
-  "description": "Desktop Stock Scanner",
-  "main": "main.js",
+  "version": "1.0.0",
+  "description": "Stock Scanner Web App",
   "scripts": {
-    "start": "electron .",
+    "start": "cd server && npm start",
+    "dev": "npm run start:server & npm run start:client",
+    "start:server": "cd server && npm run dev",
+    "start:client": "cd client && npm run dev",
     "build:client": "cd client && npm run build",
     "build:server": "cd server && npm run build",
-    "install:all": "cd client && npm install && cd ../server && npm install",
-    "build:all": "npm run install:all && npm run build:client && npm run build:server",
-    "pack": "electron-builder --dir",
-    "dist": "npm run build:all && electron-builder"
-  },
-  "devDependencies": {
-    "electron": "^30.0.0",
-    "electron-builder": "^24.13.3",
-    "electron-winstaller": "^5.4.4"
-  },
-  "build": {
-    "asar": false,
-    "appId": "com.marketminds.scanner",
-    "productName": "Market Minds Scanner",
-    "directories": {
-      "output": "dist-desktop"
-    },
-    "publish": [
-      {
-        "provider": "github",
-        "owner": "harshpatel6553-tech",
-        "repo": "MMI-SCANNER"
-      }
-    ],
-    "files": [
-      "main.js",
-      "preload.js",
-      "server/dist/**/*",
-      "server/package.json",
-      "server/package-lock.json",
-      "server/node_modules/**/*",
-      "!server/node_modules/.cache/**/*",
-      "client/dist/**/*"
-    ],
-    "extraResources": [
-      {
-        "from": "server/node_modules",
-        "to": "app/server/node_modules",
-        "filter": ["**/*"]
-      }
-    ],
-    "win": {
-      "target": "nsis",
-      "icon": "client/public/favicon.ico"
-    }
-  },
-  "dependencies": {
-    "electron-updater": "^6.8.9"
+    "install:all": "npm install && cd client && npm install && cd ../server && npm install",
+    "build:all": "npm run install:all && npm run build:client && npm run build:server"
   }
 }

@@ -155,59 +155,6 @@ export function SettingsPanel() {
           </button>
         </div>
       </form>
-
-      {/* App Updates Section */}
-      <div style={{ marginTop: '48px', paddingTop: '32px', borderTop: '1px solid var(--border)' }}>
-        <h2 style={{ fontSize: '20px', marginBottom: '8px', color: 'var(--text-1)' }}>App Updates</h2>
-        <p style={{ color: 'var(--text-2)', fontSize: '14px', marginBottom: '24px' }}>
-          Check for the latest version of Market Minds Scanner. Updates install automatically in the background.
-        </p>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <button
-            type="button"
-            onClick={() => {
-              if (window.electron) {
-                window.electron.checkForUpdates();
-              } else {
-                alert('Updates are only available in the desktop app.');
-              }
-            }}
-            style={{
-              padding: '12px 24px',
-              background: 'var(--bg-elevated)',
-              color: 'var(--text-1)',
-              border: '1px solid var(--border)',
-              borderRadius: '8px',
-              fontSize: '14px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              transition: 'all 0.2s'
-            }}
-          >
-            Check for Updates
-          </button>
-          <UpdateStatusMessage />
-        </div>
-      </div>
     </div>
-  );
-}
-
-// Separate component for the update message so it handles its own effect
-function UpdateStatusMessage() {
-  const [msg, setMsg] = useState('');
-  useEffect(() => {
-    if (window.electron) {
-      window.electron.onUpdateMessage((message: string) => {
-        setMsg(message);
-      });
-    }
-  }, []);
-  
-  if (!msg) return null;
-  return (
-    <span style={{ fontSize: '14px', color: 'var(--accent)' }}>
-      {msg}
-    </span>
   );
 }
