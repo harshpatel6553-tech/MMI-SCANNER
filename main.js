@@ -127,16 +127,40 @@ app.on('ready', () => {
     console.log('[main] serverCwd:', serverCwd);
     console.log('[main] exists:', fs.existsSync(serverPath));
 
+    let serverErrorOutput = '';
+    
     serverProcess = fork(serverPath, [], {
       cwd: serverCwd,
-      env: { ...process.env, ...externalEnv, PORT: port.toString(), NODE_ENV: 'production', ELECTRON_RUN_AS_NODE: '1' }
+      env: { ...process.env, ...externalEnv, PORT: port.toString(), NODE_ENV: 'production', ELECTRON_RUN_AS_NODE: '1' },
+      stdio: ['pipe', 'pipe', 'pipe', 'ipc']
+    });
+
+    if (serverProcess.stdout) {
+      serverProcess.stdout.on('data', (data) => {
+        console.log(`[server] ${data.toString()}`);
+      });
+    }
+    
+    if (serverProcess.stderr) {
+      serverProcess.stderr.on('data', (data) => {
+        const msg = data.toString();
+        console.error(`[server-error] ${msg}`);
+        serverErrorOutput += msg;
+      });
+    }
+
+    serverProcess.on('exit', (code) => {
+      console.log(`[server] exited with code ${code}`);
     });
 
     checkServerReady('http://localhost:' + port, 15000, (err) => {
       if (err) {
         console.error('Server failed to bind to ' + port, err);
         const { dialog } = require('electron');
-        dialog.showErrorBox('Server Error', 'The local scanner server failed to start. Please check the logs.');
+        dialog.showErrorBox(
+          'Server Error', 
+          `The local scanner server failed to start.\n\nError Details:\n${serverErrorOutput || 'No error output captured. The process may have hung.'}`
+        );
         app.quit();
         return;
       }
