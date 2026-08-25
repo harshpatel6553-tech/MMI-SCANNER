@@ -50,12 +50,14 @@ function AppContent() {
 
         <div className="content">
           <div className="page-head">
-            <div className="eyebrow">{activeTab} Â· Thu, 20 Aug 2026</div>
+            <div className="eyebrow">{activeTab} · {new Date().toLocaleDateString('en-US', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()}</div>
             <div className="page-title">
-              {activeTab === 'Overview' ? "Today's tape is running green." : activeTab}
+              {activeTab === 'Overview' 
+                ? (advancers >= decliners ? "Today's tape is running green." : "Today's tape is running red.")
+                : activeTab}
             </div>
             <div className="page-sub">
-              <b style={{ color: 'var(--up)', fontWeight: 600 }}>{advancers}â–²</b> advancers vs <b style={{ color: 'var(--down)', fontWeight: 600 }}>{decliners}â–¼</b> decliners across {allStocks.length} tracked stocks â€” here's what's moving.
+              <b style={{ color: 'var(--up)', fontWeight: 600 }}>{advancers}▲</b> advancers vs <b style={{ color: 'var(--down)', fontWeight: 600 }}>{decliners}▼</b> decliners across {allStocks.length} tracked stocks — here's what's moving.
             </div>
           </div>
 
