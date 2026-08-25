@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain } = require('electron');
 const { fork } = require('child_process');
 const path = require('path');
 const http = require('http');
@@ -10,14 +10,15 @@ autoUpdater.autoDownload = true;
 autoUpdater.autoInstallOnAppQuit = true;
 
 autoUpdater.on('update-available', () => {
-  dialog.showMessageBox({
-    type: 'info',
-    title: 'Update Available',
-    message: 'A new version of Market Minds Scanner is available. It is downloading in the background...'
-  });
+  if (mainWindow) mainWindow.webContents.send('update-message', 'Downloading update...');
+});
+
+autoUpdater.on('update-not-available', () => {
+  if (mainWindow) mainWindow.webContents.send('update-message', 'App is up to date.');
 });
 
 autoUpdater.on('update-downloaded', () => {
+  if (mainWindow) mainWindow.webContents.send('update-message', 'Update ready to install!');
   dialog.showMessageBox({
     type: 'info',
     title: 'Update Ready',
@@ -32,6 +33,18 @@ autoUpdater.on('update-downloaded', () => {
 
 autoUpdater.on('error', (err) => {
   console.error('Auto-updater error:', err);
+  if (mainWindow) mainWindow.webContents.send('update-message', 'Error checking for updates.');
+});
+
+ipcMain.on('check-for-updates', () => {
+  if (mainWindow) mainWindow.webContents.send('update-message', 'Checking for updates...');
+  if (app.isPackaged) {
+    autoUpdater.checkForUpdatesAndNotify();
+  } else {
+    setTimeout(() => {
+      if (mainWindow) mainWindow.webContents.send('update-message', 'Cannot update in dev mode.');
+    }, 1500);
+  }
 });
 
 let mainWindow;
@@ -55,7 +68,8 @@ function createWindow(port) {
     height: 900,
     webPreferences: {
       nodeIntegration: false,
-      contextIsolation: true
+      contextIsolation: true,
+      preload: path.join(__dirname, 'preload.js')
     },
     title: 'Market Minds Scanner',
     autoHideMenuBar: true
