@@ -131,7 +131,14 @@ app.on('ready', () => {
     
     serverProcess = fork(serverPath, [], {
       cwd: serverCwd,
-      env: { ...process.env, ...externalEnv, PORT: port.toString(), NODE_ENV: 'production', ELECTRON_RUN_AS_NODE: '1' },
+      env: { 
+        ...process.env, 
+        ...externalEnv, 
+        PORT: port.toString(), 
+        NODE_ENV: 'production', 
+        ELECTRON_RUN_AS_NODE: '1',
+        USER_DATA_PATH: app.getPath('userData')
+      },
       stdio: ['pipe', 'pipe', 'pipe', 'ipc']
     });
 
