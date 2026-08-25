@@ -44,8 +44,8 @@ export function Topbar({ allStocks }: TopbarProps) {
   const headlines = [
     'LUPIN LIMITED enters exclusive license agreement with Visus Therapeutics for YUVEZZITM in Europe',
     'VIPUL ORGANICS commences production at greenfield facility in Sayakha, Gujarat',
-    'DEV INFORMATION TECH secures ₹5.15 Cr order from NICSI for IFMS 3.0',
-    'L&T wins large contract valued between ₹25B–50B',
+    'DEV INFORMATION TECH secures \u20B95.15 Cr order from NICSI for IFMS 3.0',
+    'L&T wins large contract valued between \u20B925B–50B',
     'UNICOMMERCE & Urban Co expand partnership to UAE & Saudi Arabia'
   ];
 

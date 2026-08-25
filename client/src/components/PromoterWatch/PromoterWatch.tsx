@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Search, Lock } from 'lucide-react';
 import { useStocks } from '../../hooks/useStocks';
 import './PromoterWatch.css';
@@ -54,9 +54,9 @@ export const PromoterWatch: React.FC = () => {
   const netFlow = totalBuyValue - totalSellValue;
 
   const formatCurrency = (val: number) => {
-    if (val >= 10000000) return `â‚¹${(val / 10000000).toFixed(2)} Cr`;
-    if (val >= 100000) return `â‚¹${(val / 100000).toFixed(2)} L`;
-    return `â‚¹${val.toLocaleString()}`;
+    if (val >= 10000000) return `\u20B9${(val / 10000000).toFixed(2)} Cr`;
+    if (val >= 100000) return `\u20B9${(val / 100000).toFixed(2)} L`;
+    return `\u20B9${val.toLocaleString()}`;
   };
 
   const linePoints = [3,4,4,5,6,6,7,8,9,9,10,11,12,13,14];
@@ -137,7 +137,7 @@ export const PromoterWatch: React.FC = () => {
           </div>
           
           <div className="chart-card">
-            <div className="ctitle">Net Promoter Flow by Day (â‚¹ Cr)</div>
+            <div className="ctitle">Net Promoter Flow by Day (&#8377; Cr)</div>
             <svg viewBox={`0 0 ${bw} ${bh + 30}`} width="100%" height="120">
               <line x1="0" y1={base} x2={bw} y2={base} stroke="#262626" strokeWidth="1"/>
               {barVals.map((v, i) => {
@@ -181,7 +181,7 @@ export const PromoterWatch: React.FC = () => {
                 <span className="dt-client" title={r.clientName}>{r.clientName}</span>
                 <span className={`dt-type ${r.type.toLowerCase()}`}>{r.type.toUpperCase()}</span>
                 <span className="dt-num">{r.quantity.toLocaleString()}</span>
-                <span className="dt-num">â‚¹{r.price.toFixed(2)}</span>
+                <span className="dt-num">&#8377;{r.price.toFixed(2)}</span>
                 <span className="dt-num">{formatCurrency(r.quantity * r.price)}</span>
                 <span className="dt-access"><Lock size={10} /> UNLOCK</span>
               </div>

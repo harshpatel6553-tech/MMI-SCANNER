@@ -7,7 +7,7 @@ interface AnimatedPriceProps {
 }
 
 function formatToChars(value: number): string {
-  return '₹' + value.toLocaleString('en-IN', {
+  return '\u20B9' + value.toLocaleString('en-IN', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });

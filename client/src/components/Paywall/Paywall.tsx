@@ -23,16 +23,16 @@ export function Paywall() {
           <div className="subscription-tiers">
             <div className="tier-card">
               <h3>Monthly</h3>
-              <div className="price-tag">₹499<span>/mo</span></div>
+              <div className="price-tag">&#8377;499<span>/mo</span></div>
             </div>
             <div className="tier-card recommended">
               <div className="recommended-badge">Most Popular</div>
               <h3>Yearly</h3>
-              <div className="price-tag">₹6,000<span>/yr</span></div>
+              <div className="price-tag">&#8377;6,000<span>/yr</span></div>
             </div>
             <div className="tier-card">
               <h3>3 Years</h3>
-              <div className="price-tag">₹15,000<span>/3 yrs</span></div>
+              <div className="price-tag">&#8377;15,000<span>/3 yrs</span></div>
             </div>
           </div>
           

@@ -1,5 +1,5 @@
 export function formatPrice(price: number): string {
-  return '₹' + price.toLocaleString('en-IN', {
+  return '\u20B9' + price.toLocaleString('en-IN', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
@@ -44,11 +44,11 @@ export function getChangeClass(change: number): string {
 
 export function formatMarketCap(cap: number): string {
   if (cap >= 1e12) {
-    return '₹' + (cap / 1e12).toFixed(1) + 'LCr';
-  } else if (cap >= 1e10) {
-    return '₹' + (cap / 1e7).toLocaleString('en-IN', { maximumFractionDigits: 0 }) + 'Cr';
+    return '\u20B9' + (cap / 1e12).toFixed(1) + 'LCr';
   } else if (cap >= 1e7) {
-    return '₹' + Math.round(cap / 1e7) + 'Cr';
+    return '\u20B9' + (cap / 1e7).toLocaleString('en-IN', { maximumFractionDigits: 0 }) + 'Cr';
+  } else if (cap >= 1e5) {
+    return '\u20B9' + Math.round(cap / 1e7) + 'Cr';
   }
-  return '₹' + cap.toLocaleString('en-IN');
+  return '\u20B9' + cap.toLocaleString('en-IN');
 }

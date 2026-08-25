@@ -57,7 +57,7 @@ export function FilterPanel({ filters, onChange, stats }: FilterPanelProps) {
           <label className="filter-label">Price Range</label>
           <div className="range-inputs">
             <div className="input-with-prefix">
-              <span className="input-prefix">₹</span>
+              <span className="input-prefix">&#8377;</span>
               <input
                 type="number"
                 className="input filter-input"
@@ -68,7 +68,7 @@ export function FilterPanel({ filters, onChange, stats }: FilterPanelProps) {
             </div>
             <span className="range-separator">—</span>
             <div className="input-with-prefix">
-              <span className="input-prefix">₹</span>
+              <span className="input-prefix">&#8377;</span>
               <input
                 type="number"
                 className="input filter-input"
