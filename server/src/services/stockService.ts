@@ -15,8 +15,6 @@ import logger from '../utils/logger.js';
 /** Number of concurrent requests per batch */
 const CONCURRENCY = 20;
 
-/** Delay (ms) between successive batches to avoid triggering Yahoo DDoS protections */
-const BATCH_DELAY_MS = 2000;
 
 /**
  * Tolerance for detecting whether a stock is at its day high or low.
@@ -73,13 +71,8 @@ class StockService {
       `Fetching ${stocks.length} ${indexName} stocks in ${batches.length} batch(es) via Spark Bulk API`
     );
 
-    for (let batchIdx = 0; batchIdx < batches.length; batchIdx++) {
-      const batch = batches[batchIdx]!;
-
-      if (batchIdx > 0) {
-        await sleep(BATCH_DELAY_MS);
-      }
-
+    // Fetch all batches in parallel to eliminate the 46-second delay
+    const fetchPromises = batches.map(async (batch, batchIdx) => {
       const symbolsStr = batch.map(s => `${s.symbol}.NS`).join(',');
       
       try {
@@ -98,6 +91,7 @@ class StockService {
         const data = await res.json() as any;
         const sparkResults = data?.spark?.result || [];
 
+        const batchResults: StockData[] = [];
         for (const sparkObj of sparkResults) {
           const meta = sparkObj.response?.[0]?.meta;
           const quoteIndicators = sparkObj.response?.[0]?.indicators?.quote?.[0];
@@ -155,12 +149,19 @@ class StockService {
             ...(technicalService.getTechnicals(cleanSymbol) || { macdWeeklyBuy: false, rsiDaily: 50, emaCrossDaily: false }),
           };
 
-          results.push(stockData);
+          batchResults.push(stockData);
           this.stockCache.set(stockData.symbol, stockData);
         }
+        return batchResults;
       } catch (err: any) {
         logger.error(`Bulk fetch failed for batch ${batchIdx}: ${err.message}`);
+        return [];
       }
+    });
+
+    const resultsArrays = await Promise.all(fetchPromises);
+    for (const arr of resultsArrays) {
+      results.push(...arr);
     }
 
     this.lastFetchTime.set(indexName, Date.now());
