@@ -46,20 +46,28 @@ class AlertService {
   private inMemoryAlerts: StockAlert[] = [];
 
   /**
+   * Generate a deterministic UUID based on an input string.
+   * This ensures that if 50 users detect the same alert in the same minute,
+   * they all generate the exact same UUID, and Supabase automatically rejects duplicates.
+   */
+  private generateDeterministicUUID(input: string): string {
+    const hash = crypto.createHash('md5').update(input).digest('hex');
+    return [
+      hash.substring(0, 8),
+      hash.substring(8, 12),
+      hash.substring(12, 16),
+      hash.substring(16, 20),
+      hash.substring(20, 32)
+    ].join('-');
+  }
+
+  /**
    * Check stock data for day-high/low transitions and generate alerts.
-   *
-   * For each stock, this method:
-   * 1. Looks up the previous high/low state
-   * 2. Detects false → true transitions for both atDayHigh and atDayLow
-   * 3. Creates a {@link StockAlert} for each new transition
-   * 4. Updates the state map
-   * 5. Persists alerts to Supabase (fire-and-forget)
-   *
-   * @param stocks - Array of current stock data to check
-   * @returns Array of newly generated alerts (only transitions, not repeats)
    */
   checkAndGenerateAlerts(stocks: StockData[]): StockAlert[] {
     const newAlerts: StockAlert[] = [];
+    const now = new Date().toISOString();
+    const minuteTimestamp = now.substring(0, 16); // e.g., "2023-10-27T10:15"
 
     for (const stock of stocks) {
       const previousState = this.previousHighLowState.get(stock.symbol) || {
@@ -70,15 +78,14 @@ class AlertService {
         volumeSpiked: false,
       };
 
-      const now = new Date().toISOString();
-
       // Detect DAY_HIGH transition or new high value
       const isNewHighValue = previousState.highValue > 0 && stock.dayHigh > previousState.highValue;
       const transitionedToHigh = stock.atDayHigh && !previousState.atHigh;
       
       if (isNewHighValue || transitionedToHigh) {
+        const alertId = this.generateDeterministicUUID(`${stock.symbol}_DAY_HIGH_${minuteTimestamp}`);
         const alert: StockAlert = {
-          id: crypto.randomUUID(),
+          id: alertId,
           symbol: stock.symbol,
           name: stock.name,
           alertType: 'DAY_HIGH',
@@ -96,8 +103,9 @@ class AlertService {
       const transitionedToLow = stock.atDayLow && !previousState.atLow;
       
       if (isNewLowValue || transitionedToLow) {
+        const alertId = this.generateDeterministicUUID(`${stock.symbol}_DAY_LOW_${minuteTimestamp}`);
         const alert: StockAlert = {
-          id: crypto.randomUUID(),
+          id: alertId,
           symbol: stock.symbol,
           name: stock.name,
           alertType: 'DAY_LOW',
@@ -112,8 +120,9 @@ class AlertService {
 
       // Detect VOLUME_SPIKE transition
       if (stock.volumeSpike === true && previousState.volumeSpiked === false) {
+        const alertId = this.generateDeterministicUUID(`${stock.symbol}_VOLUME_SPIKE_${minuteTimestamp}`);
         const alert: StockAlert = {
-          id: crypto.randomUUID(),
+          id: alertId,
           symbol: stock.symbol,
           name: stock.name,
           alertType: 'VOLUME_SPIKE',
