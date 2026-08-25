@@ -50,7 +50,7 @@ class AIService {
         let results: AISentimentResult[] = [];
 
         if (isUsingGroq) {
-          // Use Groq API (mixtral-8x7b-32768)
+          // Use Groq API (llama3-8b-8192)
           const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -58,7 +58,7 @@ class AIService {
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-              model: 'mixtral-8x7b-32768',
+              model: 'llama3-8b-8192',
               messages: [{ role: 'user', content: prompt }],
               temperature: 0.1,
               response_format: { type: 'json_object' }
