@@ -20,6 +20,7 @@ interface HighLowState {
   highValue: number;
   lowValue: number;
   volumeSpiked: boolean;
+  lastAlertTime: number;
 }
 
 /**
