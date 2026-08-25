@@ -115,6 +115,7 @@ setupSocketHandlers(io);
 app.use('/api/stocks', stockRoutes);
 app.use('/api/news', newsRoutes);
 app.use('/api/deals', dealsRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // SPA Fallback for React Router (Electron Desktop App)
 if (fs.existsSync(clientDistPath)) {
