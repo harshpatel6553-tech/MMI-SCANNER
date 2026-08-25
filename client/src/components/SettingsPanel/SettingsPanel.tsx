@@ -47,7 +47,8 @@ export function SettingsPanel() {
         setStatus({ type: 'error', message: data.error || 'Failed to update keys' });
       }
     } catch (err) {
-      setStatus({ type: 'error', message: 'Network error while saving keys' });
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      setStatus({ type: 'error', message: `Network error while saving keys: ${errorMessage}` });
     } finally {
       setIsLoading(false);
     }

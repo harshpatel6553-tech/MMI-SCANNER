@@ -434,9 +434,13 @@ async function loadInitialStocksFromSupabase(): Promise<void> {
   if (!isSupabaseConfigured) return;
   
   try {
-    const { data, error } = await supabase
-      .from('stocks')
-      .select('*');
+    // 5-second timeout to prevent server hang on startup
+    const timeoutPromise = new Promise<{ data: any, error: any }>((_, reject) =>
+      setTimeout(() => reject(new Error('Supabase fetch timed out after 5 seconds')), 5000)
+    );
+    
+    const queryPromise = supabase.from('stocks').select('*');
+    const { data, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
       
     if (error) {
       logger.error('Failed to preload stocks from Supabase:', error);
