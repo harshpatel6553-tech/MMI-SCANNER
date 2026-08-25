@@ -1,7 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 
-const CONFIG_FILE_PATH = path.join(process.cwd(), 'user_config.json');
+const userDataPath = process.env.USER_DATA_PATH || process.cwd();
+const CONFIG_FILE_PATH = path.join(userDataPath, 'user_config.json');
 
 export interface UserConfig {
   RAPIDAPI_KEY?: string;
