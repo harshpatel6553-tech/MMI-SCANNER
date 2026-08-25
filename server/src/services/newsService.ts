@@ -156,7 +156,7 @@ class NewsService extends EventEmitter {
       combinedNews = Array.from(new Map(combinedNews.map(item => [item.id, item])).values()).slice(0, 100);
         
       this.newsCache = combinedNews;
-      logger.debug(`Fetched ${newTweets.length} new tweets from multiple accounts.`);
+
 
       // Emit news alerts for new tweets (skip on first boot to avoid spamming alerts)
       if (!isFirstFetch && newTweets.length > 0) {

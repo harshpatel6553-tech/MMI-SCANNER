@@ -67,9 +67,7 @@ class StockService {
       batches.push(stocks.slice(i, i + CONCURRENCY));
     }
 
-    logger.debug(
-      `Fetching ${stocks.length} ${indexName} stocks in ${batches.length} batch(es) via Spark Bulk API`
-    );
+
 
     // Fetch all batches in parallel to eliminate the 46-second delay
     const fetchPromises = batches.map(async (batch, batchIdx) => {
@@ -165,7 +163,7 @@ class StockService {
     }
 
     this.lastFetchTime.set(indexName, Date.now());
-    logger.info(`${indexName}: fetched ${results.length}/${stocks.length} stocks successfully`);
+
     return results;
   }
 
@@ -251,9 +249,7 @@ class StockService {
         results.push(indexData);
         this.stockCache.set(idx.displaySymbol, indexData);
 
-        logger.info(
-          `📈 ${idx.name}: ₹${price.toFixed(2)} | High: ₹${dayHigh.toFixed(2)} | Low: ₹${dayLow.toFixed(2)} | ${changePercent >= 0 ? '+' : ''}${changePercent.toFixed(2)}%`
-        );
+
       }
     } catch (err: any) {
       logger.error(`Failed to fetch indices: ${err.message}`);
