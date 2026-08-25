@@ -230,45 +230,7 @@ app.get('/', (_req, res) => {
 async function upsertStocksToSupabase(
   stocks: import('./types/index.js').StockData[]
 ): Promise<void> {
-  if (!isSupabaseConfigured || stocks.length === 0) {
-    return;
-  }
-
-  try {
-    const { error } = await supabase.from('stocks').upsert(
-      stocks.map((s) => ({
-        symbol: s.symbol,
-        name: s.name,
-        price: s.price,
-        previous_close: s.previousClose,
-        open_price: s.open,
-        day_high: s.dayHigh,
-        day_low: s.dayLow,
-        change: s.change,
-        change_percent: s.changePercent,
-        volume: s.volume,
-        sector: s.sector,
-        average_volume: s.averageVolume,
-        relative_volume: s.relativeVolume,
-        volume_spike: s.volumeSpike,
-        index_name: s.indexName,
-        at_day_high: s.atDayHigh,
-        at_day_low: s.atDayLow,
-        fifty_two_week_high: s.fiftyTwoWeekHigh,
-        fifty_two_week_low: s.fiftyTwoWeekLow,
-        market_cap: s.marketCap,
-        last_updated: s.lastUpdated,
-      })),
-      { onConflict: 'symbol' }
-    );
-
-    if (error) {
-      logger.error(`Supabase stock upsert failed: ${error.message}`);
-    }
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    logger.error(`Supabase stock upsert error: ${message}`);
-  }
+  // Supabase syncing disabled for web deployment
 }
 
 // ── Polling Loops ──────────────────────────────────────────────
@@ -431,56 +393,7 @@ import { technicalService } from './services/technicalService.js';
  * frontend during cold server restarts by immediately serving the last known prices.
  */
 async function loadInitialStocksFromSupabase(): Promise<void> {
-  if (!isSupabaseConfigured) return;
-  
-  try {
-    // 5-second timeout to prevent server hang on startup
-    const timeoutPromise = new Promise<{ data: any, error: any }>((_, reject) =>
-      setTimeout(() => reject(new Error('Supabase fetch timed out after 5 seconds')), 5000)
-    );
-    
-    const queryPromise = supabase.from('stocks').select('*');
-    const { data, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
-      
-    if (error) {
-      logger.error('Failed to preload stocks from Supabase:', error);
-      return;
-    }
-    
-    if (data && data.length > 0) {
-      // Map snake_case db columns back to camelCase StockData format
-      for (const row of data) {
-        const stockData: import('./types/index.js').StockData = {
-          symbol: row.symbol,
-          name: row.name,
-          price: row.price,
-          previousClose: row.previous_close,
-          open: row.open_price,
-          dayHigh: row.day_high,
-          dayLow: row.day_low,
-          change: row.change,
-          changePercent: row.change_percent,
-          volume: row.volume,
-          sector: row.sector,
-          averageVolume: row.average_volume,
-          relativeVolume: row.relative_volume,
-          volumeSpike: row.volume_spike,
-          indexName: row.index_name,
-          atDayHigh: row.at_day_high,
-          atDayLow: row.at_day_low,
-          fiftyTwoWeekHigh: row.fifty_two_week_high,
-          fiftyTwoWeekLow: row.fifty_two_week_low,
-          marketCap: row.market_cap,
-          lastUpdated: row.updated_at || new Date().toISOString(),
-          ...(technicalService.getTechnicals(row.symbol) || { macdWeeklyBuy: false, rsiDaily: 50, emaCrossDaily: false })
-        };
-        stockService.preloadStock(stockData);
-      }
-      logger.info(`⚡ Preloaded ${data.length} stocks from Supabase instantly!`);
-    }
-  } catch (err) {
-    logger.error('Exception preloading stocks:', err);
-  }
+  // Supabase preload disabled for web deployment
 }
 
 /**

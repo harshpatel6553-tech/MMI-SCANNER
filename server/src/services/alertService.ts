@@ -161,40 +161,7 @@ class AlertService {
    * @param alerts - Array of alerts to persist
    */
   private saveAlerts(alerts: StockAlert[]): void {
-    if (!isSupabaseConfigured) {
-      logger.debug('Supabase not configured — skipping alert persistence');
-      return;
-    }
-
-    // Fire-and-forget: use async IIFE, don't await
-    (async () => {
-      try {
-        const { error } = await supabase
-          .from('alerts')
-          .insert(
-            alerts.map((a) => ({
-              id: a.id,
-              symbol: a.symbol,
-              name: a.name,
-              alert_type: a.alertType,
-              price: a.price,
-              created_at: a.createdAt,
-            }))
-          );
-        if (error) {
-          logger.error(`Failed to save alerts to Supabase: ${error.message}`);
-        } else {
-          logger.debug(`Saved ${alerts.length} alerts to Supabase`);
-        }
-      } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : String(err);
-        if (message.includes('check constraint')) {
-          logger.warn(`Supabase alert insert warning: ${message}. (Please update your Supabase 'alerts_alert_type_check' constraint to include new alert types like VOLUME_SPIKE)`);
-        } else {
-          logger.error(`Supabase alert insert error: ${message}`);
-        }
-      }
-    })();
+    // Supabase syncing disabled for web deployment
   }
 
   /**
