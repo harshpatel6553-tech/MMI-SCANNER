@@ -172,6 +172,10 @@
   font-size: 0.95rem;
   line-height: 1.5;
   font-weight: 400;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .news-item:hover .news-item-title {
