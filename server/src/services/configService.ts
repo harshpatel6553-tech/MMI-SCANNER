@@ -30,7 +30,11 @@ class ConfigService {
   }
 
   public getConfig(): UserConfig {
-    return this.config;
+    return {
+      ...this.config,
+      RAPIDAPI_KEY: process.env.RAPIDAPI_KEY || this.config.RAPIDAPI_KEY,
+      GEMINI_API_KEY: process.env.GEMINI_API_KEY || this.config.GEMINI_API_KEY,
+    };
   }
 
   public updateConfig(newConfig: Partial<UserConfig>) {
@@ -43,8 +47,8 @@ class ConfigService {
     }
   }
 
-  public getKey(key: keyof UserConfig): string | undefined {
-    return this.config[key];
+  public getKey(key: string): string | undefined {
+    return process.env[key] || this.config[key];
   }
 }
 
