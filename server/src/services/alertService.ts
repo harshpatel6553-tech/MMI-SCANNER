@@ -172,45 +172,8 @@ class AlertService {
    *          if Supabase is not configured or the query fails.
    */
   async getRecentAlerts(limit: number = 100): Promise<StockAlert[]> {
-    if (!isSupabaseConfigured) {
-      logger.debug(
-        `Supabase not configured — returning ${Math.min(this.inMemoryAlerts.length, limit)} alerts from in-memory cache`
-      );
-      return this.inMemoryAlerts.slice(0, limit);
-    }
-
-    try {
-      const { data, error } = await supabase
-        .from('alerts')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(limit);
-
-      if (error) {
-        logger.error(`Failed to fetch alerts from Supabase: ${error.message}`);
-        return [];
-      }
-
-      if (!data) {
-        return [];
-      }
-
-      return data.map(
-        (row: Record<string, unknown>) =>
-          ({
-            id: row.id as string,
-            symbol: row.symbol as string,
-            name: row.name as string,
-            alertType: row.alert_type as 'DAY_HIGH' | 'DAY_LOW' | 'VOLUME_SPIKE',
-            price: row.price as number,
-            createdAt: row.created_at as string,
-          }) satisfies StockAlert
-      );
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      logger.error(`Error fetching alerts: ${message}`);
-      return [];
-    }
+    // Supabase syncing is disabled for web deployment, always serve from memory cache
+    return this.inMemoryAlerts.slice(0, limit);
   }
 
   /**
