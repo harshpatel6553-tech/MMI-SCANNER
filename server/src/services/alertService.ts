@@ -79,7 +79,7 @@ class AlertService {
       };
 
       // Detect DAY_HIGH transition or new high value
-      const isNewHighValue = previousState.highValue > 0 && stock.dayHigh > previousState.highValue;
+      const isNewHighValue = previousState.highValue > 0 && stock.dayHigh > previousState.highValue && stock.atDayHigh;
       const transitionedToHigh = stock.atDayHigh && !previousState.atHigh;
       
       if (isNewHighValue || transitionedToHigh) {
@@ -89,17 +89,17 @@ class AlertService {
           symbol: stock.symbol,
           name: stock.name,
           alertType: 'DAY_HIGH',
-          price: stock.dayHigh,
+          price: stock.price, // Use current price instead of dayHigh to be accurate to what the user sees
           createdAt: now,
         };
         newAlerts.push(alert);
         logger.info(
-          `🔔 DAY HIGH ALERT: ${stock.symbol} (${stock.name}) hit ₹${stock.dayHigh.toFixed(2)}${isNewHighValue ? ' (New High)' : ''}`
+          `🔔 DAY HIGH ALERT: ${stock.symbol} (${stock.name}) hit ₹${stock.price.toFixed(2)}${isNewHighValue ? ' (New High)' : ''}`
         );
       }
 
       // Detect DAY_LOW transition or new low value
-      const isNewLowValue = previousState.lowValue > 0 && stock.dayLow < previousState.lowValue;
+      const isNewLowValue = previousState.lowValue > 0 && stock.dayLow < previousState.lowValue && stock.atDayLow;
       const transitionedToLow = stock.atDayLow && !previousState.atLow;
       
       if (isNewLowValue || transitionedToLow) {
@@ -109,12 +109,12 @@ class AlertService {
           symbol: stock.symbol,
           name: stock.name,
           alertType: 'DAY_LOW',
-          price: stock.dayLow,
+          price: stock.price, // Use current price
           createdAt: now,
         };
         newAlerts.push(alert);
         logger.info(
-          `🔔 DAY LOW ALERT: ${stock.symbol} (${stock.name}) hit ₹${stock.dayLow.toFixed(2)}${isNewLowValue ? ' (New Low)' : ''}`
+          `🔔 DAY LOW ALERT: ${stock.symbol} (${stock.name}) hit ₹${stock.price.toFixed(2)}${isNewLowValue ? ' (New Low)' : ''}`
         );
       }
 
