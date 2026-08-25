@@ -1,7 +1,7 @@
 {
   "name": "mmi-scanner",
   "productName": "Market Minds Scanner",
-  "version": "1.0.12",
+  "version": "1.0.13",
   "description": "Desktop Stock Scanner",
   "main": "main.js",
   "scripts": {
@@ -34,6 +34,7 @@
     ],
     "files": [
       "main.js",
+      "preload.js",
       "server/dist/**/*",
       "server/package.json",
       "server/package-lock.json",
