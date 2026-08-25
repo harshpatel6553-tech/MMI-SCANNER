@@ -64,14 +64,21 @@ class AlertService {
     const COOLDOWN_MS = 3 * 60 * 1000; // 3 minutes cooldown per stock
 
     for (const stock of stocks) {
-      const previousState = this.previousHighLowState.get(stock.symbol) || {
-        atHigh: false,
-        atLow: false,
-        highValue: 0,
-        lowValue: 0,
-        volumeSpiked: false,
-        lastAlertTime: 0,
-      };
+      // If we haven't seen this stock before (e.g. server just booted), 
+      // silently initialize its state and skip generating alerts.
+      if (!this.previousHighLowState.has(stock.symbol)) {
+        this.previousHighLowState.set(stock.symbol, {
+          atHigh: stock.atDayHigh,
+          atLow: stock.atDayLow,
+          highValue: stock.dayHigh,
+          lowValue: stock.dayLow,
+          volumeSpiked: stock.volumeSpike,
+          lastAlertTime: 0,
+        });
+        continue;
+      }
+
+      const previousState = this.previousHighLowState.get(stock.symbol)!;
 
       let triggeredAlert = false;
       const isCooldownOver = currentMs - previousState.lastAlertTime > COOLDOWN_MS;
