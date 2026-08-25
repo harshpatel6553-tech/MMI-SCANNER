@@ -128,4 +128,6 @@ export interface ClientToServerEvents {
   'auth:identify': (data: { email: string; isAdmin?: boolean }) => void;
   /** Admin requests the current online user list */
   'admin:request-online-users': () => void;
+  /** Admin triggers a global refresh of all clients */
+  'admin:force-refresh-all': () => void;
 }
