@@ -59,7 +59,13 @@ export async function testConnection(): Promise<boolean> {
   }
 
   try {
-    const { error } = await supabase.from('stocks').select('symbol').limit(1);
+    // 5-second timeout to prevent server hang on startup
+    const timeoutPromise = new Promise<{ error: any }>((_, reject) =>
+      setTimeout(() => reject(new Error('Supabase connection timed out after 5 seconds')), 5000)
+    );
+    
+    const queryPromise = supabase.from('stocks').select('symbol').limit(1);
+    const { error } = await Promise.race([queryPromise, timeoutPromise]) as any;
 
     if (error) {
       // Table might not exist yet — that's okay, connection itself worked

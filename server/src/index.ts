@@ -484,26 +484,27 @@ async function loadInitialStocksFromSupabase(): Promise<void> {
  */
 async function startServer(): Promise<void> {
   try {
-    // Test Supabase connection
-    const supabaseOk = await testConnection();
-    if (!supabaseOk) {
-      logger.warn(
-        '⚠️  Running without Supabase — stock data will not be persisted'
-      );
-    }
-
-    // Start HTTP server
+    // Start HTTP server immediately so Electron checkServerReady passes instantly
     httpServer.listen(PORT, () => {
       logger.info('═══════════════════════════════════════════════');
       logger.info(`🚀 Nifty Stock Screener Server v1.0.0`);
       logger.info(`   REST API:   http://localhost:${PORT}/api`);
       logger.info(`   WebSocket:  ws://localhost:${PORT}`);
       logger.info(`   Health:     http://localhost:${PORT}/api/health`);
-      logger.info(`   Supabase:   ${supabaseOk ? '✅ Connected' : '⚠️  Not configured'}`);
       logger.info(`   Nifty 50:   polling every ${NIFTY50_POLL_INTERVAL}ms`);
       logger.info(`   Nifty 500:  polling every ${NIFTY500_POLL_INTERVAL}ms`);
       logger.info('═══════════════════════════════════════════════');
     });
+
+    // Test Supabase connection
+    const supabaseOk = await testConnection();
+    if (!supabaseOk) {
+      logger.warn(
+        '⚠️  Running without Supabase — stock data will not be persisted'
+      );
+    } else {
+      logger.info('   Supabase:   ✅ Connected');
+    }
 
     // ⚡ INSTANT PRELOAD FROM SUPABASE
     // This allows clients connecting right now to instantly see the last known prices
