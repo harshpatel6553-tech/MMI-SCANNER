@@ -93,7 +93,7 @@ export function AlertPanel({ alerts, onClearAll }: AlertPanelProps) {
                       }
 
                       return (
-                        <div key={alert.id} className={`flex items-center gap-3 py-2.5 px-3 mb-2 shadow-sm backdrop-blur-sm transition-all hover:brightness-110 ${rowStyle}`}>
+                        <div key={alert.id} className={`flex items-center gap-3 py-2.5 px-3 mb-2 shadow-sm backdrop-blur-sm transition-all hover:brightness-110 bg-[#0b0b0d] border border-[#262b31] ${rowStyle}`}>
                           <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded leading-none ${badgeStyle}`}>
                             {typeLabel}
                           </span>
