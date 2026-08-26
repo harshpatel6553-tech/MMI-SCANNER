@@ -179,6 +179,22 @@
   color: #a855f7;
 }
 
+/* ============================================
+   ALERT PANEL VARIABLES (REDESIGN)
+   ============================================ */
+:root {
+  --bg-void: #0A0A0A;
+  --bg-panel: #131313;
+  --bg-panel-hi: #181818;
+  --line: #262626;
+  --accent: #E8963F;
+  --pulse-green: #22C55E;
+  --pulse-red: #EF4444;
+  --ink: #F5F5F5;
+  --ink-muted: #8A8A8A;
+  --ink-faint: #5A5A5A;
+}
+
 /* ---- Alert Panel ---- */
 .alert-panel {
   position: fixed;
