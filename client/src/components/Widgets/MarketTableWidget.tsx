@@ -58,7 +58,10 @@ export function MarketTableWidget({ fullView = false }: MarketTableWidgetProps) 
                 </td>
                 <td className="dh num">{r.dayHigh.toFixed(2)}</td>
                 <td className="dl num">{r.dayLow.toFixed(2)}</td>
-                <td className="vol num">{formatVol(r.volume)}</td>
+                <td className="vol num">
+                  {r.volumeSpike && <span title="Volume Spike!" style={{ color: '#a855f7', marginRight: 4, display: 'inline-block', verticalAlign: 'middle', fontSize: '12px' }}>⚡</span>}
+                  {formatVol(r.volume)}
+                </td>
               </tr>
             );
           })}

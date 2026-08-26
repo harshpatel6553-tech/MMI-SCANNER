@@ -11,6 +11,8 @@ import { NIFTY_500_STOCKS } from '../data/nifty500.js';
 import { SECTOR_MAP } from '../data/sectorMap.js';
 import { technicalService } from './technicalService.js';
 import logger from '../utils/logger.js';
+import yahooFinanceModule from 'yahoo-finance2';
+const yahooFinance = typeof yahooFinanceModule === 'function' ? new (yahooFinanceModule as any)({ suppressNotices: ['yahooSurvey'] }) : (yahooFinanceModule as any).default ? new (yahooFinanceModule as any).default({ suppressNotices: ['yahooSurvey'] }) : yahooFinanceModule;
 
 /** Number of concurrent requests per batch */
 const CONCURRENCY = 20;
@@ -41,6 +43,8 @@ class StockService {
 
   /** Name lookup map from original stock lists */
   private nameMap: Map<string, string> = new Map();
+  private averageVolumeMap: Map<string, number> = new Map();
+  private hasFetchedAverageVolume = false;
 
   constructor() {
     for (const s of NIFTY_50_STOCKS) {
@@ -48,6 +52,34 @@ class StockService {
     }
     for (const s of NIFTY_500_STOCKS) {
       this.nameMap.set(s.symbol, s.name);
+    }
+  }
+
+  async fetchAverageVolumesInBackground() {
+    if (this.hasFetchedAverageVolume) return;
+    this.hasFetchedAverageVolume = true;
+    try {
+      const allStocks = [...NIFTY_50_STOCKS, ...NIFTY_500_STOCKS];
+      const chunkSize = 50;
+      for (let i = 0; i < allStocks.length; i += chunkSize) {
+        const chunk = allStocks.slice(i, i + chunkSize);
+        const symbols = chunk.map(s => s.symbol + '.NS');
+        try {
+          const quotes = await yahooFinance.quote(symbols);
+          for (const q of quotes) {
+            const sym = q.symbol.replace('.NS', '');
+            if (q.averageDailyVolume3Month) {
+              this.averageVolumeMap.set(sym, q.averageDailyVolume3Month);
+            }
+          }
+        } catch (err) {
+          logger.warn('Failed to fetch avg volume chunk: ' + err);
+        }
+        await sleep(2000);
+      }
+      logger.info('Finished background fetch of average volumes.');
+    } catch (err) {
+      logger.error('Background avg volume fetch failed: ' + err);
     }
   }
 
@@ -59,6 +91,11 @@ class StockService {
     stocks: StockQuote[],
     indexName: 'NIFTY50' | 'NIFTY500'
   ): Promise<StockData[]> {
+    if (!this.hasFetchedAverageVolume) {
+      // Intentionally not awaited so it runs in background
+      this.fetchAverageVolumesInBackground();
+    }
+
     const results: StockData[] = [];
     const batches: StockQuote[][] = [];
 
@@ -120,7 +157,9 @@ class StockService {
           const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
 
           const volume: number = meta.regularMarketVolume ?? 0;
-          const averageVolume = Math.round(volume); 
+          const avgVol = this.averageVolumeMap.get(cleanSymbol) || volume || 1;
+          const relativeVolume = avgVol > 1 ? volume / avgVol : 1.0;
+          const volumeSpike = relativeVolume >= 1.5;
 
           const stockData: StockData = {
             symbol: cleanSymbol,
@@ -134,9 +173,9 @@ class StockService {
             changePercent,
             volume,
             sector: SECTOR_MAP[cleanSymbol] || 'Others',
-            averageVolume,
-            relativeVolume: 1.0,
-            volumeSpike: false,
+            averageVolume: avgVol,
+            relativeVolume,
+            volumeSpike,
             indexName,
             lastUpdated: new Date().toISOString(),
             atDayHigh,
