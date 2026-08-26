@@ -140,8 +140,9 @@ class NewsService extends EventEmitter {
           const aiResults = await aiService.analyzeNewsBatch(headlines);
           
           newTweets = newTweets.map((tweet, index) => {
-            tweet.sentiment = aiResults[index].sentiment;
-            tweet.affectedStocks = aiResults[index].affectedStocks;
+            const res = aiResults[index] || {};
+            tweet.sentiment = res.sentiment || 'Neutral';
+            tweet.affectedStocks = res.affectedStocks || [];
             return tweet;
           });
         } catch (e) {
