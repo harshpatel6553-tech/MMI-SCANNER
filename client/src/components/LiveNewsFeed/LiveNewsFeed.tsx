@@ -68,7 +68,7 @@ export function LiveNewsFeed({ onStockClick }: LiveNewsFeedProps) {
       if (!n.affectedStocks) return;
       n.affectedStocks.forEach(sym => {
         const existing = map.get(sym);
-        let sent = n.sentiment || 'Neutral';
+        let sent: string = n.sentiment || 'Neutral';
         if (n.isPromoterAction) sent = 'Info';
         if (existing) {
           existing.count++;
