@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { useDashboard } from '../../contexts/DashboardContext';
 
 export function Sidebar() {
@@ -61,7 +61,7 @@ export function Sidebar() {
       </div>
 
       <div className="sidebar-foot">
-        <div className="status-chip"><span className="dot-live"></span><span>503 stocks · live feed</span></div>
+        <div className="status-chip"><span className="dot-live"></span><span>503 stocks Â· live feed</span></div>
       </div>
     </aside>
   );

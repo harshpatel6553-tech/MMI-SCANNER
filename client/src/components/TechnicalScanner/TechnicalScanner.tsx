@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+﻿import React, { useState, useMemo } from 'react';
 import { useStocks } from '../../hooks/useStocks';
 import { useDashboard } from '../../contexts/DashboardContext';
 import { Activity, TrendingUp, ArrowLeftRight } from 'lucide-react';

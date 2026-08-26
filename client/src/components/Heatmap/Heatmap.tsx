@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+﻿import { useMemo, useState } from 'react';
 import type { StockData } from '../../types';
 import { formatPrice, formatVolume, formatPercent } from '../../utils/formatters';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -72,7 +72,7 @@ export function Heatmap({ stocks }: HeatmapProps) {
               
               <div className="heatmap-tile-bottom">
                 <span className="heatmap-tile-price">
-                  {formatPrice(stock.price).replace('₹', '')}
+                  {formatPrice(stock.price).replace('â‚¹', '')}
                 </span>
                 <span className="heatmap-tile-change">
                   {stock.changePercent > 0 ? '+' : ''}{stock.changePercent.toFixed(2)}%

@@ -1,4 +1,4 @@
-import './AnimatedBackground.css';
+﻿import './AnimatedBackground.css';
 
 export function AnimatedBackground() {
   return (

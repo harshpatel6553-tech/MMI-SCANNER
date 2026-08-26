@@ -1,4 +1,4 @@
-import { useSocket } from '../../hooks/useSocket';
+﻿import { useSocket } from '../../hooks/useSocket';
 import { formatTime } from '../../utils/formatters';
 import './StatusBar.css';
 
@@ -11,7 +11,7 @@ export function StatusBar({ stockCount }: StatusBarProps) {
 
   return (
     <div className="status-bar">
-      {/* Left — Connection */}
+      {/* Left â€” Connection */}
       <div className="status-section">
         <span className={`status-dot ${isConnected ? 'connected' : 'disconnected'}`} />
         <span className={`status-text ${isConnected ? 'connected' : 'disconnected'}`}>
@@ -25,15 +25,15 @@ export function StatusBar({ stockCount }: StatusBarProps) {
         )}
       </div>
 
-      {/* Center — Last Update */}
+      {/* Center â€” Last Update */}
       <div className="status-section">
-        <span className={`refresh-icon ${isConnected ? 'spinning' : ''}`}>⟳</span>
+        <span className={`refresh-icon ${isConnected ? 'spinning' : ''}`}>âŸ³</span>
         <span>
           {lastUpdate ? `Last update: ${formatTime(lastUpdate)}` : 'Waiting for data...'}
         </span>
       </div>
 
-      {/* Right — Stock Count */}
+      {/* Right â€” Stock Count */}
       <div className="status-section">
         <span className="stock-count">{stockCount} stocks loaded</span>
       </div>

@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+﻿import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../supabaseClient';
 import { useAuth } from '../../context/AuthContext';
@@ -188,7 +188,7 @@ export function AdminDashboard() {
         <div className="flex justify-between items-center mb-4">
           <h3 className="flex items-center gap-2 m-0 text-lg font-semibold">
             <span className="inline-block w-2.5 h-2.5 rounded-full bg-green-400 shadow-[0_0_8px_#4ade80] animate-pulse"></span>
-            Live Users � {onlineUsers.length} Online
+            Live Users — {onlineUsers.length} Online
           </h3>
           <button 
             className="px-4 py-1.5 rounded-md text-sm font-medium border transition-colors bg-red-500/15 border-red-500/40 text-red-500 hover:bg-red-500/20"

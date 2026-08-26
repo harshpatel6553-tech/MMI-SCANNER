@@ -1,4 +1,4 @@
-import { motion, AnimatePresence } from 'framer-motion';
+﻿import { motion, AnimatePresence } from 'framer-motion';
 import type { StockAlert } from '../../types';
 import { formatPrice, formatTime } from '../../utils/formatters';
 import './Alerts.css';
@@ -30,10 +30,10 @@ function getToastStyle(alertType: StockAlert['alertType']) {
 }
 
 function getIcon(alertType: StockAlert['alertType']): string {
-  if (alertType === 'DAY_HIGH') return '🚀';
-  if (alertType === 'DAY_LOW') return '📉';
-  if (alertType === 'NEWS') return '📰';
-  return '⚡';
+  if (alertType === 'DAY_HIGH') return 'ðŸš€';
+  if (alertType === 'DAY_LOW') return 'ðŸ“‰';
+  if (alertType === 'NEWS') return 'ðŸ“°';
+  return 'âš¡';
 }
 
 function getToastTitle(alertType: StockAlert['alertType']): string {
@@ -93,7 +93,7 @@ export function AlertToast({ toasts, onDismiss }: AlertToastProps) {
                   onClick={() => onDismiss(toast.id)}
                   className="flex-shrink-0 opacity-50 hover:opacity-100 transition-opacity self-start -mt-1 -mr-1 p-1"
                 >
-                  ✕
+                  âœ•
                 </button>
               </div>
               

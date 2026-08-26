@@ -1,4 +1,4 @@
-import { useNews } from '../../hooks/useNews';
+﻿import { useNews } from '../../hooks/useNews';
 import './NewsTicker.css';
 
 export function NewsTicker() {
@@ -28,7 +28,7 @@ export function NewsTicker() {
               rel="noopener noreferrer"
               className="news-ticker-item"
             >
-              <span className="news-ticker-bullet">•</span>
+              <span className="news-ticker-bullet">â€¢</span>
               {item.title}
             </a>
           ))}

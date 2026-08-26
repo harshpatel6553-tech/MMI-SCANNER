@@ -95,7 +95,7 @@ export function PaperTradingDashboard() {
   const totalPnlPercent = totalInvested !== 0 ? (totalPnl / totalInvested) * 100 : 0;
 
   const formatCurrency = (val: number) => {
-    return `&#8377;${val.toLocaleString('en-IN', { maximumFractionDigits: 2, minimumFractionDigits: 2 })}`;
+    return `₹${val.toLocaleString('en-IN', { maximumFractionDigits: 2, minimumFractionDigits: 2 })}`;
   };
 
   // Portfolio Chart Setup
@@ -165,10 +165,10 @@ export function PaperTradingDashboard() {
                   <div className="pos-row" key={pos.symbol}>
                     <span className="pos-sym">{pos.symbol}</span>
                     <span className="pos-num">{pos.quantity}</span>
-                    <span className="pos-num">&#8377;{pos.average_price.toFixed(2)}</span>
-                    <span className="pos-num">&#8377;{pos.livePrice.toFixed(2)}</span>
+                    <span className="pos-num">₹{pos.average_price.toFixed(2)}</span>
+                    <span className="pos-num">₹{pos.livePrice.toFixed(2)}</span>
                     <span className="pos-pnl" style={{color: pos.pnl >= 0 ? 'var(--pulse-green)' : 'var(--pulse-red)'}}>
-                      {pos.pnl >= 0 ? '+' : ''}&#8377;{Math.abs(pos.pnl).toFixed(2)} ({pos.pnlPercent.toFixed(2)}%)
+                      {pos.pnl >= 0 ? '+' : ''}₹{Math.abs(pos.pnl).toFixed(2)} ({pos.pnlPercent.toFixed(2)}%)
                     </span>
                     <span className="pos-trade" onClick={() => stockData && setTradeStock(stockData)}>TRADE &rarr;</span>
                   </div>
@@ -196,7 +196,7 @@ export function PaperTradingDashboard() {
                       <span className="lb-name">{displayName}</span>
                       {isYou && <span className="lb-tag">YOU</span>}
                     </span>
-                    <span className="lb-value">&#8377;{user.balance.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+                    <span className="lb-value">₹{user.balance.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
                   </div>
                 );
               })}
