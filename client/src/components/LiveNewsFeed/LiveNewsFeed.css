@@ -144,14 +144,17 @@
 .news-sentiment {
   margin-left: auto;
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 9.5px;
+  font-size: 10px;
   font-weight: 600;
   letter-spacing: .05em;
-  padding: 4px 8px 5px 8px;
+  padding: 0 8px;
   border-radius: 4px;
   border: 1px solid transparent;
-  display: inline-block;
-  line-height: normal;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 20px;
+  line-height: 1;
 }
 .news-sentiment.bullish { color: var(--pulse-green); background: rgba(34,197,94,.12); border-color: rgba(34,197,94,.3); }
 .news-sentiment.bearish { color: var(--pulse-red); background: rgba(239,68,68,.12); border-color: rgba(239,68,68,.3); }
