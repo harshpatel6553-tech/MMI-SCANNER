@@ -26,12 +26,15 @@ class AIService {
     if (headlines.length === 0) return [];
     
     // Determine which AI provider to use
+    const omnirouteUrl = process.env.OMNIROUTE_URL || 'http://localhost:20128';
+    const useOmniroute = process.env.USE_OMNIROUTE === 'true';
     const openRouterKey = process.env.OPENROUTER_API_KEY;
     const groqKey = process.env.GROQ_API_KEY;
+    
     const isUsingOpenRouter = !!openRouterKey;
     const isUsingGroq = !!groqKey;
 
-    if (!isUsingOpenRouter && !isUsingGroq && (!this.hasValidKey || !this.ai)) {
+    if (!useOmniroute && !isUsingOpenRouter && !isUsingGroq && (!this.hasValidKey || !this.ai)) {
       return this.analyzeLocally(headlines);
     }
 
@@ -52,7 +55,31 @@ class AIService {
 
         let results: AISentimentResult[] = [];
 
-        if (isUsingOpenRouter) {
+        if (useOmniroute) {
+          const omniRes = await fetch(`${omnirouteUrl}/v1/chat/completions`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              model: 'llama-3.1-8b-instant', // or any model configured in your omniroute
+              messages: [{ role: 'user', content: prompt }],
+              temperature: 0.1,
+              response_format: { type: 'json_object' }
+            })
+          });
+
+          if (!omniRes.ok) {
+            const errBody = await omniRes.text();
+            logger.warn(`Omniroute Error: ${omniRes.status} - ${errBody}. Falling back...`);
+          } else {
+            const jsonResponse = await omniRes.json();
+            const parsed = JSON.parse(jsonResponse.choices[0].message.content);
+            results = parsed.results;
+          }
+        }
+
+        if (results.length === 0 && isUsingOpenRouter) {
           const orRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
             method: 'POST',
             headers: {
