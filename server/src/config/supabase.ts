@@ -30,13 +30,27 @@ export const isSupabaseConfigured: boolean = true;
  * {@link isSupabaseConfigured} will be `false` and all DB operations
  * should be skipped.
  */
-export const supabase: SupabaseClient = createClient(
-  SUPABASE_URL || 'https://placeholder.supabase.co',
-  ACTIVE_KEY || 'placeholder-key',
-  {
-    auth: { persistSession: false },
-  }
-);
+export let supabase: SupabaseClient | any = null;
+
+try {
+  supabase = createClient(
+    SUPABASE_URL || 'https://placeholder.supabase.co',
+    ACTIVE_KEY || 'placeholder-key',
+    {
+      auth: { persistSession: false },
+    }
+  );
+} catch (error) {
+  logger.error('Failed to initialize Supabase client synchronously. Check if the SUPABASE_ANON_KEY is a valid JWT.');
+  // Create a dummy client so the rest of the app doesn't crash on property accesses
+  supabase = {
+    from: () => ({
+      select: () => ({ limit: () => Promise.resolve({ data: null, error: { message: 'Supabase disabled due to invalid key format' } }) }),
+      upsert: () => Promise.resolve({ data: null, error: { message: 'Supabase disabled' } }),
+      insert: () => Promise.resolve({ data: null, error: { message: 'Supabase disabled' } })
+    })
+  };
+}
 
 /**
  * Test the Supabase connection by performing a lightweight query.
