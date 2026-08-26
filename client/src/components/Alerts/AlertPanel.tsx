@@ -31,84 +31,78 @@ export function AlertPanel({ alerts, onClearAll }: AlertPanelProps) {
 
   return (
     <>
-      {/* Toggle button */}
-      <button className="alert-panel-toggle" onClick={() => setIsOpen(true)}>
-        🔔 Alerts
-        {alerts.length > 0 && <span className="alert-count">{alerts.length}</span>}
+      <button className="premium-alert-toggle" onClick={() => setIsOpen(true)}>
+        <span className="toggle-icon">🔔</span>
+        <span className="toggle-text">ALERTS</span>
+        {alerts.length > 0 && <span className="premium-alert-badge">{alerts.length}</span>}
       </button>
 
-      {/* Panel overlay + sidebar */}
       {isOpen && (
         <>
-          <div className="alert-panel-overlay" onClick={() => setIsOpen(false)} />
-          <div className="alert-panel">
-            <div className="alert-panel-header">
-              <div className="alert-panel-title">
-                🔔 Alert History
+          <div className="premium-alert-overlay" onClick={() => setIsOpen(false)} />
+          <div className="premium-alert-sidebar">
+            <div className="premium-alert-header">
+              <div className="header-title">
+                <span className="icon">🔔</span>
+                LIVE ALERTS
               </div>
-              <div className="alert-panel-actions">
+              <div className="header-actions">
                 {alerts.length > 0 && (
-                  <button className="btn" onClick={onClearAll}>
-                    Clear All
+                  <button className="clear-btn" onClick={onClearAll}>
+                    CLEAR ALL
                   </button>
                 )}
-                <button className="btn" onClick={() => setIsOpen(false)}>
+                <button className="close-btn" onClick={() => setIsOpen(false)}>
                   ✕
                 </button>
               </div>
             </div>
-            <div className="alert-panel-body">
+
+            <div className="premium-alert-content">
               {alerts.length === 0 ? (
-                <div className="alert-empty">
-                  <div className="alert-empty-icon">🔕</div>
-                  <div>No alerts yet</div>
+                <div className="premium-alert-empty">
+                  <div className="empty-icon">🔕</div>
+                  <div className="empty-text">No active alerts</div>
+                  <div className="empty-subtext">Waiting for market signals...</div>
                 </div>
               ) : (
                 groupedAlerts.map(group => (
-                  <div key={group.title}>
-                    <div className="alert-group-title">{group.title}</div>
-                    {group.items.map(alert => {
-                      const typeClass = alert.alertType === 'DAY_HIGH' ? 'high' : alert.alertType === 'DAY_LOW' ? 'low' : alert.alertType === 'NEWS' ? 'news' : 'spike';
-                      const typeLabel = alert.alertType === 'DAY_HIGH' ? 'HIGH' : alert.alertType === 'DAY_LOW' ? 'LOW' : alert.alertType === 'NEWS' ? '📰 NEWS' : '⚡ SPIKE';
+                  <div key={group.title} className="premium-alert-group">
+                    <div className="group-divider">
+                      <span>{group.title}</span>
+                      <div className="line"></div>
+                    </div>
+                    
+                    <div className="group-items">
+                      {group.items.map(alert => {
+                        const isHigh = alert.alertType === 'DAY_HIGH';
+                        const isLow = alert.alertType === 'DAY_LOW';
+                        const isNews = alert.alertType === 'NEWS';
+                        
+                        const typeClass = isHigh ? 'high' : isLow ? 'low' : isNews ? 'news' : 'spike';
+                        const typeLabel = isHigh ? 'HIGH' : isLow ? 'LOW' : isNews ? 'NEWS' : 'SPIKE';
 
-                      const isHigh = alert.alertType === 'DAY_HIGH';
-                      const isLow = alert.alertType === 'DAY_LOW';
-                      const isNews = alert.alertType === 'NEWS';
-                      
-                      let rowStyle = '';
-                      let badgeStyle = '';
-                      
-                      if (isHigh) {
-                        rowStyle = 'rounded-md border-l-[8px] border-green-600 bg-green-600/10 text-green-600 dark:border-green-400 dark:bg-green-400/10 dark:text-green-400';
-                        badgeStyle = 'bg-green-500/20 text-green-500 border border-green-500/30';
-                      } else if (isLow) {
-                        rowStyle = 'rounded-none border-0 border-l-[8px] border-red-600 bg-red-600/10 text-red-600 dark:border-red-500 dark:bg-red-500/10 dark:text-red-500';
-                        badgeStyle = 'bg-red-500/20 text-red-500 border border-red-500/30';
-                      } else if (isNews) {
-                        rowStyle = 'rounded-md border-l-[8px] border-blue-600 bg-blue-600/10 text-blue-600 dark:border-blue-400 dark:bg-blue-400/10 dark:text-blue-400';
-                        badgeStyle = 'bg-blue-500/20 text-blue-500 border border-blue-500/30';
-                      } else {
-                        rowStyle = 'rounded-md border-l-[8px] border-purple-600 bg-purple-600/10 text-purple-600 dark:border-purple-400 dark:bg-purple-400/10 dark:text-purple-400';
-                        badgeStyle = 'bg-purple-500/20 text-purple-500 border border-purple-500/30';
-                      }
-
-                      return (
-                        <div key={alert.id} className={`flex items-center gap-3 py-2.5 px-3 mb-2 shadow-sm backdrop-blur-sm transition-all hover:brightness-110 bg-[#0b0b0d] border border-[#262b31] ${rowStyle}`}>
-                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded leading-none ${badgeStyle}`}>
-                            {typeLabel}
-                          </span>
-                          <span className="font-bold text-sm tracking-wide text-white flex-shrink-0">{alert.symbol}</span>
-                          {alert.alertType === 'NEWS' ? (
-                            <span className="flex-1 text-xs opacity-90 truncate" title={alert.name}>
-                              {alert.name}
-                            </span>
-                          ) : (
-                            <span className="flex-1 text-sm font-semibold tabular-nums text-right">{formatPrice(alert.price)}</span>
-                          )}
-                          <span className="text-[10px] font-medium opacity-60 flex-shrink-0">{formatTime(alert.createdAt)}</span>
-                        </div>
-                      );
-                    })}
+                        return (
+                          <div key={alert.id} className={`premium-alert-card ${typeClass}`}>
+                            <div className="card-indicator"></div>
+                            <div className="card-body">
+                              <div className="card-top">
+                                <span className={`card-badge ${typeClass}`}>{typeLabel}</span>
+                                <span className="card-time">{formatTime(alert.createdAt)}</span>
+                              </div>
+                              <div className="card-main">
+                                <span className="card-symbol">{alert.symbol}</span>
+                                {alert.alertType === 'NEWS' ? (
+                                  <span className="card-news" title={alert.name}>{alert.name}</span>
+                                ) : (
+                                  <span className="card-price">{formatPrice(alert.price)}</span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 ))
               )}
