@@ -1,4 +1,4 @@
-﻿import { useCallback } from 'react';
+import { useCallback } from 'react';
 import type { FilterOptions } from '../../types';
 import './FilterPanel.css';
 
@@ -57,7 +57,7 @@ export function FilterPanel({ filters, onChange, stats }: FilterPanelProps) {
           <label className="filter-label">Price Range</label>
           <div className="range-inputs">
             <div className="input-with-prefix">
-              <span className="input-prefix">₹</span>
+              <span className="input-prefix">&#8377;</span>
               <input
                 type="number"
                 className="input filter-input"
@@ -66,9 +66,9 @@ export function FilterPanel({ filters, onChange, stats }: FilterPanelProps) {
                 onChange={e => updateFilter('priceMin', Number(e.target.value) || 0)}
               />
             </div>
-            <span className="range-separator">â€”</span>
+            <span className="range-separator">—</span>
             <div className="input-with-prefix">
-              <span className="input-prefix">₹</span>
+              <span className="input-prefix">&#8377;</span>
               <input
                 type="number"
                 className="input filter-input"
@@ -95,7 +95,7 @@ export function FilterPanel({ filters, onChange, stats }: FilterPanelProps) {
         {/* Reset */}
         <div className="filter-group filter-actions">
           <button className="btn btn-reset" onClick={resetFilters}>
-            â†º Reset
+            ↺ Reset
           </button>
         </div>
       </div>
@@ -103,22 +103,22 @@ export function FilterPanel({ filters, onChange, stats }: FilterPanelProps) {
       {/* Stats row */}
       <div className="stats-row">
         <div className="stat-item">
-          <span className="stat-icon">ðŸ“Š</span>
+          <span className="stat-icon">📊</span>
           <span className="stat-label">Total:</span>
           <span className="stat-value text-accent">{stats.total}</span>
         </div>
         <div className="stat-item">
-          <span className="stat-icon">ðŸ“ˆ</span>
+          <span className="stat-icon">📈</span>
           <span className="stat-label">Gainers:</span>
           <span className="stat-value positive">{stats.gainers}</span>
         </div>
         <div className="stat-item">
-          <span className="stat-icon">ðŸ“‰</span>
+          <span className="stat-icon">📉</span>
           <span className="stat-label">Losers:</span>
           <span className="stat-value negative">{stats.losers}</span>
         </div>
         <div className="stat-item">
-          <span className="stat-icon">âž–</span>
+          <span className="stat-icon">➖</span>
           <span className="stat-label">Unchanged:</span>
           <span className="stat-value text-muted">{stats.unchanged}</span>
         </div>

@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import type { StockData } from '../../types';
 import { formatPercent, formatPrice } from '../../utils/formatters';
 import { ChevronDown, ChevronUp, PieChart } from 'lucide-react';

@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useNews } from '../../hooks/useNews';
 import { useStocks } from '../../hooks/useStocks';
 import './LiveNewsFeed.css';
@@ -113,10 +113,10 @@ export function LiveNewsFeed({ onStockClick }: LiveNewsFeedProps) {
       </div>
 
       <header className="live-news-header">
-        <div className="eyebrow"><span className="dot"></span> LIVENEWS Â· {todayStr}</div>
+        <div className="eyebrow"><span className="dot"></span> LIVENEWS · {todayStr}</div>
         <h1 className="display">LiveNews</h1>
         <div className="subline mono">
-          <b className="up">{advancers}â–²</b> advancers vs <b className="down">{decliners}â–¼</b> decliners across {total} tracked stocks â€” here's what's moving.
+          <b className="up">{advancers}▲</b> advancers vs <b className="down">{decliners}▼</b> decliners across {total} tracked stocks — here's what's moving.
         </div>
       </header>
 
@@ -133,7 +133,7 @@ export function LiveNewsFeed({ onStockClick }: LiveNewsFeedProps) {
         <div className="search-box">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
           <input 
-            placeholder="Search ticker or keywordâ€¦" 
+            placeholder="Search ticker or keyword…" 
             value={search}
             onChange={e => setSearch(e.target.value)}
           />

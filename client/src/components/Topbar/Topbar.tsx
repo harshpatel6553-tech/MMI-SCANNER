@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useDashboard } from '../../contexts/DashboardContext';
 import { CommandSearch } from './CommandSearch';
 import type { StockData } from '../../types';
@@ -45,7 +45,7 @@ export function Topbar({ allStocks }: TopbarProps) {
     'LUPIN LIMITED enters exclusive license agreement with Visus Therapeutics for YUVEZZITM in Europe',
     'VIPUL ORGANICS commences production at greenfield facility in Sayakha, Gujarat',
     'DEV INFORMATION TECH secures \u20B95.15 Cr order from NICSI for IFMS 3.0',
-    'L&T wins large contract valued between \u20B925Bâ€“50B',
+    'L&T wins large contract valued between \u20B925B–50B',
     'UNICOMMERCE & Urban Co expand partnership to UAE & Saudi Arabia'
   ];
 
@@ -55,7 +55,7 @@ export function Topbar({ allStocks }: TopbarProps) {
         <span className="ticker-tag">Breaking</span>
         <div className="ticker-track" id="tickerTrack">
           {[...headlines, ...headlines].map((h, i) => (
-            <span key={i} className="ticker-item"><span className="sep">â—</span>{h}</span>
+            <span key={i} className="ticker-item"><span className="sep">●</span>{h}</span>
           ))}
         </div>
       </div>

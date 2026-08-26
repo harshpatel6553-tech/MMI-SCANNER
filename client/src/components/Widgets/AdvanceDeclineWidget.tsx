@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { useStocks } from '../../hooks/useStocks';
 
 export function AdvanceDeclineWidget() {
@@ -6,7 +6,7 @@ export function AdvanceDeclineWidget() {
 
   const gainerPct = stats.total > 0 ? ((stats.gainers / stats.total) * 100) : 50;
   const loserPct = stats.total > 0 ? ((stats.losers / stats.total) * 100) : 50;
-  const adRatio = stats.advanceDeclineRatio === Infinity ? 'âˆž' : stats.advanceDeclineRatio.toFixed(2);
+  const adRatio = stats.advanceDeclineRatio === Infinity ? '∞' : stats.advanceDeclineRatio.toFixed(2);
 
   return (
     <div className="card ad-card">

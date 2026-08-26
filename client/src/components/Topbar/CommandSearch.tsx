@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 import React, {
   useState,
   useMemo,
@@ -54,7 +54,7 @@ const DEFAULT_ITEMS: CommandItem[] = [
     title: 'Profile',
     section: 'Settings',
     icon: <User size={16} />,
-    shortcut: 'âŒ˜ P',
+    shortcut: '⌘ P',
     action: () => console.log('Profile'),
   },
   {
@@ -62,7 +62,7 @@ const DEFAULT_ITEMS: CommandItem[] = [
     title: 'Notifications',
     section: 'Settings',
     icon: <Bell size={16} />,
-    shortcut: 'âŒ˜ N',
+    shortcut: '⌘ N',
     action: () => console.log('Notifications'),
   },
   {
@@ -212,7 +212,7 @@ export const CommandSearch: FC<Props> = ({ items = DEFAULT_ITEMS }) => {
                 transition={sharedTransition}
                 className="absolute right-2 rounded border px-2 py-0.5 text-[14px] font-bold border-[var(--border)] bg-[var(--bg-surface)] text-[var(--text-2)] group-hover:text-[var(--text-1)]"
               >
-                âŒ˜K
+                ⌘K
               </motion.kbd>
             </motion.button>
           ) : (

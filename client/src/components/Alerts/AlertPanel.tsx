@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import type { StockAlert } from '../../types';
 import { formatPrice, formatTime } from '../../utils/formatters';
 import './Alerts.css';
@@ -33,7 +33,7 @@ export function AlertPanel({ alerts, onClearAll }: AlertPanelProps) {
     <>
       {/* Toggle button */}
       <button className="alert-panel-toggle" onClick={() => setIsOpen(true)}>
-        ðŸ”” Alerts
+        🔔 Alerts
         {alerts.length > 0 && <span className="alert-count">{alerts.length}</span>}
       </button>
 
@@ -44,7 +44,7 @@ export function AlertPanel({ alerts, onClearAll }: AlertPanelProps) {
           <div className="alert-panel">
             <div className="alert-panel-header">
               <div className="alert-panel-title">
-                ðŸ”” Alert History
+                🔔 Alert History
               </div>
               <div className="alert-panel-actions">
                 {alerts.length > 0 && (
@@ -53,14 +53,14 @@ export function AlertPanel({ alerts, onClearAll }: AlertPanelProps) {
                   </button>
                 )}
                 <button className="btn" onClick={() => setIsOpen(false)}>
-                  âœ•
+                  ✕
                 </button>
               </div>
             </div>
             <div className="alert-panel-body">
               {alerts.length === 0 ? (
                 <div className="alert-empty">
-                  <div className="alert-empty-icon">ðŸ”•</div>
+                  <div className="alert-empty-icon">🔕</div>
                   <div>No alerts yet</div>
                 </div>
               ) : (
@@ -69,7 +69,7 @@ export function AlertPanel({ alerts, onClearAll }: AlertPanelProps) {
                     <div className="alert-group-title">{group.title}</div>
                     {group.items.map(alert => {
                       const typeClass = alert.alertType === 'DAY_HIGH' ? 'high' : alert.alertType === 'DAY_LOW' ? 'low' : alert.alertType === 'NEWS' ? 'news' : 'spike';
-                      const typeLabel = alert.alertType === 'DAY_HIGH' ? 'HIGH' : alert.alertType === 'DAY_LOW' ? 'LOW' : alert.alertType === 'NEWS' ? 'ðŸ“° NEWS' : 'âš¡ SPIKE';
+                      const typeLabel = alert.alertType === 'DAY_HIGH' ? 'HIGH' : alert.alertType === 'DAY_LOW' ? 'LOW' : alert.alertType === 'NEWS' ? '📰 NEWS' : '⚡ SPIKE';
 
                       const isHigh = alert.alertType === 'DAY_HIGH';
                       const isLow = alert.alertType === 'DAY_LOW';

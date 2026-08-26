@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { useStocks } from '../../hooks/useStocks';
 import { useDashboard } from '../../contexts/DashboardContext';
 
@@ -24,7 +24,7 @@ export function SectorPulseWidget() {
             <div className={"tab" + (tab === 'bottom' ? ' active' : '')} onClick={() => setTab('bottom')}>Bottom 5</div>
           </div>
         </div>
-        <a className="card-link" href="#" onClick={(e) => { e.preventDefault(); setActiveTab('Sectors'); }}>Sectors â†’</a>
+        <a className="card-link" href="#" onClick={(e) => { e.preventDefault(); setActiveTab('Sectors'); }}>Sectors →</a>
       </div>
       <div>
         {displaySectors.map(s => {

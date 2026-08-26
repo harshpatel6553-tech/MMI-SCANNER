@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { useStocks } from '../../hooks/useStocks';
 import { useDashboard } from '../../contexts/DashboardContext';
 
@@ -23,7 +23,7 @@ export function MarketTableWidget({ fullView = false }: MarketTableWidgetProps) 
     <div className="card table-card">
       <div className="card-head">
         <span className="card-title">Market Table</span>
-        {!fullView && <a className="card-link" href="#">Open full table â†’</a>}
+        {!fullView && <a className="card-link" href="#">Open full table →</a>}
       </div>
       <table>
         <thead>
@@ -31,7 +31,7 @@ export function MarketTableWidget({ fullView = false }: MarketTableWidgetProps) 
             <th></th>
             <th>Symbol</th>
             <th>Company</th>
-            <th className="num-col">Price (₹)</th>
+            <th className="num-col">Price (&#8377;)</th>
             <th className="num-col">Change</th>
             <th className="num-col">Change %</th>
             <th className="num-col">Day High</th>

@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Search, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import './SearchBar.css';

@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { useNews } from '../../hooks/useNews';
 import { useDashboard } from '../../contexts/DashboardContext';
 
@@ -17,7 +17,7 @@ export function LiveNewsWidget() {
     <div className="card">
       <div className="card-head">
         <span className="card-title">Live News</span>
-        <a className="card-link" href="#" onClick={(e) => { e.preventDefault(); setActiveTab('LiveNews'); }}>All news â†’</a>
+        <a className="card-link" href="#" onClick={(e) => { e.preventDefault(); setActiveTab('LiveNews'); }}>All news →</a>
       </div>
       <div>
         {displayNews.length > 0 ? displayNews.map((n) => (

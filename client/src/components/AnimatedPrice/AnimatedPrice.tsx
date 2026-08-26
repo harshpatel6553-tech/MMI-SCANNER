@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import './AnimatedPrice.css';
 
 interface AnimatedPriceProps {

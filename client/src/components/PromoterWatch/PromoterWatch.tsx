@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Search, Lock } from 'lucide-react';
 import { useStocks } from '../../hooks/useStocks';
 import './PromoterWatch.css';
@@ -83,7 +83,7 @@ export const PromoterWatch: React.FC = () => {
         <div className="page-title-row">
           <div>
             <h2 className="display">NSE Bulk Deals</h2>
-            <div className="sub">INSTITUTIONAL &amp; PROMOTER WATCH Ã‚Â· REAL-TIME</div>
+            <div className="sub">INSTITUTIONAL &amp; PROMOTER WATCH Â· REAL-TIME</div>
           </div>
         </div>
 
@@ -99,7 +99,7 @@ export const PromoterWatch: React.FC = () => {
           <div className="stat-card">
             <div className="label">Net Flow</div>
             <div className={`value ${netFlow >= 0 ? 'up' : 'down'}`}>
-              {netFlow >= 0 ? '+' : 'Ã¢Ë†â€™'}{formatCurrency(Math.abs(netFlow))}
+              {netFlow >= 0 ? '+' : 'âˆ’'}{formatCurrency(Math.abs(netFlow))}
             </div>
           </div>
           <div className="stat-card">
@@ -119,7 +119,7 @@ export const PromoterWatch: React.FC = () => {
 
         <div className="chart-grid">
           <div className="chart-card">
-            <div className="ctitle">Promoter Disclosures Ã¢â‚¬â€ Cumulative (30 Days)</div>
+            <div className="ctitle">Promoter Disclosures â€” Cumulative (30 Days)</div>
             <svg viewBox={`0 0 ${lw} ${lh + 30}`} width="100%" height="120">
               <defs>
                 <linearGradient id="fadeGreen" x1="0" y1="0" x2="0" y2="1">
@@ -137,7 +137,7 @@ export const PromoterWatch: React.FC = () => {
           </div>
           
           <div className="chart-card">
-            <div className="ctitle">Net Promoter Flow by Day (₹ Cr)</div>
+            <div className="ctitle">Net Promoter Flow by Day (&#8377; Cr)</div>
             <svg viewBox={`0 0 ${bw} ${bh + 30}`} width="100%" height="120">
               <line x1="0" y1={base} x2={bw} y2={base} stroke="#262626" strokeWidth="1"/>
               {barVals.map((v, i) => {
@@ -181,7 +181,7 @@ export const PromoterWatch: React.FC = () => {
                 <span className="dt-client" title={r.clientName}>{r.clientName}</span>
                 <span className={`dt-type ${r.type.toLowerCase()}`}>{r.type.toUpperCase()}</span>
                 <span className="dt-num">{r.quantity.toLocaleString()}</span>
-                <span className="dt-num">₹{r.price.toFixed(2)}</span>
+                <span className="dt-num">&#8377;{r.price.toFixed(2)}</span>
                 <span className="dt-num">{formatCurrency(r.quantity * r.price)}</span>
                 <span className="dt-access"><Lock size={10} /> UNLOCK</span>
               </div>

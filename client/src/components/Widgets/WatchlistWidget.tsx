@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { useStocks } from '../../hooks/useStocks';
 import { useDashboard } from '../../contexts/DashboardContext';
 
@@ -13,7 +13,7 @@ export function WatchlistWidget() {
     <div className="card">
       <div className="card-head">
         <span className="card-title">Watchlist</span>
-        <a className="card-link" href="#" onClick={(e) => { e.preventDefault(); setActiveTab('Watchlist'); }}>Manage â†’</a>
+        <a className="card-link" href="#" onClick={(e) => { e.preventDefault(); setActiveTab('Watchlist'); }}>Manage →</a>
       </div>
       <div>
         {watch.map(w => {

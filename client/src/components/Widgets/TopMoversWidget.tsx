@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { useStocks } from '../../hooks/useStocks';
 
 export function TopMoversWidget() {
