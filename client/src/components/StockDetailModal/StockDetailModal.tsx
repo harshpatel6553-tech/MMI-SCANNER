@@ -92,7 +92,7 @@ export function StockDetailModal({ stock, onClose }: StockDetailModalProps) {
             >
             {/* Close button */}
             <button className="modal-close" onClick={onClose} aria-label="Close">
-              âœ•
+              ✖
             </button>
 
         {/* Header */}
@@ -120,7 +120,7 @@ export function StockDetailModal({ stock, onClose }: StockDetailModalProps) {
             </div>
             <div className={`modal-change ${changeClass}`}>
               <span className="modal-change-arrow">
-                {displayStock.change > 0 ? 'â–²' : displayStock.change < 0 ? 'â–¼' : 'â€”'}
+                {displayStock.change > 0 ? '▲' : displayStock.change < 0 ? '▼' : '—'}
               </span>
               {formatPrice(Math.abs(displayStock.change))}
               {' '}

@@ -209,7 +209,7 @@ export function PaperTradingDashboard() {
 
         <div className="chart-card">
           <div className="ctitle">
-            <span>Portfolio Value â€” Since Start</span>
+            <span>Portfolio Value — Since Start</span>
             <span style={{color: totalPnl >= 0 ? 'var(--pulse-green)' : 'var(--pulse-red)'}}>
               {totalPnl >= 0 ? '+' : ''}{totalPnlPercent.toFixed(2)}%
             </span>
