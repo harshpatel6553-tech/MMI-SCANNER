@@ -19,9 +19,10 @@ export function LiveNewsFeed({ onStockClick }: LiveNewsFeedProps) {
   };
 
   const getSentimentClass = (sentiment?: string) => {
-    if (sentiment === 'Bullish') return 'bullish';
-    if (sentiment === 'Bearish') return 'bearish';
-    if (sentiment === 'Info') return 'info';
+    const s = sentiment?.toLowerCase();
+    if (s === 'bullish') return 'bullish';
+    if (s === 'bearish') return 'bearish';
+    if (s === 'info') return 'info';
     return 'neutral';
   };
 
@@ -37,8 +38,9 @@ export function LiveNewsFeed({ onStockClick }: LiveNewsFeedProps) {
   const counts = useMemo(() => {
     let bullish = 0, bearish = 0, block = 0;
     news.forEach(n => {
-      if (n.sentiment === 'Bullish') bullish++;
-      if (n.sentiment === 'Bearish') bearish++;
+      const s = n.sentiment?.toLowerCase();
+      if (s === 'bullish') bullish++;
+      if (s === 'bearish') bearish++;
       if (n.isPromoterAction) block++;
     });
     return { ALL: news.length, BULLISH: bullish, BEARISH: bearish, 'BLOCK DEAL': block };
@@ -47,8 +49,9 @@ export function LiveNewsFeed({ onStockClick }: LiveNewsFeedProps) {
   const filteredNews = useMemo(() => {
     return news.filter(n => {
       // Filter tab
-      if (filter === 'BULLISH' && n.sentiment !== 'Bullish') return false;
-      if (filter === 'BEARISH' && n.sentiment !== 'Bearish') return false;
+      const s = n.sentiment?.toLowerCase();
+      if (filter === 'BULLISH' && s !== 'bullish') return false;
+      if (filter === 'BEARISH' && s !== 'bearish') return false;
       if (filter === 'BLOCK DEAL' && !n.isPromoterAction) return false;
       
       // Search
@@ -68,11 +71,11 @@ export function LiveNewsFeed({ onStockClick }: LiveNewsFeedProps) {
       if (!n.affectedStocks) return;
       n.affectedStocks.forEach(sym => {
         const existing = map.get(sym);
-        let sent: string = n.sentiment || 'Neutral';
-        if (n.isPromoterAction) sent = 'Info';
+        let sent: string = n.sentiment?.toLowerCase() || 'neutral';
+        if (n.isPromoterAction) sent = 'info';
         if (existing) {
           existing.count++;
-          if (sent !== 'Neutral') existing.sentiment = sent; // Keep strongest sentiment
+          if (sent !== 'neutral') existing.sentiment = sent; // Keep strongest sentiment
         } else {
           map.set(sym, { count: 1, sentiment: sent });
         }
@@ -150,6 +153,7 @@ export function LiveNewsFeed({ onStockClick }: LiveNewsFeedProps) {
             {filteredNews.map(item => {
               const sentClass = item.isPromoterAction ? 'info' : getSentimentClass(item.sentiment);
               const sentLabel = item.isPromoterAction ? 'BLOCK DEAL' : (item.sentiment || '').toUpperCase();
+              const isNeutral = sentClass === 'neutral';
               
               return (
                 <a 
@@ -163,7 +167,7 @@ export function LiveNewsFeed({ onStockClick }: LiveNewsFeedProps) {
                     <div className="news-meta">
                       <span className="news-time">{formatTime(item.pubDate)}</span>
                       <span className="news-handle">@{item.source || 'REDBOXINDIA'}</span>
-                      {sentLabel && (
+                      {!isNeutral && sentLabel && (
                         <span className={`news-sentiment ${sentClass}`}>
                           {sentLabel}
                         </span>
