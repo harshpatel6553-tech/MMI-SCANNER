@@ -10,129 +10,95 @@ interface HeatmapProps {
 }
 
 function getHeatColor(changePercent: number): string {
-  if (changePercent <= -3) return '#dc2626';
-  if (changePercent <= -1) {
-    const t = (changePercent + 3) / 2; // 0 at -3, 1 at -1
-    return lerpColor('#dc2626', '#ef4444', t);
-  }
-  if (changePercent < 0) {
-    const t = (changePercent + 1) / 1; // 0 at -1, 1 at 0
-    return lerpColor('#ef4444', '#2a2a2e', t);
-  }
-  if (changePercent === 0) return '#2a2a2e';
-  if (changePercent <= 1) {
-    const t = changePercent / 1; // 0 at 0, 1 at +1
-    return lerpColor('#2a2a2e', '#10b981', t);
-  }
-  if (changePercent <= 3) {
-    const t = (changePercent - 1) / 2; // 0 at +1, 1 at +3
-    return lerpColor('#10b981', '#059669', t);
-  }
-  return '#059669';
-}
-
-function lerpColor(a: string, b: string, t: number): string {
-  const ar = parseInt(a.slice(1, 3), 16);
-  const ag = parseInt(a.slice(3, 5), 16);
-  const ab = parseInt(a.slice(5, 7), 16);
-  const br = parseInt(b.slice(1, 3), 16);
-  const bg = parseInt(b.slice(3, 5), 16);
-  const bb = parseInt(b.slice(5, 7), 16);
-
-  const r = Math.round(ar + (br - ar) * t);
-  const g = Math.round(ag + (bg - ag) * t);
-  const bl = Math.round(ab + (bb - ab) * t);
-  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${bl.toString(16).padStart(2, '0')}`;
+  if (changePercent >= 2) return '#129352'; // Deep Green
+  if (changePercent >= 1) return '#24b267'; // Green
+  if (changePercent > 0) return '#60c58e';  // Light Green
+  if (changePercent === 0) return '#9ea7ac'; // Neutral Gray
+  if (changePercent > -1) return '#f57e84'; // Light Red
+  if (changePercent > -2) return '#e43e49'; // Red
+  return '#cc222e'; // Deep Red
 }
 
 export function Heatmap({ stocks }: HeatmapProps) {
   const [hoveredSymbol, setHoveredSymbol] = useState<string | null>(null);
 
-  const grouped = useMemo(() => {
-    const map = new Map<string, StockData[]>();
-    stocks.forEach(s => {
-      const sector = s.sector || 'Unknown';
-      if (!map.has(sector)) map.set(sector, []);
-      map.get(sector)!.push(s);
-    });
-    // Sort sectors by size
-    return Array.from(map.entries()).sort((a, b) => b[1].length - a[1].length);
+  // Sort all stocks globally by changePercent descending
+  const sortedStocks = useMemo(() => {
+    return [...stocks].sort((a, b) => b.changePercent - a.changePercent);
   }, [stocks]);
-
-  let tileIndex = 0;
 
   return (
     <div className="heatmap-container">
-      {grouped.map(([sector, sectorStocks]) => (
-        <div key={sector} className="heatmap-sector">
-          <div className="heatmap-sector-header">
-            <span className="heatmap-sector-name">{sector}</span>
-            <span className="heatmap-sector-count">{sectorStocks.length}</span>
-          </div>
-          <div className="heatmap-grid">
-            {sectorStocks.map(stock => {
-              const idx = tileIndex++;
-              const bgColor = getHeatColor(stock.changePercent);
-              const isHovered = hoveredSymbol === stock.symbol;
+      <div className="heatmap-grid">
+        {sortedStocks.map((stock, idx) => {
+          const bgColor = getHeatColor(stock.changePercent);
+          const isHovered = hoveredSymbol === stock.symbol;
 
-              return (
-                <motion.div
-                  key={stock.symbol}
-                  className={`heatmap-tile ${isHovered ? 'hovered' : ''}`}
-                  style={{
-                    backgroundColor: bgColor,
-                    animationDelay: `${Math.min(idx * 20, 800)}ms`,
-                  }}
-                  whileHover={{ scale: 1.12, zIndex: 10 }}
-                  transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                  onMouseEnter={() => setHoveredSymbol(stock.symbol)}
-                  onMouseLeave={() => setHoveredSymbol(null)}
-                >
-                  <span className="heatmap-tile-symbol">
-                    {stock.symbol}
-                    {stock.volumeSpike && <Zap size={10} className="heatmap-spike-icon" />}
-                  </span>
-                  <span className={`heatmap-tile-change ${stock.changePercent >= 0 ? '' : 'neg'}`}>
-                    {formatPercent(stock.changePercent)}
-                  </span>
+          return (
+            <motion.div
+              key={stock.symbol}
+              className={`heatmap-tile ${isHovered ? 'hovered' : ''}`}
+              style={{
+                backgroundColor: bgColor,
+                animationDelay: `${Math.min(idx * 10, 600)}ms`,
+              }}
+              whileHover={{ scale: 1.05, zIndex: 10 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+              onMouseEnter={() => setHoveredSymbol(stock.symbol)}
+              onMouseLeave={() => setHoveredSymbol(null)}
+            >
+              <div className="heatmap-tile-top">
+                <span className="heatmap-tile-symbol">
+                  {stock.symbol}
+                  {stock.volumeSpike && <Zap size={10} className="heatmap-spike-icon" />}
+                </span>
+              </div>
+              
+              <div className="heatmap-tile-bottom">
+                <span className="heatmap-tile-price">
+                  {formatPrice(stock.price).replace('₹', '')}
+                </span>
+                <span className="heatmap-tile-change">
+                  {stock.changePercent > 0 ? '+' : ''}{stock.changePercent.toFixed(2)}%
+                </span>
+              </div>
 
-                  <AnimatePresence>
-                    {isHovered && (
-                      <motion.div 
-                        initial={{ opacity: 0, scale: 0.9, y: 10 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.9, y: 10 }}
-                        transition={{ duration: 0.15 }}
-                        className="heatmap-tooltip"
-                      >
-                        <div className="heatmap-tooltip-name">{stock.name}</div>
-                        <div className="heatmap-tooltip-row">
-                          <span>Price</span>
-                          <span>{formatPrice(stock.price)}</span>
-                        </div>
-                        <div className="heatmap-tooltip-row">
-                          <span>Change</span>
-                          <span className={stock.change >= 0 ? 'positive' : 'negative'}>
-                            {formatPercent(stock.changePercent)}
-                          </span>
-                        </div>
-                        <div className="heatmap-tooltip-row">
-                          <span>Volume</span>
-                          <span>{formatVolume(stock.volume)}</span>
-                        </div>
-                        <div className="heatmap-tooltip-row">
-                          <span>Sector</span>
-                          <span>{stock.sector || 'Unknown'}</span>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </motion.div>
-              );
-            })}
-          </div>
-        </div>
-      ))}
+              <AnimatePresence>
+                {isHovered && (
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                    transition={{ duration: 0.15 }}
+                    className="heatmap-tooltip"
+                  >
+                    <div className="heatmap-tooltip-name">{stock.name}</div>
+                    <div className="heatmap-tooltip-row">
+                      <span>Price</span>
+                      <span>{formatPrice(stock.price)}</span>
+                    </div>
+                    <div className="heatmap-tooltip-row">
+                      <span>Change</span>
+                      <span className={stock.change >= 0 ? 'positive' : 'negative'}>
+                        {formatPercent(stock.changePercent)}
+                      </span>
+                    </div>
+                    <div className="heatmap-tooltip-row">
+                      <span>Volume</span>
+                      <span>{formatVolume(stock.volume)}</span>
+                    </div>
+                    <div className="heatmap-tooltip-row">
+                      <span>Sector</span>
+                      <span>{stock.sector || 'Unknown'}</span>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          );
+        })}
+      </div>
+      
       {stocks.length === 0 && (
         <div className="heatmap-empty">
           <div className="heatmap-empty-icon"><LayoutGrid size={32} /></div>
