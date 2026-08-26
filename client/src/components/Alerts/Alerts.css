@@ -208,7 +208,7 @@
   box-shadow: -10px 0 40px rgba(0,0,0,0.8);
 }
 .alert-panel-overlay {
-  position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(2px); z-index: 990; animation: fadeIn 0.2s ease;
+  position: fixed; inset: 0; background: rgba(0,0,0,0.2); z-index: 990; animation: fadeIn 0.2s ease;
 }
 .alert-panel-toggle {
   position: fixed; right: 0; top: 50%; transform: translateY(-50%);
