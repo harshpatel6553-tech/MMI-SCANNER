@@ -61,7 +61,7 @@ class AlertService {
     const now = new Date().toISOString();
     const minuteTimestamp = now.substring(0, 16); // e.g., "2023-10-27T10:15"
     const currentMs = Date.now();
-    const COOLDOWN_MS = 15 * 60 * 1000; // 15 minutes cooldown per stock to prevent spam
+    const COOLDOWN_MS = 3 * 60 * 1000; // 3 minutes cooldown per stock
 
     for (const stock of stocks) {
       // If we haven't seen this stock before (e.g. server just booted), 
