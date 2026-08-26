@@ -61,7 +61,7 @@ class AlertService {
     const now = new Date().toISOString();
     const dayTimestamp = now.substring(0, 10); // e.g., "2023-10-27" (Only one alert ID per stock per day)
     const currentMs = Date.now();
-    const COOLDOWN_MS = 3 * 60 * 1000; // 3 minutes cooldown per stock
+    const COOLDOWN_MS = 0; // No cooldown needed since we upsert!
 
     for (const stock of stocks) {
       // If we haven't seen this stock before (e.g. server just booted), 
@@ -81,13 +81,13 @@ class AlertService {
       const previousState = this.previousHighLowState.get(stock.symbol)!;
 
       let triggeredAlert = false;
-      const isCooldownOver = currentMs - previousState.lastAlertTime > COOLDOWN_MS;
+      const isCooldownOver = true; // Cooldown disabled
 
-      // Detect DAY_HIGH transition or new high value (must be at least 0.2% higher to prevent micro-creep spam)
-      const isNewHighValue = previousState.highValue > 0 && stock.dayHigh > (previousState.highValue * 1.002) && stock.atDayHigh;
+      // Detect DAY_HIGH transition or new high value
+      const isNewHighValue = previousState.highValue > 0 && stock.dayHigh > previousState.highValue && stock.atDayHigh;
       const transitionedToHigh = stock.atDayHigh && !previousState.atHigh;
       
-      if ((isNewHighValue || transitionedToHigh) && isCooldownOver) {
+      if (isNewHighValue || transitionedToHigh) {
         const alertId = this.generateDeterministicUUID(`${stock.symbol}_DAY_HIGH_${dayTimestamp}`);
         const alert: StockAlert = {
           id: alertId,
@@ -104,11 +104,11 @@ class AlertService {
         );
       }
 
-      // Detect DAY_LOW transition or new low value (must be at least 0.2% lower)
-      const isNewLowValue = previousState.lowValue > 0 && stock.dayLow < (previousState.lowValue * 0.998) && stock.atDayLow;
+      // Detect DAY_LOW transition or new low value
+      const isNewLowValue = previousState.lowValue > 0 && stock.dayLow < previousState.lowValue && stock.atDayLow;
       const transitionedToLow = stock.atDayLow && !previousState.atLow;
       
-      if ((isNewLowValue || transitionedToLow) && isCooldownOver && !triggeredAlert) {
+      if ((isNewLowValue || transitionedToLow) && !triggeredAlert) {
         const alertId = this.generateDeterministicUUID(`${stock.symbol}_DAY_LOW_${dayTimestamp}`);
         const alert: StockAlert = {
           id: alertId,
