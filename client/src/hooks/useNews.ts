@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSocketContext } from '../context/SocketContext';
 
 export interface NewsItem {
@@ -56,21 +56,10 @@ export function useNews() {
     // Initial fetch
     fetchNews();
 
-    // Adaptive fallback polling: poll every 3 seconds if empty, otherwise 60 seconds
-    let ticks = 0;
+    // Standard fallback polling every 5 minutes since WebSockets handle real-time updates
     const tickInterval = setInterval(() => {
-      if (!isMounted) return;
-      ticks++;
-      
-      if (isWarmingUp.current) {
-        // If warming up (news is empty), fetch every 3 seconds
-        fetchNews();
-      } else if (ticks >= 20) { 
-        // 20 ticks * 3s = 60 seconds standard fallback
-        fetchNews();
-        ticks = 0;
-      }
-    }, 3000);
+      fetchNews();
+    }, 5 * 60 * 1000);
 
     return () => {
       isMounted = false;

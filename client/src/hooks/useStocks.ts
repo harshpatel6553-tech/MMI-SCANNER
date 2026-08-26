@@ -62,10 +62,50 @@ export function useStocks(
       setAllStocks(data);
     };
 
+    const handlePartialUpdate = (deltaData: StockData[]) => {
+      // Just re-use the flash logic from handleUpdate
+      const newFlashes = new Map<string, 'up' | 'down'>();
+      deltaData.forEach(stock => {
+        const oldPrice = prevPrices.current.get(stock.symbol);
+        if (oldPrice !== undefined && oldPrice !== stock.price) {
+          const direction = stock.price > oldPrice ? 'up' : 'down';
+          newFlashes.set(stock.symbol, direction);
+          const existingTimer = flashTimers.current.get(stock.symbol);
+          if (existingTimer) clearTimeout(existingTimer);
+          const timer = setTimeout(() => {
+            setPriceFlash(prev => {
+              const next = new Map(prev);
+              next.delete(stock.symbol);
+              return next;
+            });
+          }, 1000);
+          flashTimers.current.set(stock.symbol, timer);
+        }
+        prevPrices.current.set(stock.symbol, stock.price);
+      });
+
+      if (newFlashes.size > 0) {
+        setPriceFlash(prev => {
+          const next = new Map(prev);
+          newFlashes.forEach((v, k) => next.set(k, v));
+          return next;
+        });
+      }
+
+      setAllStocks(prev => {
+        if (prev.length === 0) return deltaData;
+        const map = new Map(prev.map(s => [s.symbol, s]));
+        deltaData.forEach(s => map.set(s.symbol, s));
+        return Array.from(map.values());
+      });
+    };
+
     socket.on('stocks:update:full', handleUpdate);
+    socket.on('stocks:update:partial', handlePartialUpdate);
 
     return () => {
       socket.off('stocks:update:full', handleUpdate);
+      socket.off('stocks:update:partial', handlePartialUpdate);
       socket.off('connect', requestSnapshot);
       flashTimers.current.forEach(t => clearTimeout(t));
     };

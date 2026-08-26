@@ -191,8 +191,8 @@ export function setupSocketHandlers(io: TypedServer): void {
   });
 }
 
-/** Cache of the last state sent to clients to compute deltas */
-
+const lastBroadcastState = new Map<string, string>();
+let lastStatusBroadcastTime = 0;
 
 /**
  * Broadcast stock updates and alerts to all connected clients.
@@ -203,35 +203,56 @@ export function broadcastStockUpdate(
   alerts: StockAlert[] = []
 ): void {
   try {
+    const changedStocks: StockData[] = [];
+    
+    // Compute deltas (only stocks that actually changed price/volume/etc.)
+    for (const stock of stocks) {
+      const stockStr = JSON.stringify(stock);
+      if (lastBroadcastState.get(stock.symbol) !== stockStr) {
+        changedStocks.push(stock);
+        lastBroadcastState.set(stock.symbol, stockStr);
+      }
+    }
+
+    const shouldBroadcastStatus = Date.now() - lastStatusBroadcastTime > 30000;
+    
+    if (changedStocks.length === 0 && alerts.length === 0 && !shouldBroadcastStatus) {
+      return; // Conserve massive amounts of bandwidth
+    }
+
+    if (shouldBroadcastStatus) {
+      lastStatusBroadcastTime = Date.now();
+    }
+
     const sockets = io.sockets.sockets;
 
-    // Send the FULL stock payload to everyone. It's incredibly reliable and fast.
     for (const [, socket] of sockets) {
       const typedSocket = socket as TypedSocket;
       const subscription = typedSocket.data.subscription || 'ALL';
 
-      const filteredStocks = filterStocksBySubscription(stocks, subscription);
-      
-      if (filteredStocks.length > 0) {
-        // Send a complete snapshot rather than a delta
-        typedSocket.emit('stocks:update:full', filteredStocks);
+      if (changedStocks.length > 0) {
+        const filteredDeltas = filterStocksBySubscription(changedStocks, subscription);
+        if (filteredDeltas.length > 0) {
+          typedSocket.emit('stocks:update:partial', filteredDeltas);
+        }
       }
 
-      // Always broadcast connection status
-      typedSocket.emit('connection:status', {
-        connected: true,
-        stockCount: stocks.length,
-        lastUpdate: new Date().toISOString(),
-      });
+      if (shouldBroadcastStatus || changedStocks.length > 0) {
+        typedSocket.emit('connection:status', {
+          connected: true,
+          stockCount: stocks.length,
+          lastUpdate: new Date().toISOString(),
+        });
+      }
     }
 
     for (const alert of alerts) {
       io.emit('alert:new', alert);
     }
 
-    if (stocks.length > 0 || alerts.length > 0) {
+    if (changedStocks.length > 0 || alerts.length > 0) {
       logger.debug(
-        `Broadcasted ${stocks.length} stocks and ${alerts.length} alerts to ${sockets.size} clients`
+        `Broadcasted ${changedStocks.length} deltas and ${alerts.length} alerts to ${sockets.size} clients`
       );
     }
   } catch (err) {
