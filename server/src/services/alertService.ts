@@ -59,7 +59,7 @@ class AlertService {
   checkAndGenerateAlerts(stocks: StockData[]): StockAlert[] {
     const newAlerts: StockAlert[] = [];
     const now = new Date().toISOString();
-    const minuteTimestamp = now.substring(0, 16); // e.g., "2023-10-27T10:15"
+    const dayTimestamp = now.substring(0, 10); // e.g., "2023-10-27" (Only one alert ID per stock per day)
     const currentMs = Date.now();
     const COOLDOWN_MS = 3 * 60 * 1000; // 3 minutes cooldown per stock
 
@@ -88,7 +88,7 @@ class AlertService {
       const transitionedToHigh = stock.atDayHigh && !previousState.atHigh;
       
       if ((isNewHighValue || transitionedToHigh) && isCooldownOver) {
-        const alertId = this.generateDeterministicUUID(`${stock.symbol}_DAY_HIGH_${minuteTimestamp}`);
+        const alertId = this.generateDeterministicUUID(`${stock.symbol}_DAY_HIGH_${dayTimestamp}`);
         const alert: StockAlert = {
           id: alertId,
           symbol: stock.symbol,
@@ -109,7 +109,7 @@ class AlertService {
       const transitionedToLow = stock.atDayLow && !previousState.atLow;
       
       if ((isNewLowValue || transitionedToLow) && isCooldownOver && !triggeredAlert) {
-        const alertId = this.generateDeterministicUUID(`${stock.symbol}_DAY_LOW_${minuteTimestamp}`);
+        const alertId = this.generateDeterministicUUID(`${stock.symbol}_DAY_LOW_${dayTimestamp}`);
         const alert: StockAlert = {
           id: alertId,
           symbol: stock.symbol,
@@ -121,13 +121,13 @@ class AlertService {
         newAlerts.push(alert);
         triggeredAlert = true;
         logger.info(
-          `🔔 DAY LOW ALERT: ${stock.symbol} (${stock.name}) hit ₹${stock.price.toFixed(2)}${isNewLowValue ? ' (New Low)' : ''}`
+          `🚀 DAY LOW ALERT: ${stock.symbol} (${stock.name}) hit ₹${stock.price.toFixed(2)}${isNewLowValue ? ' (New Low)' : ''}`
         );
       }
 
       // Detect VOLUME_SPIKE transition
       if (stock.volumeSpike === true && previousState.volumeSpiked === false && isCooldownOver && !triggeredAlert) {
-        const alertId = this.generateDeterministicUUID(`${stock.symbol}_VOLUME_SPIKE_${minuteTimestamp}`);
+        const alertId = this.generateDeterministicUUID(`${stock.symbol}_VOLUME_SPIKE_${dayTimestamp}`);
         const alert: StockAlert = {
           id: alertId,
           symbol: stock.symbol,

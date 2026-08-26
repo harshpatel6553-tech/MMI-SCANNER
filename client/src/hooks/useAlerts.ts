@@ -40,11 +40,25 @@ export function useAlerts() {
       const toast: Toast = { ...alert, dismissAt: Date.now() + 5000 };
 
       setToasts(prev => {
-        const next = [toast, ...prev].slice(0, 5);
-        return next;
+        const index = prev.findIndex(t => t.id === toast.id);
+        if (index >= 0) {
+          const next = [...prev];
+          next[index] = toast;
+          return next;
+        }
+        return [toast, ...prev].slice(0, 5);
       });
 
-      setAlertHistory(prev => [alert, ...prev].slice(0, 200));
+      setAlertHistory(prev => {
+        const index = prev.findIndex(a => a.id === alert.id);
+        if (index >= 0) {
+          // If it already exists, replace it and move it to the top so the user sees the updated price
+          const next = [...prev];
+          next.splice(index, 1);
+          return [alert, ...next];
+        }
+        return [alert, ...prev].slice(0, 200);
+      });
 
       // Auto-dismiss after 5 seconds
       const timer = setTimeout(() => {
