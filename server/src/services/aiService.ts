@@ -50,7 +50,7 @@ class AIService {
         let results: AISentimentResult[] = [];
 
         if (isUsingGroq) {
-          // Use Groq API (llama3-8b-8192)
+          // Use Groq API (llama-3.1-8b-instant)
           const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -58,7 +58,7 @@ class AIService {
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-              model: 'llama3-8b-8192',
+              model: 'llama-3.1-8b-instant',
               messages: [{ role: 'user', content: prompt }],
               temperature: 0.1,
               response_format: { type: 'json_object' }
@@ -94,7 +94,7 @@ class AIService {
           };
 
           const response = await this.ai!.models.generateContent({
-            model: 'gemini-3.6-flash',
+            model: 'gemini-1.5-flash',
             contents: prompt,
             config: {
               responseMimeType: "application/json",
