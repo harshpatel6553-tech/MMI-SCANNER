@@ -9,7 +9,7 @@ export interface StockData {
   change: number;
   changePercent: number;
   volume: number;
-  indexName: 'NIFTY50' | 'NIFTY500';
+  indexName: 'NIFTY50' | 'NIFTY500' | 'INDEX';
   lastUpdated: string;
   atDayHigh: boolean;
   atDayLow: boolean;

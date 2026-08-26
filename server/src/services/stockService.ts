@@ -181,8 +181,24 @@ class StockService {
 
   async fetchIndices(): Promise<StockData[]> {
     const indices = [
-      { yahooSymbol: '^NSEI', displaySymbol: 'NIFTY50', name: 'NIFTY 50 Index' },
-      { yahooSymbol: '^NSEBANK', displaySymbol: 'BANKNIFTY', name: 'Bank NIFTY Index' },
+      { yahooSymbol: '^NSEI', displaySymbol: 'NIFTY 50', name: 'NIFTY 50' },
+      { yahooSymbol: '^NSEBANK', displaySymbol: 'BANKNIFTY', name: 'Bank NIFTY' },
+      { yahooSymbol: '^CNX100', displaySymbol: 'NIFTY 100', name: 'NIFTY 100' },
+      { yahooSymbol: '^CNX200', displaySymbol: 'NIFTY 200', name: 'NIFTY 200' },
+      { yahooSymbol: '^CRSLDX', displaySymbol: 'NIFTY 500', name: 'NIFTY 500' },
+      { yahooSymbol: '^CNXAUTO', displaySymbol: 'NIFTY AUTO', name: 'NIFTY AUTO' },
+      { yahooSymbol: '^CNXIT', displaySymbol: 'NIFTY IT', name: 'NIFTY IT' },
+      { yahooSymbol: '^CNXMETAL', displaySymbol: 'NIFTY METAL', name: 'NIFTY METAL' },
+      { yahooSymbol: '^CNXPHARMA', displaySymbol: 'NIFTY PHARMA', name: 'NIFTY PHARMA' },
+      { yahooSymbol: '^CNXENERGY', displaySymbol: 'NIFTY ENERGY', name: 'NIFTY ENERGY' },
+      { yahooSymbol: '^CNXFMCG', displaySymbol: 'NIFTY FMCG', name: 'NIFTY FMCG' },
+      { yahooSymbol: '^CNXREALTY', displaySymbol: 'NIFTY REALTY', name: 'NIFTY REALTY' },
+      { yahooSymbol: '^CNXINFRA', displaySymbol: 'NIFTY INFRA', name: 'NIFTY INFRA' },
+      { yahooSymbol: '^CNXPSUBANK', displaySymbol: 'NIFTY PSU BANK', name: 'NIFTY PSU BANK' },
+      { yahooSymbol: '^CNXFIN', displaySymbol: 'NIFTY FIN SERVICE', name: 'NIFTY FIN SERVICE' },
+      { yahooSymbol: '^CNXMNCE', displaySymbol: 'NIFTY MNC', name: 'NIFTY MNC' },
+      { yahooSymbol: '^CNXPSE', displaySymbol: 'NIFTY PSE', name: 'NIFTY PSE' },
+      { yahooSymbol: '^NSEMDCP50', displaySymbol: 'NIFTY MIDCAP 50', name: 'NIFTY MIDCAP 50' }
     ];
 
     const results: StockData[] = [];

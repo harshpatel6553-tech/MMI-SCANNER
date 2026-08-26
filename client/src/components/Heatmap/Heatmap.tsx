@@ -21,14 +21,30 @@ function getHeatColor(changePercent: number): string {
 
 export function Heatmap({ stocks }: HeatmapProps) {
   const [hoveredSymbol, setHoveredSymbol] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'NIFTY50' | 'NIFTY500' | 'ALL' | 'INDEX'>('ALL');
 
-  // Sort all stocks globally by changePercent descending
+  // Filter and sort stocks globally by changePercent descending
   const sortedStocks = useMemo(() => {
-    return [...stocks].sort((a, b) => b.changePercent - a.changePercent);
-  }, [stocks]);
+    let filtered = stocks;
+    if (viewMode !== 'ALL') {
+      filtered = stocks.filter(s => s.indexName === viewMode);
+    } else {
+      filtered = stocks.filter(s => s.indexName !== 'INDEX');
+    }
+    return [...filtered].sort((a, b) => b.changePercent - a.changePercent);
+  }, [stocks, viewMode]);
 
   return (
     <div className="heatmap-container">
+      <div className="heatmap-controls">
+        <div className="heatmap-tabs">
+          <button className={`heatmap-tab ${viewMode === 'ALL' ? 'active' : ''}`} onClick={() => setViewMode('ALL')}>All Stocks</button>
+          <button className={`heatmap-tab ${viewMode === 'NIFTY50' ? 'active' : ''}`} onClick={() => setViewMode('NIFTY50')}>Nifty 50</button>
+          <button className={`heatmap-tab ${viewMode === 'NIFTY500' ? 'active' : ''}`} onClick={() => setViewMode('NIFTY500')}>Nifty 500</button>
+          <button className={`heatmap-tab ${viewMode === 'INDEX' ? 'active' : ''}`} onClick={() => setViewMode('INDEX')}>Indices</button>
+        </div>
+      </div>
+
       <div className="heatmap-grid">
         {sortedStocks.map((stock, idx) => {
           const bgColor = getHeatColor(stock.changePercent);
@@ -83,14 +99,18 @@ export function Heatmap({ stocks }: HeatmapProps) {
                         {formatPercent(stock.changePercent)}
                       </span>
                     </div>
-                    <div className="heatmap-tooltip-row">
-                      <span>Volume</span>
-                      <span>{formatVolume(stock.volume)}</span>
-                    </div>
-                    <div className="heatmap-tooltip-row">
-                      <span>Sector</span>
-                      <span>{stock.sector || 'Unknown'}</span>
-                    </div>
+                    {stock.indexName !== 'INDEX' && (
+                      <div className="heatmap-tooltip-row">
+                        <span>Volume</span>
+                        <span>{formatVolume(stock.volume)}</span>
+                      </div>
+                    )}
+                    {stock.indexName !== 'INDEX' && (
+                      <div className="heatmap-tooltip-row">
+                        <span>Sector</span>
+                        <span>{stock.sector || 'Unknown'}</span>
+                      </div>
+                    )}
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -99,10 +119,10 @@ export function Heatmap({ stocks }: HeatmapProps) {
         })}
       </div>
       
-      {stocks.length === 0 && (
+      {sortedStocks.length === 0 && (
         <div className="heatmap-empty">
           <div className="heatmap-empty-icon"><LayoutGrid size={32} /></div>
-          <div>Waiting for stock data...</div>
+          <div>Waiting for {viewMode} data...</div>
         </div>
       )}
     </div>

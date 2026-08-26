@@ -173,3 +173,43 @@
   .heatmap-tile-price { font-size: 11px; }
   .heatmap-tile-change { font-size: 11px; }
 }
+
+/* ---- Controls ---- */
+.heatmap-controls {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
+.heatmap-tabs {
+  display: flex;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px;
+  gap: 4px;
+}
+
+.heatmap-tab {
+  background: transparent;
+  border: none;
+  padding: 6px 12px;
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.heatmap-tab:hover {
+  color: var(--text-primary);
+}
+
+.heatmap-tab.active {
+  background: var(--bg-panel);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-sm);
+}
+
