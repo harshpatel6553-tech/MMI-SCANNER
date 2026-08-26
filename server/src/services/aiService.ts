@@ -56,13 +56,15 @@ class AIService {
         let results: AISentimentResult[] = [];
 
         if (useOmniroute) {
+          const omniKey = process.env.OMNIROUTE_API_KEY || 'sk-omniroute';
           const omniRes = await fetch(`${omnirouteUrl}/v1/chat/completions`, {
             method: 'POST',
             headers: {
-              'Content-Type': 'application/json'
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${omniKey}`
             },
             body: JSON.stringify({
-              model: 'llama-3.1-8b-instant', // or any model configured in your omniroute
+              model: 'llama-3.1-8b-instant', // OmniRoute will route this based on its own config
               messages: [{ role: 'user', content: prompt }],
               temperature: 0.1,
               response_format: { type: 'json_object' }
