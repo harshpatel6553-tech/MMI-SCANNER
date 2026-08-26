@@ -1,6 +1,7 @@
 import { GoogleGenAI, Type, Schema } from '@google/genai';
 import logger from '../utils/logger.js';
 import { configService } from './configService.js';
+import { NIFTY_500_STOCKS } from '../data/nifty500.js';
 
 export interface AISentimentResult {
   sentiment: 'Bullish' | 'Bearish' | 'Neutral';
@@ -128,14 +129,51 @@ class AIService {
       } catch (err: any) {
         lastError = err;
         logger.warn(`AI Batch Analysis attempt ${attempt} failed: ${err.message}. Retrying...`);
-        if (attempt < 3) {
+        if (attempt < 2) {
           await new Promise(res => setTimeout(res, 2000));
         }
       }
     }
     
-    logger.error(`AI Batch Analysis failed after 3 attempts: ${lastError instanceof Error ? lastError.message : String(lastError)}`);
-    return headlines.map(() => ({ sentiment: 'Neutral', affectedStocks: [] }));
+    logger.error(`AI Batch Analysis failed after retries. Falling back to robust local heuristic analyzer...`);
+    return this.analyzeLocally(headlines);
+  }
+
+  private analyzeLocally(headlines: string[]): AISentimentResult[] {
+    const BULLISH = ['wins', 'order', 'profit', 'surges', 'jumps', 'up', 'higher', 'growth', 'positive', 'buy', 'target', 'upgrade', 'approval', 'acquires', 'expansion', 'soars'];
+    const BEARISH = ['loss', 'drops', 'falls', 'down', 'lower', 'negative', 'sell', 'downgrade', 'penalty', 'fine', 'scam', 'fraud', 'cancels', 'scraps', 'plunges', 'slumps'];
+    
+    return headlines.map(h => {
+      const lower = h.toLowerCase();
+      let bullScore = 0;
+      let bearScore = 0;
+      
+      BULLISH.forEach(w => { if (lower.includes(w)) bullScore++; });
+      BEARISH.forEach(w => { if (lower.includes(w)) bearScore++; });
+      
+      let sentiment: 'Bullish' | 'Bearish' | 'Neutral' = 'Neutral';
+      if (bullScore > bearScore) sentiment = 'Bullish';
+      else if (bearScore > bullScore) sentiment = 'Bearish';
+      
+      const affectedStocks = new Set<string>();
+      
+      // Extract stocks by scanning for known symbols or names
+      NIFTY_500_STOCKS.forEach((s: any) => {
+        // Fast symbol check
+        const sym = s.symbol.toLowerCase();
+        if (lower.includes(`$${sym}`) || lower.includes(` ${sym} `) || lower.startsWith(`${sym}:`) || lower.startsWith(`${sym} `)) {
+          affectedStocks.add(s.symbol);
+        } else {
+          // Check by name (first word usually enough for distinct companies)
+          const nameParts = s.name.toLowerCase().split(' ');
+          if (nameParts[0] && nameParts[0].length > 3 && lower.includes(nameParts[0])) {
+            affectedStocks.add(s.symbol);
+          }
+        }
+      });
+      
+      return { sentiment, affectedStocks: Array.from(affectedStocks) };
+    });
   }
 }
 
