@@ -158,7 +158,7 @@
 .news-sentiment.bearish { color: var(--pulse-red); background: rgba(239,68,68,.12); border-color: rgba(239,68,68,.3); }
 .news-sentiment.info { color: var(--info); background: rgba(167,139,250,.12); border-color: rgba(167,139,250,.3); }
 .news-headline { font-size: 13.5px; line-height: 1.5; color: var(--ink); }
-.news-footer { display: flex; align-items: center; gap: 6px; margin-top: 10px; }
+.news-footer { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
 .news-footer svg { opacity: .4; }
 .news-chip {
   font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 600;
