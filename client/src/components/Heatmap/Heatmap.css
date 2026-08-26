@@ -9,7 +9,7 @@
   padding: 8px;
   display: flex;
   flex-direction: column;
-  background: #ffffff; /* User's mockup is light mode, but wait, the whole app is dark mode? I will keep it clean and adaptable, but the mockup has white background, wait, let me check the overall app theme. I will stick to transparent so it fits the app background. */
+  background: transparent;
 }
 
 /* ---- Grid ---- */
