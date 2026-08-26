@@ -81,7 +81,7 @@ class AIService {
         }
 
         if (results.length === 0 && isUsingGroq) {
-          // Use Groq API (llama-3.1-8b-instant)
+          // Use Groq API
           const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -89,7 +89,7 @@ class AIService {
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-              model: 'llama-3.1-8b-instant',
+              model: 'llama-3.3-70b-versatile',
               messages: [{ role: 'user', content: prompt }],
               temperature: 0.1,
               response_format: { type: 'json_object' }
@@ -108,6 +108,7 @@ class AIService {
         }
 
         if (results.length === 0 && this.hasValidKey) {
+          // Gemini Fallback
           const responseSchema: Schema = {
             type: Type.OBJECT,
             properties: {
@@ -116,8 +117,14 @@ class AIService {
                 items: {
                   type: Type.OBJECT,
                   properties: {
-                    sentiment: { type: Type.STRING },
-                    affectedStocks: { type: Type.ARRAY, items: { type: Type.STRING } }
+                    sentiment: {
+                      type: Type.STRING,
+                      enum: ['Bullish', 'Bearish', 'Neutral']
+                    },
+                    affectedStocks: {
+                      type: Type.ARRAY,
+                      items: { type: Type.STRING }
+                    }
                   }
                 }
               }
@@ -125,7 +132,7 @@ class AIService {
           };
 
           const response = await this.ai!.models.generateContent({
-            model: 'gemini-1.5-flash',
+            model: 'gemini-2.5-flash',
             contents: prompt,
             config: {
               responseMimeType: "application/json",
