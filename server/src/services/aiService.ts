@@ -25,16 +25,18 @@ class AIService {
   public async analyzeNewsBatch(headlines: string[]): Promise<AISentimentResult[]> {
     if (headlines.length === 0) return [];
     
-    // Determine if we are using Groq or Gemini
+    // Determine which AI provider to use
+    const openRouterKey = process.env.OPENROUTER_API_KEY;
     const groqKey = process.env.GROQ_API_KEY;
+    const isUsingOpenRouter = !!openRouterKey;
     const isUsingGroq = !!groqKey;
 
-    if (!isUsingGroq && (!this.hasValidKey || !this.ai)) {
-      return headlines.map(() => ({ sentiment: 'Neutral', affectedStocks: [] }));
+    if (!isUsingOpenRouter && !isUsingGroq && (!this.hasValidKey || !this.ai)) {
+      return this.analyzeLocally(headlines);
     }
 
     let lastError = null;
-    for (let attempt = 1; attempt <= 3; attempt++) {
+    for (let attempt = 1; attempt <= 2; attempt++) {
       try {
         const prompt = `Analyze this list of financial news headlines from the Indian Stock Market. For each headline, determine if it is Bullish, Bearish, or Neutral for the market or specific companies, and extract affected Indian NSE stock symbols.
         
@@ -50,7 +52,34 @@ class AIService {
 
         let results: AISentimentResult[] = [];
 
-        if (isUsingGroq) {
+        if (isUsingOpenRouter) {
+          const orRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${openRouterKey}`,
+              'Content-Type': 'application/json',
+              'HTTP-Referer': 'https://mmi-scanner.render.com', // Required by OpenRouter
+              'X-Title': 'MMI Scanner'
+            },
+            body: JSON.stringify({
+              model: 'meta-llama/llama-3.1-8b-instruct', // Cheap, fast, reliable JSON model on OpenRouter
+              messages: [{ role: 'user', content: prompt }],
+              temperature: 0.1,
+              response_format: { type: 'json_object' }
+            })
+          });
+
+          if (!orRes.ok) {
+            const errBody = await orRes.text();
+            logger.warn(`OpenRouter API Error: ${orRes.status} - ${errBody}. Falling back...`);
+          } else {
+            const jsonResponse = await orRes.json();
+            const parsed = JSON.parse(jsonResponse.choices[0].message.content);
+            results = parsed.results;
+          }
+        }
+
+        if (results.length === 0 && isUsingGroq) {
           // Use Groq API (llama-3.1-8b-instant)
           const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
