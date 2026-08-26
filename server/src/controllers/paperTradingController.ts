@@ -63,7 +63,7 @@ export const executeTrade = async (req: Request, res: Response) => {
 
     let shortLiability = 0;
     if (allPositions) {
-      allPositions.forEach(p => {
+      allPositions.forEach((p: any) => {
         if (p.quantity < 0) {
           shortLiability += Math.abs(p.quantity * p.average_price);
         }
@@ -187,9 +187,9 @@ export const getLeaderboard = async (req: Request, res: Response) => {
     const userValues = portfolios.map((port: any) => {
       let totalPositionValue = 0;
       
-      const userPositions = allPositions.filter(p => p.user_id === port.user_id);
+      const userPositions = allPositions.filter((p: any) => p.user_id === port.user_id);
       
-      userPositions.forEach(pos => {
+      userPositions.forEach((pos: any) => {
         const currentPrice = livePrices.get(pos.symbol) || pos.average_price;
         totalPositionValue += (pos.quantity * currentPrice);
       });
@@ -205,7 +205,7 @@ export const getLeaderboard = async (req: Request, res: Response) => {
     });
 
     // 5. Sort by Total Portfolio Value and take top 10
-    userValues.sort((a, b) => b.balance - a.balance);
+    userValues.sort((a: any, b: any) => b.balance - a.balance);
     const top10 = userValues.slice(0, 10);
 
     res.json({ success: true, leaderboard: top10 });
