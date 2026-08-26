@@ -61,7 +61,7 @@ class AlertService {
     const now = new Date().toISOString();
     const minuteTimestamp = now.substring(0, 16); // e.g., "2023-10-27T10:15"
     const currentMs = Date.now();
-    const COOLDOWN_MS = 3 * 60 * 1000; // 3 minutes cooldown per stock
+    const COOLDOWN_MS = 15 * 60 * 1000; // 15 minutes cooldown per stock to prevent spam
 
     for (const stock of stocks) {
       // If we haven't seen this stock before (e.g. server just booted), 
@@ -83,8 +83,8 @@ class AlertService {
       let triggeredAlert = false;
       const isCooldownOver = currentMs - previousState.lastAlertTime > COOLDOWN_MS;
 
-      // Detect DAY_HIGH transition or new high value
-      const isNewHighValue = previousState.highValue > 0 && stock.dayHigh > previousState.highValue && stock.atDayHigh;
+      // Detect DAY_HIGH transition or new high value (must be at least 0.2% higher to prevent micro-creep spam)
+      const isNewHighValue = previousState.highValue > 0 && stock.dayHigh > (previousState.highValue * 1.002) && stock.atDayHigh;
       const transitionedToHigh = stock.atDayHigh && !previousState.atHigh;
       
       if ((isNewHighValue || transitionedToHigh) && isCooldownOver) {
@@ -100,12 +100,12 @@ class AlertService {
         newAlerts.push(alert);
         triggeredAlert = true;
         logger.info(
-          `🔔 DAY HIGH ALERT: ${stock.symbol} (${stock.name}) hit ₹${stock.price.toFixed(2)}${isNewHighValue ? ' (New High)' : ''}`
+          `🚀 DAY HIGH ALERT: ${stock.symbol} (${stock.name}) hit ₹${stock.price.toFixed(2)}${isNewHighValue ? ' (New High)' : ''}`
         );
       }
 
-      // Detect DAY_LOW transition or new low value
-      const isNewLowValue = previousState.lowValue > 0 && stock.dayLow < previousState.lowValue && stock.atDayLow;
+      // Detect DAY_LOW transition or new low value (must be at least 0.2% lower)
+      const isNewLowValue = previousState.lowValue > 0 && stock.dayLow < (previousState.lowValue * 0.998) && stock.atDayLow;
       const transitionedToLow = stock.atDayLow && !previousState.atLow;
       
       if ((isNewLowValue || transitionedToLow) && isCooldownOver && !triggeredAlert) {
