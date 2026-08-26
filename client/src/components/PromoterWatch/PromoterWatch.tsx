@@ -137,7 +137,7 @@ export const PromoterWatch: React.FC = () => {
           </div>
           
           <div className="chart-card">
-            <div className="ctitle">Net Promoter Flow by Day (&#8377; Cr)</div>
+            <div className="ctitle">Net Promoter Flow by Day (₹ Cr)</div>
             <svg viewBox={`0 0 ${bw} ${bh + 30}`} width="100%" height="120">
               <line x1="0" y1={base} x2={bw} y2={base} stroke="#262626" strokeWidth="1"/>
               {barVals.map((v, i) => {
@@ -181,7 +181,7 @@ export const PromoterWatch: React.FC = () => {
                 <span className="dt-client" title={r.clientName}>{r.clientName}</span>
                 <span className={`dt-type ${r.type.toLowerCase()}`}>{r.type.toUpperCase()}</span>
                 <span className="dt-num">{r.quantity.toLocaleString()}</span>
-                <span className="dt-num">&#8377;{r.price.toFixed(2)}</span>
+                <span className="dt-num">₹{r.price.toFixed(2)}</span>
                 <span className="dt-num">{formatCurrency(r.quantity * r.price)}</span>
                 <span className="dt-access"><Lock size={10} /> UNLOCK</span>
               </div>

@@ -64,7 +64,7 @@ export function TradeModal({ isOpen, onClose, stock }: TradeModalProps) {
 
         <div className="tm-header">
           <span className="tm-lbl">LIVE PRICE</span>
-          <span className="tm-price">&#8377;{stock.price.toFixed(2)}</span>
+          <span className="tm-price">₹{stock.price.toFixed(2)}</span>
         </div>
 
         <div className="tm-sides">
@@ -96,7 +96,7 @@ export function TradeModal({ isOpen, onClose, stock }: TradeModalProps) {
 
         <div className="tm-val-row">
           <span className="tm-val-lbl">Order Value:</span>
-          <span className="tm-val-num">&#8377;{totalCost}</span>
+          <span className="tm-val-num">₹{totalCost}</span>
         </div>
 
         <button 

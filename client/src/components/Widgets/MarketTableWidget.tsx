@@ -31,7 +31,7 @@ export function MarketTableWidget({ fullView = false }: MarketTableWidgetProps) 
             <th></th>
             <th>Symbol</th>
             <th>Company</th>
-            <th className="num-col">Price (&#8377;)</th>
+            <th className="num-col">Price (₹)</th>
             <th className="num-col">Change</th>
             <th className="num-col">Change %</th>
             <th className="num-col">Day High</th>
