@@ -110,6 +110,8 @@ export interface ServerToClientEvents {
   'stocks:update:delta': (data: Partial<StockData>[]) => void;
   /** New price alert notification */
   'alert:new': (alert: StockAlert) => void;
+  /** Silent notification to refetch news after background AI processing */
+  'news:update': () => void;
   /** Server connection status heartbeat */
   'connection:status': (status: {
     connected: boolean;
