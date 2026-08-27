@@ -95,63 +95,38 @@ class NewsService extends EventEmitter {
       const results = await Promise.all(fetchPromises);
       allFetchedTweets = results.flat();
 
-      let newNews: NewsItem[] = [];
-
       if (allFetchedTweets.length === 0) {
-        logger.warn(`Failed to fetch tweets from Syndication API. Falling back to Google News RSS...`);
-        try {
-          const { XMLParser } = await import('fast-xml-parser');
-          const res = await fetch('https://news.google.com/rss/search?q=Indian+Stock+Market+NSE+BSE&hl=en-IN&gl=IN&ceid=IN:en');
-          const text = await res.text();
-          const parser = new XMLParser();
-          const obj = parser.parse(text);
-          const items = obj?.rss?.channel?.item || [];
-          
-          newNews = items.slice(0, 20).map((item: any) => {
-            const cleanTitle = he.decode(item.title || 'Breaking News');
-            return {
-              id: 'gnews-' + Math.random().toString(36).substring(7),
-              title: cleanTitle,
-              link: item.link || '',
-              pubDate: new Date(item.pubDate || Date.now()).toISOString(),
-              source: item.source || 'Google News',
-              isEarningsResult: /\b(Q[1-4]|FY\d{2}|Quarterly Results|Net Profit|Revenue|EBITDA|PAT)\b/i.test(cleanTitle),
-              isPromoterAction: /\b(Block Deal|Bulk Deal|Stake Sale|Promoter|Pledge|OFS)\b/i.test(cleanTitle)
-            };
-          });
-        } catch (rssError) {
-          logger.error('Google News RSS fallback failed:', rssError);
-          return;
-        }
-      } else {
-        // Sort all fetched tweets by date descending (newest first)
-        allFetchedTweets.sort((a, b) => {
-          const dateA = new Date(a.created_at || 0).getTime();
-          const dateB = new Date(b.created_at || 0).getTime();
-          return dateB - dateA;
-        });
-
-        // Parse and clean the top 20 most recent tweets across all accounts
-        newNews = allFetchedTweets.slice(0, 20).map((item: any) => {
-          const textContent = item.full_text || 'Breaking News';
-          const cleanTitle = he.decode(textContent);
-          const earningsRegex = /\b(Q[1-4]|FY\d{2}|Quarterly Results|Net Profit|Revenue|EBITDA|PAT)\b/i;
-          const blockDealRegex = /\b(Block Deal|Bulk Deal|Stake Sale|Promoter|Pledge|OFS)\b/i;
-          
-          const titleHashStr = cleanTitle.replace(/[^a-zA-Z0-9]/g, '').substring(0, 50).toLowerCase();
-          const deterministicId = 'msg-' + Buffer.from(titleHashStr + item._sourceAccount).toString('hex');
-          
-          return {
-            id: deterministicId,
-            title: cleanTitle,
-            link: item.url || `https://twitter.com/x/status/${item.id_str}`,
-            pubDate: new Date(item.created_at || Date.now()).toISOString(),
-            source: item._sourceAccount || 'Twitter',
-            isEarningsResult: earningsRegex.test(cleanTitle),
-            isPromoterAction: blockDealRegex.test(cleanTitle)
-          };
-        });
+        logger.warn(`Failed to fetch tweets from Syndication API for any account.`);
+        return;
       }
+      
+      // Sort all fetched tweets by date descending (newest first)
+      allFetchedTweets.sort((a, b) => {
+        const dateA = new Date(a.created_at || 0).getTime();
+        const dateB = new Date(b.created_at || 0).getTime();
+        return dateB - dateA;
+      });
+
+      // Parse and clean the top 20 most recent tweets across all accounts
+      const newNews: NewsItem[] = allFetchedTweets.slice(0, 20).map((item: any) => {
+        const textContent = item.full_text || 'Breaking News';
+        const cleanTitle = he.decode(textContent);
+        const earningsRegex = /\b(Q[1-4]|FY\d{2}|Quarterly Results|Net Profit|Revenue|EBITDA|PAT)\b/i;
+        const blockDealRegex = /\b(Block Deal|Bulk Deal|Stake Sale|Promoter|Pledge|OFS)\b/i;
+        
+        const titleHashStr = cleanTitle.replace(/[^a-zA-Z0-9]/g, '').substring(0, 50).toLowerCase();
+        const deterministicId = 'msg-' + Buffer.from(titleHashStr + item._sourceAccount).toString('hex');
+        
+        return {
+          id: deterministicId,
+          title: cleanTitle,
+          link: `https://x.com/${item._sourceAccount}/status/${item.id_str || ''}`,
+          pubDate: item.created_at || new Date().toUTCString(),
+          source: item._sourceAccount,
+          isEarningsResult: earningsRegex.test(cleanTitle),
+          isPromoterAction: blockDealRegex.test(cleanTitle)
+        };
+      });
 
       // Deduplicate newNews internally based on ID
       const uniqueNewNews = Array.from(new Map(newNews.map(item => [item.id, item])).values());
