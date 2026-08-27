@@ -8,7 +8,10 @@ class TwitterService {
     return configService.getKey('RAPIDAPI_KEY') || '';
   }
   private tweetCache = new Map<string, { data: any; timestamp: number }>();
-  private idCache = new Map<string, string>(); // caches username -> userId
+  private idCache = new Map<string, string>([
+    ['RedboxIndia', '1092883822473924608'],
+    ['yatinmota', '1933369219']
+  ]); // caches username -> userId
   private readonly CACHE_TTL_MS = 0; // Caching disabled: always fetch fresh data 
 
   /**
