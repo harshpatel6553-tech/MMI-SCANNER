@@ -19,7 +19,7 @@ class NewsService extends EventEmitter {
   private isPolling = false;
   private currentKeyIndex = 0;
   private rapidApiKeys: string[] = [];
-  private readonly POLL_INTERVAL = 60 * 1000; // 60 seconds
+  private readonly POLL_INTERVAL = 3 * 1000; // 3 seconds
 
   constructor() {
     super();
