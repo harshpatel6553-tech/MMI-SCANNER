@@ -157,8 +157,25 @@ class StockService {
           const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
 
           const volume: number = meta.regularMarketVolume ?? 0;
-          const avgVol = this.averageVolumeMap.get(cleanSymbol) || volume || 1;
-          const relativeVolume = avgVol > 1 ? volume / avgVol : 1.0;
+          
+          const fullDayAvgVol = this.averageVolumeMap.get(cleanSymbol) || volume || 1;
+          
+          // Calculate expected volume for current time of day
+          const now = new Date();
+          const marketOpen = new Date(now);
+          marketOpen.setUTCHours(3, 45, 0, 0); // 9:15 AM IST is 3:45 AM UTC
+          
+          // Total trading minutes in NSE (9:15 AM to 3:30 PM) is 375 minutes
+          let minutesSinceOpen = (now.getTime() - marketOpen.getTime()) / 60000;
+          if (minutesSinceOpen < 1) minutesSinceOpen = 1;
+          if (minutesSinceOpen > 375) minutesSinceOpen = 375;
+          
+          // Adjust average volume based on time of day (linear proxy)
+          const timeAdjustedAvgVol = fullDayAvgVol * (minutesSinceOpen / 375);
+          
+          const relativeVolume = timeAdjustedAvgVol > 1 ? volume / timeAdjustedAvgVol : 1.0;
+          
+          // 1.5x expected volume triggers a spike
           const volumeSpike = relativeVolume >= 1.5;
 
           const stockData: StockData = {
@@ -173,7 +190,7 @@ class StockService {
             changePercent,
             volume,
             sector: SECTOR_MAP[cleanSymbol] || 'Others',
-            averageVolume: avgVol,
+            averageVolume: fullDayAvgVol,
             relativeVolume,
             volumeSpike,
             indexName,
