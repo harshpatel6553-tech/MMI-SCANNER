@@ -163,8 +163,8 @@ class StockService {
             if (firstClose) openPrice = firstClose;
           }
 
-          const atDayHigh = dayHigh > 0 && price > 0 && Math.abs(price - dayHigh) / dayHigh <= HIGH_LOW_TOLERANCE;
-          const atDayLow = dayLow > 0 && price > 0 && Math.abs(price - dayLow) / dayLow <= HIGH_LOW_TOLERANCE;
+          const atDayHigh = dayHigh > 0 && price > 0 && price >= dayHigh;
+          const atDayLow = dayLow > 0 && price > 0 && price <= dayLow;
 
           const change = price - prevClose;
           const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
@@ -321,8 +321,8 @@ class StockService {
         const dayLow: number = meta.regularMarketDayLow ?? price;
         const prevClose: number = meta.previousClose ?? meta.chartPreviousClose ?? price;
         
-        const atDayHigh = dayHigh > 0 && price > 0 && Math.abs(price - dayHigh) / dayHigh <= HIGH_LOW_TOLERANCE;
-        const atDayLow = dayLow > 0 && price > 0 && Math.abs(price - dayLow) / dayLow <= HIGH_LOW_TOLERANCE;
+        const atDayHigh = dayHigh > 0 && price > 0 && price >= dayHigh;
+        const atDayLow = dayLow > 0 && price > 0 && price <= dayLow;
 
         const change = price - prevClose;
         const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
