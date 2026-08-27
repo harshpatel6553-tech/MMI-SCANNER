@@ -207,9 +207,9 @@ class StockService {
           // Calculate relative volume based on the 1-hour expected volume
           const relativeVolume = averageHourlyVolume > 1 ? volumeTradedInWindow / averageHourlyVolume : 0;
           
-          // Trigger spike if volume in the last hour is >= 1.5x the normal hourly average
-          // AND we actually have some volume traded (prevents division weirdness)
-          const volumeSpike = relativeVolume >= 1.5 && volumeTradedInWindow > 0;
+          // Trigger spike if volume in the last hour is >= 3.0x the normal hourly average
+          // (Changed from 1.5x to 3.0x because morning volume easily exceeds 1.5x and causes false spikes)
+          const volumeSpike = relativeVolume >= 3.0 && volumeTradedInWindow > 0;
 
           const stockData: StockData = {
             symbol: cleanSymbol,
