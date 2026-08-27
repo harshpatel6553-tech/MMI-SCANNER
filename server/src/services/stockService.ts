@@ -44,6 +44,7 @@ class StockService {
   /** Name lookup map from original stock lists */
   private nameMap: Map<string, string> = new Map();
   private averageVolumeMap: Map<string, number> = new Map();
+  private volumeHistory: Map<string, { timestamp: number, volume: number }[]> = new Map();
   private hasFetchedAverageVolume = false;
 
   constructor() {
@@ -160,23 +161,43 @@ class StockService {
           
           const fullDayAvgVol = this.averageVolumeMap.get(cleanSymbol) || volume || 1;
           
-          // Calculate expected volume for current time of day
-          const now = new Date();
-          const marketOpen = new Date(now);
-          marketOpen.setUTCHours(3, 45, 0, 0); // 9:15 AM IST is 3:45 AM UTC
+          // --- ROLLING 1-HOUR VOLUME SPIKE LOGIC ---
+          const nowMs = Date.now();
+          const ONE_HOUR_MS = 60 * 60 * 1000;
           
-          // Total trading minutes in NSE (9:15 AM to 3:30 PM) is 375 minutes
-          let minutesSinceOpen = (now.getTime() - marketOpen.getTime()) / 60000;
-          if (minutesSinceOpen < 1) minutesSinceOpen = 1;
-          if (minutesSinceOpen > 375) minutesSinceOpen = 375;
+          let history = this.volumeHistory.get(cleanSymbol);
+          if (!history) {
+            history = [];
+            this.volumeHistory.set(cleanSymbol, history);
+          }
           
-          // Adjust average volume based on time of day (linear proxy)
-          const timeAdjustedAvgVol = fullDayAvgVol * (minutesSinceOpen / 375);
+          // Only save a snapshot every 1 minute to save memory
+          if (history.length === 0 || nowMs - history[history.length - 1].timestamp > 60000) {
+            history.push({ timestamp: nowMs, volume });
+          }
+          // Always update the very last entry to the latest volume for real-time accuracy
+          else {
+            history[history.length - 1].volume = volume;
+          }
           
-          const relativeVolume = timeAdjustedAvgVol > 1 ? volume / timeAdjustedAvgVol : 1.0;
+          // Remove entries older than 1 hour
+          while (history.length > 0 && nowMs - history[0].timestamp > ONE_HOUR_MS) {
+            history.shift();
+          }
           
-          // 1.5x expected volume triggers a spike
-          const volumeSpike = relativeVolume >= 1.5;
+          // Calculate volume traded in the rolling window (up to 1 hour)
+          const volumeWindowAgo = history[0].volume;
+          const volumeTradedInWindow = volume - volumeWindowAgo;
+          
+          // Average hourly volume for this stock (6.25 hours in Indian trading day)
+          const averageHourlyVolume = fullDayAvgVol / 6.25;
+          
+          // Calculate relative volume based on the 1-hour expected volume
+          const relativeVolume = averageHourlyVolume > 1 ? volumeTradedInWindow / averageHourlyVolume : 0;
+          
+          // Trigger spike if volume in the last hour is >= 1.5x the normal hourly average
+          // AND we actually have some volume traded (prevents division weirdness)
+          const volumeSpike = relativeVolume >= 1.5 && volumeTradedInWindow > 0;
 
           const stockData: StockData = {
             symbol: cleanSymbol,
