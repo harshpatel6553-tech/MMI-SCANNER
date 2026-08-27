@@ -134,22 +134,6 @@ class NewsService extends EventEmitter {
       const isFirstFetch = this.newsCache.length === 0;
       let newTweets = uniqueNewNews.filter(n => !this.newsCache.find(old => old.id === n.id));
 
-      if (newTweets.length > 0) {
-        try {
-          const headlines = newTweets.map(t => t.title);
-          const aiResults = await aiService.analyzeNewsBatch(headlines);
-          
-          newTweets = newTweets.map((tweet, index) => {
-            const res = aiResults[index] || {};
-            tweet.sentiment = res.sentiment || 'Neutral';
-            tweet.affectedStocks = res.affectedStocks || [];
-            return tweet;
-          });
-        } catch (e) {
-          logger.error("Failed to process batch sentiment:", e);
-        }
-      }
-
       // Combine old cache with new tweets, deduplicate again to be absolutely safe, and keep top 100
       let combinedNews = [...newTweets, ...this.newsCache]
         .sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
@@ -158,18 +142,49 @@ class NewsService extends EventEmitter {
         
       this.newsCache = combinedNews;
 
-
-      // Emit news alerts for new tweets (skip on first boot to avoid spamming alerts)
+      // Emit news alerts IMMEDIATELY so the UI flashes without waiting for AI
       if (!isFirstFetch && newTweets.length > 0) {
         newTweets.forEach(news => {
           this.emit('news:alert', news);
         });
       }
 
+      // Run AI in the background asynchronously
+      if (newTweets.length > 0) {
+        this.enrichWithAI(newTweets).catch(err => logger.error("Background AI failed:", err));
+      }
+
     } catch (error) {
       logger.error('Error in fetchTweets:', error instanceof Error ? error.message : String(error));
     } finally {
       this.isFetching = false;
+    }
+  }
+
+  private async enrichWithAI(tweetsToEnrich: NewsItem[]) {
+    try {
+      const headlines = tweetsToEnrich.map(t => t.title);
+      const aiResults = await aiService.analyzeNewsBatch(headlines);
+      
+      let updatedAny = false;
+
+      tweetsToEnrich.forEach((tweet, index) => {
+        const res = aiResults[index];
+        if (res) {
+          const cachedTweet = this.newsCache.find(n => n.id === tweet.id);
+          if (cachedTweet) {
+            cachedTweet.sentiment = res.sentiment || 'Neutral';
+            cachedTweet.affectedStocks = res.affectedStocks || [];
+            updatedAny = true;
+          }
+        }
+      });
+
+      if (updatedAny) {
+        this.emit('news:update');
+      }
+    } catch (e) {
+      logger.error("Failed to process background batch sentiment:", e);
     }
   }
 

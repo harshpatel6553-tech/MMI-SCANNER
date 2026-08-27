@@ -21,9 +21,8 @@ export function useNews() {
   const [error, setError] = useState<string | null>(null);
   const { socket } = useSocketContext();
   
-  // Ref to track retry attempts for fast polling
-  const retryCount = useRef(0);
-  const MAX_RETRIES = 10; // 10 retries * 3s = 30 seconds of fast polling
+  // Ref to track if we should continue fast polling
+  const isWarmingUp = useRef(false);
 
   const fetchNews = useCallback(async () => {
     try {
@@ -35,7 +34,9 @@ export function useNews() {
         
         // If empty, backend is likely still starting up/fetching from Twitter.
         if (data.data.length > 0) {
-          retryCount.current = MAX_RETRIES; // Stop fast polling on success
+          isWarmingUp.current = false; // Stop fast polling on success
+        } else {
+          isWarmingUp.current = true;
         }
       } else {
         setError(data.error);
@@ -61,9 +62,8 @@ export function useNews() {
       if (!isMounted) return;
       ticks++;
       
-      if (retryCount.current < MAX_RETRIES) {
-        // Fast polling mode (every 3 seconds)
-        retryCount.current++;
+      if (isWarmingUp.current) {
+        // Fast polling mode (every 3 seconds) - infinite retries until populated!
         fetchNews();
       } else if (ticks >= 20) { 
         // Normal polling mode (20 ticks * 3s = 60 seconds)
@@ -90,12 +90,13 @@ export function useNews() {
     };
 
     socket.on('alert:new', handleAlert);
+    socket.on('news:update', fetchNews); // Silently refetch when AI finishes background processing
 
     return () => {
       socket.off('alert:new', handleAlert);
+      socket.off('news:update', fetchNews);
     };
   }, [socket, fetchNews]);
 
   return { news, loading, error };
 }
-
