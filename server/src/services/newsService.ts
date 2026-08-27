@@ -134,7 +134,7 @@ class NewsService extends EventEmitter {
       const isFirstFetch = this.newsCache.length === 0;
       let newTweets = uniqueNewNews.filter(n => !this.newsCache.find(old => old.id === n.id));
 
-      if (newTweets.length > 0 && aiService.hasValidKey) {
+      if (newTweets.length > 0) {
         try {
           const headlines = newTweets.map(t => t.title);
           const aiResults = await aiService.analyzeNewsBatch(headlines);
