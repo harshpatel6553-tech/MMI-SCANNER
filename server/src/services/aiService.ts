@@ -33,11 +33,11 @@ class AIService {
       ${headlines.map((h, i) => `[${i}] ${h}`).join('\n')}`;
 
       const freeModels = [
-        'meta-llama/llama-3.1-8b-instruct:free',
-        'google/gemini-2.5-flash:free',
-        'google/gemma-2-9b-it:free',
-        'qwen/qwen-2-7b-instruct:free',
-        'huggingfaceh4/zephyr-7b-beta:free'
+        'google/gemma-4-31b-it:free',
+        'nvidia/nemotron-3.5-lightning:free',
+        'minimax/minimax-m3:free',
+        'liquid/lfm-2.5-2.6b:free',
+        'cohere/north-mini-code:free'
       ];
 
       let orRes: Response | null = null;
