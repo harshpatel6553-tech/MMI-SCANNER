@@ -173,7 +173,12 @@ class NewsService extends EventEmitter {
         if (res) {
           const cachedTweet = this.newsCache.find(n => n.id === tweet.id);
           if (cachedTweet) {
-            cachedTweet.sentiment = res.sentiment || 'Neutral';
+            let s = (res.sentiment || 'Neutral').toString().trim().toLowerCase();
+            if (s.includes('bull') || s.includes('pos') || s.includes('up') || s.includes('buy')) s = 'Bullish';
+            else if (s.includes('bear') || s.includes('neg') || s.includes('down') || s.includes('sell')) s = 'Bearish';
+            else s = 'Neutral';
+
+            cachedTweet.sentiment = s as 'Bullish' | 'Bearish' | 'Neutral';
             cachedTweet.affectedStocks = res.affectedStocks || [];
             updatedAny = true;
           }

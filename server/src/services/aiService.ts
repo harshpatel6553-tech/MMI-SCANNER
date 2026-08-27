@@ -20,12 +20,12 @@ class AIService {
     }
 
     try {
-      const prompt = `Analyze this list of financial news headlines from the Indian Stock Market. For each headline, determine if it is Bullish, Bearish, or Neutral for the market or specific companies, and extract affected Indian NSE stock symbols.
+      const prompt = `Analyze this list of financial news headlines from the Indian Stock Market. You must aggressively classify headlines as Bullish or Bearish if they contain ANY positive or negative indicators. Do NOT default to Neutral unless it is a purely informational, non-impactful update.
       
-      CRITICAL RULES FOR SENTIMENT:
-      - Fines, settlements, penalties, and paying out large sums of money MUST be classified as Bearish (even if it "resolves uncertainty").
-      - Revenue growth, order wins, and positive earnings MUST be classified as Bullish.
-      - Procedural updates without immediate financial impact MUST be classified as Neutral.
+      CRITICAL SENTIMENT RULES:
+      1. BEARISH: Fines, settlements, penalties, paying out money, losing court cases, downgrades, resignations, scams, lower production, loss, drops, or negative outlooks.
+      2. BULLISH: Revenue growth, order wins, positive earnings, upgrades, higher production, solid growth, sustained demand, approvals, acquisitions, surging prices, or any positive forward-looking statements (e.g. "expect solid growth", "demand momentum").
+      3. NEUTRAL: ONLY use this for mundane procedural updates with zero financial or directional impact.
       
       You must return a JSON object with a single key "results" which is an array containing EXACTLY ${headlines.length} items, matching the order of the provided headlines. Each item must have "sentiment" (Bullish/Bearish/Neutral) and "affectedStocks" (array of strings).
       
