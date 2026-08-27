@@ -43,6 +43,8 @@ class AIService {
       let orRes: Response | null = null;
       let usedModel = '';
 
+      let validResults = null;
+
       for (const model of freeModels) {
         orRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
           method: 'POST',
@@ -62,7 +64,35 @@ class AIService {
 
         if (orRes.ok) {
           usedModel = model;
-          break; // Success!
+          try {
+            const jsonResponse = await orRes.json();
+            const textContent = jsonResponse.choices?.[0]?.message?.content || '';
+            
+            // Clean markdown code blocks if the model wrapped the JSON
+            const cleanText = textContent.replace(/```json/g, '').replace(/```/g, '').trim();
+            
+            const parsed = JSON.parse(cleanText);
+            let results = parsed?.results;
+
+            if (!results || !Array.isArray(results)) {
+              throw new Error(`Model ${model} did not return a valid results array`);
+            }
+
+            // Ensure length matches exactly
+            if (results.length > headlines.length) {
+              results = results.slice(0, headlines.length);
+            } else if (results.length < headlines.length) {
+              while (results.length < headlines.length) {
+                results.push({ sentiment: 'Neutral', affectedStocks: [] });
+              }
+            }
+
+            validResults = results;
+            break; // Success! Valid JSON parsed!
+          } catch (parseErr) {
+            logger.debug(`Model ${model} returned invalid JSON, trying next model. Error:`, parseErr);
+            continue; // Try the next model
+          }
         }
         
         // If it's a 404 (model unavailable for free) or rate limit, try the next model.
@@ -73,30 +103,11 @@ class AIService {
         }
       }
 
-      if (!orRes || !orRes.ok) {
-        const status = orRes ? orRes.status : 'Unknown';
-        const text = orRes ? await orRes.text() : 'No response';
-        throw new Error(`All free models failed. Last HTTP ${status}: ${text}`);
+      if (!validResults) {
+        throw new Error(`All free models failed to return valid JSON.`);
       }
 
-      const jsonResponse = await orRes.json();
-      const parsed = JSON.parse(jsonResponse.choices[0].message.content);
-      let results = parsed.results;
-
-      if (!results || !Array.isArray(results)) {
-        throw new Error('AI did not return a valid results array');
-      }
-
-      // Ensure length matches exactly
-      if (results.length > headlines.length) {
-        results = results.slice(0, headlines.length);
-      } else if (results.length < headlines.length) {
-        while (results.length < headlines.length) {
-          results.push({ sentiment: 'Neutral', affectedStocks: [] });
-        }
-      }
-
-      return results;
+      return validResults;
 
     } catch (err: any) {
       logger.warn(`OpenRouter AI Analysis failed: ${err.message}. Falling back to local heuristic.`);
