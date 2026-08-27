@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSocketContext } from '../context/SocketContext';
 
 export interface NewsItem {
@@ -21,8 +21,9 @@ export function useNews() {
   const [error, setError] = useState<string | null>(null);
   const { socket } = useSocketContext();
   
-  // Ref to track if we should continue fast polling
-  const isWarmingUp = useRef(false);
+  // Ref to track retry attempts for fast polling
+  const retryCount = useRef(0);
+  const MAX_RETRIES = 10; // 10 retries * 3s = 30 seconds of fast polling
 
   const fetchNews = useCallback(async () => {
     try {
@@ -33,18 +34,16 @@ export function useNews() {
         setError(null);
         
         // If empty, backend is likely still starting up/fetching from Twitter.
-        if (data.data.length === 0) {
-          isWarmingUp.current = true;
-        } else {
-          isWarmingUp.current = false;
+        if (data.data.length > 0) {
+          retryCount.current = MAX_RETRIES; // Stop fast polling on success
         }
       } else {
         setError(data.error);
-        isWarmingUp.current = false;
+        // Don't stop retrying on API error, server might be booting
       }
     } catch (err) {
       setError('Failed to fetch news');
-      isWarmingUp.current = false;
+      // Don't stop retrying on network error (502 Bad Gateway during Render boot)
     } finally {
       setLoading(false);
     }
@@ -62,11 +61,12 @@ export function useNews() {
       if (!isMounted) return;
       ticks++;
       
-      if (isWarmingUp.current) {
-        // If warming up (news is empty), fetch every 3 seconds
+      if (retryCount.current < MAX_RETRIES) {
+        // Fast polling mode (every 3 seconds)
+        retryCount.current++;
         fetchNews();
       } else if (ticks >= 20) { 
-        // 20 ticks * 3s = 60 seconds standard fallback
+        // Normal polling mode (20 ticks * 3s = 60 seconds)
         fetchNews();
         ticks = 0;
       }
