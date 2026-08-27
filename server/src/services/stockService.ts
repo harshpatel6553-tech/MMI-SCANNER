@@ -61,24 +61,36 @@ class StockService {
     this.hasFetchedAverageVolume = true;
     try {
       const allStocks = [...NIFTY_50_STOCKS, ...NIFTY_500_STOCKS];
-      const chunkSize = 50;
-      for (let i = 0; i < allStocks.length; i += chunkSize) {
-        const chunk = allStocks.slice(i, i + chunkSize);
-        const symbols = chunk.map(s => s.symbol + '.NS');
+      
+      // We will use v8/finance/chart to get historical volume, bypassing the broken yahoo-finance2 crumb
+      for (let i = 0; i < allStocks.length; i++) {
+        const symbol = allStocks[i].symbol;
+        const yahooSymbol = symbol + '.NS';
+        
         try {
-          const quotes = await yahooFinance.quote(symbols);
-          for (const q of quotes) {
-            const sym = q.symbol.replace('.NS', '');
-            if (q.averageDailyVolume3Month) {
-              this.averageVolumeMap.set(sym, q.averageDailyVolume3Month);
+          const url = `https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}?range=10d&interval=1d`;
+          const res = await fetch(url, { headers: { 'User-Agent': USER_AGENT } });
+          
+          if (res.ok) {
+            const data = await res.json() as any;
+            const volumes = data?.chart?.result?.[0]?.indicators?.quote?.[0]?.volume;
+            if (volumes && Array.isArray(volumes) && volumes.length > 0) {
+              // Filter out nulls and zeros
+              const validVolumes = volumes.filter((v: any) => typeof v === 'number' && v > 0);
+              if (validVolumes.length > 0) {
+                const avgVol = validVolumes.reduce((a: number, b: number) => a + b, 0) / validVolumes.length;
+                this.averageVolumeMap.set(symbol, avgVol);
+              }
             }
           }
         } catch (err) {
-          logger.warn('Failed to fetch avg volume chunk: ' + err);
+          // Silent catch to not spam logs
         }
-        await sleep(2000);
+        
+        // Very small delay to prevent IP ban
+        await sleep(100);
       }
-      logger.info('Finished background fetch of average volumes.');
+      logger.info('Finished background fetch of average volumes via v8 API.');
     } catch (err) {
       logger.error('Background avg volume fetch failed: ' + err);
     }
