@@ -41,7 +41,7 @@ class AIService {
           'X-Title': 'MMI Scanner'
         },
         body: JSON.stringify({
-          model: 'meta-llama/llama-3.1-8b-instruct:free',
+          model: 'google/gemini-2.5-flash:free',
           messages: [{ role: 'user', content: prompt }],
           temperature: 0.1,
           response_format: { type: 'json_object' }
