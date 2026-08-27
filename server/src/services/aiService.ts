@@ -46,21 +46,32 @@ class AIService {
       let validResults = null;
 
       for (const model of freeModels) {
-        orRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${openRouterKey}`,
-            'Content-Type': 'application/json',
-            'HTTP-Referer': 'https://mmi-scanner.render.com', // Required by OpenRouter
-            'X-Title': 'MMI Scanner'
-          },
-          body: JSON.stringify({
-            model: model,
-            messages: [{ role: 'user', content: prompt }],
-            temperature: 0.1,
-            response_format: { type: 'json_object' }
-          })
-        });
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+
+        try {
+          orRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+            method: 'POST',
+            signal: controller.signal,
+            headers: {
+              'Authorization': `Bearer ${openRouterKey}`,
+              'Content-Type': 'application/json',
+              'HTTP-Referer': 'https://mmi-scanner.render.com', // Required by OpenRouter
+              'X-Title': 'MMI Scanner'
+            },
+            body: JSON.stringify({
+              model: model,
+              messages: [{ role: 'user', content: prompt }],
+              temperature: 0.1,
+              response_format: { type: 'json_object' }
+            })
+          });
+          clearTimeout(timeoutId);
+        } catch (fetchErr) {
+          clearTimeout(timeoutId);
+          logger.debug(`Model ${model} fetch failed or timed out:`, fetchErr);
+          continue; // Try the next model
+        }
 
         if (orRes.ok) {
           usedModel = model;

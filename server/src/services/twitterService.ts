@@ -74,14 +74,19 @@ class TwitterService {
     }
 
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
       const response = await fetch(`https://${RAPIDAPI_HOST}/user/tweets?user_id=${userId}`, {
         method: 'GET',
+        signal: controller.signal,
         headers: {
           'x-rapidapi-key': this.RAPIDAPI_KEY,
           'x-rapidapi-host': RAPIDAPI_HOST,
           'Content-Type': 'application/json'
         }
       });
+      clearTimeout(timeoutId);
 
       if (!response.ok) throw new Error(`API returned ${response.status}`);
 
