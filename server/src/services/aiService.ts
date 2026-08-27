@@ -32,24 +32,51 @@ class AIService {
       Headlines:
       ${headlines.map((h, i) => `[${i}] ${h}`).join('\n')}`;
 
-      const orRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${openRouterKey}`,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': 'https://mmi-scanner.render.com', // Required by OpenRouter
-          'X-Title': 'MMI Scanner'
-        },
-        body: JSON.stringify({
-          model: 'google/gemini-2.5-flash:free',
-          messages: [{ role: 'user', content: prompt }],
-          temperature: 0.1,
-          response_format: { type: 'json_object' }
-        })
-      });
+      const freeModels = [
+        'meta-llama/llama-3.1-8b-instruct:free',
+        'google/gemini-2.5-flash:free',
+        'google/gemma-2-9b-it:free',
+        'qwen/qwen-2-7b-instruct:free',
+        'huggingfaceh4/zephyr-7b-beta:free'
+      ];
 
-      if (!orRes.ok) {
-        throw new Error(`OpenRouter HTTP ${orRes.status}: ${await orRes.text()}`);
+      let orRes: Response | null = null;
+      let usedModel = '';
+
+      for (const model of freeModels) {
+        orRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${openRouterKey}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': 'https://mmi-scanner.render.com', // Required by OpenRouter
+            'X-Title': 'MMI Scanner'
+          },
+          body: JSON.stringify({
+            model: model,
+            messages: [{ role: 'user', content: prompt }],
+            temperature: 0.1,
+            response_format: { type: 'json_object' }
+          })
+        });
+
+        if (orRes.ok) {
+          usedModel = model;
+          break; // Success!
+        }
+        
+        // If it's a 404 (model unavailable for free) or rate limit, try the next model.
+        if (orRes.status === 404 || orRes.status === 429) {
+          continue;
+        } else {
+          break; // Hard error, break out
+        }
+      }
+
+      if (!orRes || !orRes.ok) {
+        const status = orRes ? orRes.status : 'Unknown';
+        const text = orRes ? await orRes.text() : 'No response';
+        throw new Error(`All free models failed. Last HTTP ${status}: ${text}`);
       }
 
       const jsonResponse = await orRes.json();
