@@ -147,8 +147,14 @@ class NewsService extends EventEmitter {
 
       // Emit news alerts IMMEDIATELY so the UI flashes without waiting for AI
       if (!isFirstFetch && newTweets.length > 0) {
+        const now = Date.now();
+        const FIVE_MINUTES_MS = 5 * 60 * 1000;
+        
         newTweets.forEach(news => {
-          this.emit('news:alert', news);
+          const tweetTime = new Date(news.pubDate).getTime();
+          if (now - tweetTime < FIVE_MINUTES_MS) {
+            this.emit('news:alert', { ...news, alertType: 'NEWS' });
+          }
         });
       }
 

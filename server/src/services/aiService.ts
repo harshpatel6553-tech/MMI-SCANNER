@@ -8,127 +8,82 @@ export interface AISentimentResult {
 
 class AIService {
   public get hasValidKey(): boolean {
-    return !!process.env.OPENROUTER_API_KEY;
+    return !!process.env.GEMINI_API_KEY;
   }
 
   public async analyzeNewsBatch(headlines: string[]): Promise<AISentimentResult[]> {
     if (headlines.length === 0) return [];
     
-    const openRouterKey = process.env.OPENROUTER_API_KEY;
-    if (!openRouterKey) {
+    const geminiKey = process.env.GEMINI_API_KEY;
+    if (!geminiKey) {
+      logger.warn('No GEMINI_API_KEY found, falling back to local heuristic');
       return this.analyzeLocally(headlines);
     }
 
     try {
-      const prompt = `Analyze this list of financial news headlines from the Indian Stock Market. You must aggressively classify headlines as Bullish or Bearish if they contain ANY positive or negative indicators. Do NOT default to Neutral unless it is a purely informational, non-impactful update.
+      const promptText = `Analyze this list of financial news headlines from the Indian Stock Market. You must aggressively classify headlines as Bullish or Bearish if they contain ANY positive or negative indicators. Do NOT default to Neutral unless it is a purely informational, non-impactful update.
       
       CRITICAL SENTIMENT RULES:
-      1. BEARISH: Fines, settlements, penalties, paying out money, losing court cases, downgrades, resignations, scams, lower production, loss, drops, or negative outlooks.
-      2. BULLISH: Revenue growth, order wins, positive earnings, upgrades, higher production, solid growth, sustained demand, approvals, acquisitions, surging prices, or any positive forward-looking statements (e.g. "expect solid growth", "demand momentum").
+      1. BEARISH: Fines, settlements, penalties, paying out money, losing court cases, downgrades, resignations, scams, lower production, loss, drops, fallen, declined, falling, negative outlooks.
+      2. BULLISH: Revenue growth, order wins, positive earnings, upgrades, higher production, solid growth, sustained demand, approvals, acquisitions, surging prices, up, higher, or any positive forward-looking statements.
       3. NEUTRAL: ONLY use this for mundane procedural updates with zero financial or directional impact.
       
-      You must return a JSON object with a single key "results" which is an array containing EXACTLY ${headlines.length} items, matching the order of the provided headlines. Each item must have "sentiment" (Bullish/Bearish/Neutral) and "affectedStocks" (array of strings).
+      You must return a JSON object with a single key "results" which is an array containing EXACTLY ${headlines.length} items, matching the order of the provided headlines. Each item must have "sentiment" (Bullish/Bearish/Neutral) and "affectedStocks" (array of strings, extract ticker symbols or company names).
       
       Headlines:
       ${headlines.map((h, i) => `[${i}] ${h}`).join('\n')}`;
 
-      const freeModels = [
-        'google/gemma-4-31b-it:free',
-        'nvidia/nemotron-3.5-lightning:free',
-        'minimax/minimax-m3:free',
-        'liquid/lfm-2.5-2.6b:free',
-        'cohere/north-mini-code:free'
-      ];
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-      let orRes: Response | null = null;
-      let usedModel = '';
-
-      let validResults = null;
-
-      for (const model of freeModels) {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
-
-        try {
-          orRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-            method: 'POST',
-            signal: controller.signal,
-            headers: {
-              'Authorization': `Bearer ${openRouterKey}`,
-              'Content-Type': 'application/json',
-              'HTTP-Referer': 'https://mmi-scanner.render.com', // Required by OpenRouter
-              'X-Title': 'MMI Scanner'
-            },
-            body: JSON.stringify({
-              model: model,
-              messages: [{ role: 'user', content: prompt }],
-              temperature: 0.1,
-              response_format: { type: 'json_object' }
-            })
-          });
-          clearTimeout(timeoutId);
-        } catch (fetchErr) {
-          clearTimeout(timeoutId);
-          logger.debug(`Model ${model} fetch failed or timed out:`, fetchErr);
-          continue; // Try the next model
-        }
-
-        if (orRes.ok) {
-          usedModel = model;
-          try {
-            const jsonResponse = await orRes.json();
-            const textContent = jsonResponse.choices?.[0]?.message?.content || '';
-            
-            // Clean markdown code blocks if the model wrapped the JSON
-            const cleanText = textContent.replace(/```json/g, '').replace(/```/g, '').trim();
-            
-            const parsed = JSON.parse(cleanText);
-            let results = parsed?.results;
-
-            if (!results || !Array.isArray(results)) {
-              throw new Error(`Model ${model} did not return a valid results array`);
-            }
-
-            // Ensure length matches exactly
-            if (results.length > headlines.length) {
-              results = results.slice(0, headlines.length);
-            } else if (results.length < headlines.length) {
-              while (results.length < headlines.length) {
-                results.push({ sentiment: 'Neutral', affectedStocks: [] });
-              }
-            }
-
-            validResults = results;
-            break; // Success! Valid JSON parsed!
-          } catch (parseErr) {
-            logger.debug(`Model ${model} returned invalid JSON, trying next model. Error:`, parseErr);
-            continue; // Try the next model
+      const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' + geminiKey, {
+        method: 'POST',
+        signal: controller.signal,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: promptText }] }],
+          generationConfig: {
+            responseMimeType: 'application/json',
+            temperature: 0.1
           }
-        }
-        
-        // If it's a 404 (model unavailable for free) or rate limit, try the next model.
-        if (orRes.status === 404 || orRes.status === 429) {
-          continue;
-        } else {
-          break; // Hard error, break out
+        })
+      });
+      
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error('Gemini API returned ' + response.status);
+      }
+
+      const jsonResponse = await response.json();
+      const textContent = jsonResponse.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      
+      const parsed = JSON.parse(textContent);
+      let results = parsed?.results;
+
+      if (!results || !Array.isArray(results)) {
+        throw new Error('Gemini did not return a valid results array');
+      }
+
+      if (results.length > headlines.length) {
+        results = results.slice(0, headlines.length);
+      } else if (results.length < headlines.length) {
+        while (results.length < headlines.length) {
+          results.push({ sentiment: 'Neutral', affectedStocks: [] });
         }
       }
 
-      if (!validResults) {
-        throw new Error(`All free models failed to return valid JSON.`);
-      }
-
-      return validResults;
+      return results;
 
     } catch (err: any) {
-      logger.warn(`OpenRouter AI Analysis failed: ${err.message}. Falling back to local heuristic.`);
+      logger.warn('Gemini AI Analysis failed: ' + err.message + '. Falling back to local heuristic.');
       return this.analyzeLocally(headlines);
     }
   }
 
   private analyzeLocally(headlines: string[]): AISentimentResult[] {
     const BULLISH = ['wins', 'order', 'profit', 'surges', 'jumps', 'up', 'higher', 'growth', 'positive', 'buy', 'target', 'upgrade', 'approval', 'acquires', 'expansion', 'soars'];
-    const BEARISH = ['loss', 'drops', 'falls', 'down', 'lower', 'negative', 'sell', 'downgrade', 'penalty', 'fine', 'scam', 'fraud', 'cancels', 'scraps', 'plunges', 'slumps'];
+    const BEARISH = ['loss', 'drops', 'falls', 'fallen', 'declined', 'declining', 'down', 'lower', 'negative', 'sell', 'downgrade', 'penalty', 'fine', 'scam', 'fraud', 'cancels', 'scraps', 'plunges', 'slumps'];
     
     return headlines.map(h => {
       const lower = h.toLowerCase();
@@ -146,7 +101,7 @@ class AIService {
       
       NIFTY_500_STOCKS.forEach((s: any) => {
         const sym = s.symbol.toLowerCase();
-        if (lower.includes(`$${sym}`) || lower.includes(` ${sym} `) || lower.startsWith(`${sym}:`) || lower.startsWith(`${sym} `)) {
+        if (lower.includes('$' + sym) || lower.includes(' ' + sym + ' ') || lower.startsWith(sym + ':') || lower.startsWith(sym + ' ')) {
           affectedStocks.add(s.symbol);
         } else {
           const nameParts = s.name.toLowerCase().split(' ');
