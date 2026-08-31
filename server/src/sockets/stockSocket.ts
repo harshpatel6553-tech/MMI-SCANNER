@@ -12,6 +12,7 @@ import type {
   StockAlert,
 } from '../types/index.js';
 import { stockService } from '../services/stockService.js';
+import { newsService } from '../services/newsService.js';
 import logger from '../utils/logger.js';
 
 /** Extended socket data to store per-client subscription preferences */
@@ -176,6 +177,11 @@ export function setupSocketHandlers(io: TypedServer): void {
       const stocks = stockService.getCachedStocks();
       const subscriptionStocks = filterStocksBySubscription(stocks, index);
       socket.emit('stocks:update:full', subscriptionStocks);
+    });
+    
+    // Handle manual news requests
+    socket.on('news:request_snapshot', () => {
+      socket.emit('news:snapshot', newsService.getLatestNews());
     });
 
     // Handle disconnection

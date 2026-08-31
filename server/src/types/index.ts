@@ -112,6 +112,8 @@ export interface ServerToClientEvents {
   'alert:new': (alert: StockAlert) => void;
   /** Silent notification to refetch news after background AI processing */
   'news:update': () => void;
+  /** Direct transmission of the complete news array */
+  'news:snapshot': (data: any[]) => void;
   /** Server connection status heartbeat */
   'connection:status': (status: {
     connected: boolean;
@@ -128,6 +130,8 @@ export interface ServerToClientEvents {
 export interface ClientToServerEvents {
   /** Subscribe to updates for a specific index or all */
   'subscribe:index': (index: 'NIFTY50' | 'NIFTY500' | 'ALL') => void;
+  /** Explicitly request the latest news snapshot */
+  'news:request_snapshot': () => void;
   /** Identify the connected user by email */
   'auth:identify': (data: { email: string; isAdmin?: boolean }) => void;
   /** Admin requests the current online user list */

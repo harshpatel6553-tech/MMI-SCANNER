@@ -20,8 +20,6 @@ export function useNews() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { socket } = useSocketContext();
-  
-  // Ref to track if we should continue fast polling
   const isWarmingUp = useRef(false);
 
   const fetchNews = useCallback(async () => {
@@ -31,20 +29,16 @@ export function useNews() {
       if (data.success) {
         setNews(data.data);
         setError(null);
-        
-        // If empty, backend is likely still starting up/fetching from Twitter.
         if (data.data.length > 0) {
-          isWarmingUp.current = false; // Stop fast polling on success
+          isWarmingUp.current = false;
         } else {
           isWarmingUp.current = true;
         }
       } else {
         setError(data.error);
-        // Don't stop retrying on API error, server might be booting
       }
     } catch (err) {
       setError('Failed to fetch news');
-      // Don't stop retrying on network error (502 Bad Gateway during Render boot)
     } finally {
       setLoading(false);
     }
@@ -52,21 +46,15 @@ export function useNews() {
 
   useEffect(() => {
     let isMounted = true;
-    
-    // Initial fetch
     fetchNews();
 
-    // Adaptive fallback polling: poll every 3 seconds if empty, otherwise 60 seconds
     let ticks = 0;
     const tickInterval = setInterval(() => {
       if (!isMounted) return;
       ticks++;
-      
       if (isWarmingUp.current) {
-        // Fast polling mode (every 3 seconds) - infinite retries until populated!
         fetchNews();
       } else if (ticks >= 20) { 
-        // Normal polling mode (20 ticks * 3s = 60 seconds)
         fetchNews();
         ticks = 0;
       }
@@ -78,23 +66,30 @@ export function useNews() {
     };
   }, [fetchNews]);
 
-  // Listen for real-time news alerts to trigger instant refetch
   useEffect(() => {
     if (!socket) return;
 
     const handleAlert = (alert: any) => {
       if (alert.alertType === 'NEWS') {
-        // Instantly refetch news when a new news alert is broadcasted!
         fetchNews();
       }
     };
 
+    const handleSnapshot = (fullNews: NewsItem[]) => {
+      setNews(fullNews);
+      setLoading(false);
+      isWarmingUp.current = fullNews.length === 0;
+    };
+
     socket.on('alert:new', handleAlert);
-    socket.on('news:update', fetchNews); // Silently refetch when AI finishes background processing
+    socket.on('news:snapshot', handleSnapshot);
+
+    // Initial snapshot request just in case
+    socket.emit('news:request_snapshot');
 
     return () => {
       socket.off('alert:new', handleAlert);
-      socket.off('news:update', fetchNews);
+      socket.off('news:snapshot', handleSnapshot);
     };
   }, [socket, fetchNews]);
 

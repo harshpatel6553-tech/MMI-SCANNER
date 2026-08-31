@@ -140,7 +140,7 @@ newsService.on('news:alert', (news) => {
 });
 
 newsService.on('news:update', () => {
-  io.emit('news:update'); // Broadcast silent update to trigger UI fetch
+  io.emit('news:snapshot', newsService.getLatestNews());
 });
 
 import * as paperTradingController from './controllers/paperTradingController.js';

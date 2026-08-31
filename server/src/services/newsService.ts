@@ -142,6 +142,9 @@ class NewsService extends EventEmitter {
         
       this.newsCache = combinedNews;
 
+      // Push full snapshot instantly!
+      this.emit('news:update');
+
       // Emit news alerts IMMEDIATELY so the UI flashes without waiting for AI
       if (!isFirstFetch && newTweets.length > 0) {
         newTweets.forEach(news => {
