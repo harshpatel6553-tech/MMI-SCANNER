@@ -47,14 +47,8 @@ import {
 // ── Configuration ──────────────────────────────────────────────
 
 const PORT = parseInt(process.env.PORT || '5000', 10);
-const NIFTY50_POLL_INTERVAL = parseInt(
-  process.env.NIFTY50_POLL_INTERVAL || '2000',
-  10
-);
-const NIFTY500_POLL_INTERVAL = parseInt(
-  process.env.NIFTY500_POLL_INTERVAL || '3000',
-  10
-);
+const NIFTY50_POLL_INTERVAL = 100; // 0.1 seconds as requested
+const NIFTY500_POLL_INTERVAL = 100; // 0.1 seconds as requested
 
 const ALLOWED_ORIGINS = [
   'http://localhost:5173',
