@@ -33,30 +33,19 @@ class AIService {
       Headlines:
       ${headlines.map((h, i) => `[${i}] ${h}`).join('\n')}`;
 
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
-
-      const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' + geminiKey, {
-        method: 'POST',
-        signal: controller.signal,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: promptText }] }],
-          generationConfig: {
-            responseMimeType: 'application/json',
-            temperature: 0.1
-          }
-        })
+      const { GoogleGenAI } = await import('@google/genai');
+      const ai = new GoogleGenAI({ apiKey: geminiKey.trim() });
+      
+      const response = await ai.models.generateContent({
+        model: 'gemini-1.5-flash',
+        contents: promptText,
+        config: {
+          responseMimeType: 'application/json',
+          temperature: 0.1
+        }
       });
       
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        throw new Error('Gemini API returned ' + response.status);
-      }
-
-      const jsonResponse = await response.json();
-      const textContent = jsonResponse.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      const textContent = response.text || '';
       
       const parsed = JSON.parse(textContent);
       let results = parsed?.results;

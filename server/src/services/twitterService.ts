@@ -93,8 +93,12 @@ class TwitterService {
       const data = await response.json();
       this.tweetCache.set(userId, { data, timestamp: Date.now() });
       return data;
-    } catch (error) {
-      logger.error(`Failed to fetch tweets for ${userId}`, error);
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        logger.warn(`Twitter API timeout (10s) for ${userId}. Skipping this cycle.`);
+      } else {
+        logger.error(`Failed to fetch tweets for ${userId}: ${error.message || error}`);
+      }
       return { error: 'Failed to fetch tweets' };
     }
   }
