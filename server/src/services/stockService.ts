@@ -105,154 +105,123 @@ class StockService {
     indexName: 'NIFTY50' | 'NIFTY500'
   ): Promise<StockData[]> {
     if (!this.hasFetchedAverageVolume) {
-      // Intentionally not awaited so it runs in background
       this.fetchAverageVolumesInBackground();
     }
 
     const results: StockData[] = [];
-    const batches: StockQuote[][] = [];
+    
+    try {
+      // Convert to TradingView symbols (e.g. BAJAJ-AUTO -> BAJAJ_AUTO)
+      const tvToNseMap = new Map();
+      const tvSymbols = stocks.map(s => {
+        let tvSym = s.symbol.replace('-', '_');
+        // Handle special cases if needed, otherwise default to NSE:SYMBOL
+        const fullTvSym = 'NSE:' + tvSym;
+        tvToNseMap.set(fullTvSym, s.symbol);
+        return fullTvSym;
+      });
 
-    // Split into concurrent batches of 50
-    for (let i = 0; i < stocks.length; i += CONCURRENCY) {
-      batches.push(stocks.slice(i, i + CONCURRENCY));
-    }
+      const url = 'https://scanner.tradingview.com/india/scan';
+      const payload = {
+        symbols: { tickers: tvSymbols },
+        columns: ['name', 'close', 'high', 'low', 'open', 'volume', 'change', 'change_abs', 'Value.Traded', 'market_cap_basic', 'price_52_week_high', 'price_52_week_low']
+      };
 
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
 
-
-    // Fetch all batches in parallel to eliminate the 46-second delay
-    const fetchPromises = batches.map(async (batch, batchIdx) => {
-      const symbolsStr = batch.map(s => `${s.symbol}.NS`).join(',');
-      
-      try {
-        const url = `https://query1.finance.yahoo.com/v7/finance/spark?symbols=${encodeURIComponent(symbolsStr)}&range=1d&interval=1h`;
-        const res = await fetch(url, {
-          headers: {
-            'User-Agent': USER_AGENT,
-            'Accept': 'application/json'
-          }
-        });
-
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}`);
-        }
-
-        const data = await res.json() as any;
-        const sparkResults = data?.spark?.result || [];
-
-        const batchResults: StockData[] = [];
-        for (const sparkObj of sparkResults) {
-          const meta = sparkObj.response?.[0]?.meta;
-          const quoteIndicators = sparkObj.response?.[0]?.indicators?.quote?.[0];
-          
-          if (!meta) continue;
-
-          const cleanSymbol = meta.symbol.replace('.NS', '');
-          const baseStock = batch.find(s => s.symbol === cleanSymbol);
-          if (!baseStock) continue;
-
-          const price: number = meta.regularMarketPrice ?? 0;
-          if (price === 0) continue;
-
-          const dayHigh: number = meta.regularMarketDayHigh ?? price;
-          const dayLow: number = meta.regularMarketDayLow ?? price;
-          const prevClose: number = meta.previousClose ?? meta.chartPreviousClose ?? price;
-          
-          let openPrice: number = price;
-          if (quoteIndicators && quoteIndicators.close && quoteIndicators.close.length > 0) {
-            const firstClose = quoteIndicators.close.find((p: number | null) => p !== null);
-            if (firstClose) openPrice = firstClose;
-          }
-
-          const atDayHigh = dayHigh > 0 && price > 0 && price >= dayHigh;
-          const atDayLow = dayLow > 0 && price > 0 && price <= dayLow;
-
-          const change = price - prevClose;
-          const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
-
-          const volume: number = meta.regularMarketVolume ?? 0;
-          
-          const fullDayAvgVol = this.averageVolumeMap.get(cleanSymbol) || volume || 1;
-          
-          // --- ROLLING 1-HOUR VOLUME SPIKE LOGIC ---
-          const nowMs = Date.now();
-          const ONE_HOUR_MS = 60 * 60 * 1000;
-          
-          let history = this.volumeHistory.get(cleanSymbol);
-          if (!history) {
-            history = [];
-            this.volumeHistory.set(cleanSymbol, history);
-          }
-          
-          // Only save a snapshot every 1 minute to save memory
-          if (history.length === 0 || nowMs - history[history.length - 1].timestamp > 60000) {
-            history.push({ timestamp: nowMs, volume });
-          }
-          // Always update the very last entry to the latest volume for real-time accuracy
-          else {
-            history[history.length - 1].volume = volume;
-          }
-          
-          // Remove entries older than 1 hour
-          while (history.length > 0 && nowMs - history[0].timestamp > ONE_HOUR_MS) {
-            history.shift();
-          }
-          
-          // Calculate volume traded in the rolling window (up to 1 hour)
-          const volumeWindowAgo = history[0].volume;
-          const volumeTradedInWindow = volume - volumeWindowAgo;
-          
-          // Average hourly volume for this stock (6.25 hours in Indian trading day)
-          const averageHourlyVolume = fullDayAvgVol / 6.25;
-          
-          // Calculate relative volume based on the 1-hour expected volume
-          const relativeVolume = averageHourlyVolume > 1 ? volumeTradedInWindow / averageHourlyVolume : 0;
-          
-          // Trigger spike if volume in the last hour is >= 3.0x the normal hourly average
-          // (Changed from 1.5x to 3.0x because morning volume easily exceeds 1.5x and causes false spikes)
-          const volumeSpike = relativeVolume >= 3.0 && volumeTradedInWindow > 0;
-
-          const stockData: StockData = {
-            symbol: cleanSymbol,
-            name: meta.longName || meta.shortName || this.nameMap.get(cleanSymbol) || baseStock.name,
-            price,
-            previousClose: prevClose,
-            open: openPrice,
-            dayHigh,
-            dayLow,
-            change,
-            changePercent,
-            volume,
-            sector: SECTOR_MAP[cleanSymbol] || 'Others',
-            averageVolume: fullDayAvgVol,
-            relativeVolume,
-            volumeSpike,
-            indexName,
-            lastUpdated: new Date().toISOString(),
-            atDayHigh,
-            atDayLow,
-            fiftyTwoWeekHigh: meta.fiftyTwoWeekHigh ?? 0,
-            fiftyTwoWeekLow: meta.fiftyTwoWeekLow ?? 0,
-            marketCap: meta.marketCap ?? 0,
-            ...(technicalService.getTechnicals(cleanSymbol) || { macdWeeklyBuy: false, rsiDaily: 50, emaCrossDaily: false }),
-          };
-
-          batchResults.push(stockData);
-          this.stockCache.set(stockData.symbol, stockData);
-        }
-        return batchResults;
-      } catch (err: any) {
-        logger.error(`Bulk fetch failed for batch ${batchIdx}: ${err.message}`);
-        return [];
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
       }
-    });
 
-    const resultsArrays = await Promise.all(fetchPromises);
-    for (const arr of resultsArrays) {
-      results.push(...arr);
+      const data = await res.json() as any;
+      if (!data.data || !Array.isArray(data.data)) {
+        throw new Error('Invalid TradingView response');
+      }
+
+      for (const q of data.data) {
+        const originalSymbol = tvToNseMap.get(q.s);
+        const baseStock = stocks.find(s => s.symbol === originalSymbol);
+        if (!baseStock) continue;
+
+        const price = q.d[1] ?? 0;
+        if (price === 0) continue;
+
+        const dayHigh = q.d[2] ?? price;
+        const dayLow = q.d[3] ?? price;
+        const openPrice = q.d[4] ?? price;
+        const volume = q.d[5] ?? 0;
+        const changePercent = q.d[6] ?? 0;
+        const change = q.d[7] ?? 0;
+        const prevClose = price - change;
+
+        const atDayHigh = dayHigh > 0 && price > 0 && price >= dayHigh;
+        const atDayLow = dayLow > 0 && price > 0 && price <= dayLow;
+
+        const fullDayAvgVol = this.averageVolumeMap.get(originalSymbol) || volume || 1;
+
+        // --- ROLLING 1-HOUR VOLUME SPIKE LOGIC ---
+        const nowMs = Date.now();
+        const ONE_HOUR_MS = 60 * 60 * 1000;
+        
+        let history = this.volumeHistory.get(originalSymbol);
+        if (!history) {
+          history = [];
+          this.volumeHistory.set(originalSymbol, history);
+        }
+        
+        if (history.length === 0 || nowMs - history[history.length - 1].timestamp > 60000) {
+          history.push({ timestamp: nowMs, volume });
+        } else {
+          history[history.length - 1].volume = volume;
+        }
+        
+        while (history.length > 0 && nowMs - history[0].timestamp > ONE_HOUR_MS) {
+          history.shift();
+        }
+        
+        const volumeWindowAgo = history[0].volume;
+        const volumeTradedInWindow = volume - volumeWindowAgo;
+        const averageHourlyVolume = fullDayAvgVol / 6.25;
+        const relativeVolume = averageHourlyVolume > 1 ? volumeTradedInWindow / averageHourlyVolume : 0;
+        const volumeSpike = relativeVolume >= 3.0 && volumeTradedInWindow > 0;
+
+        const stockData: StockData = {
+          symbol: originalSymbol,
+          name: this.nameMap.get(originalSymbol) || baseStock.name,
+          price,
+          previousClose: prevClose,
+          open: openPrice,
+          dayHigh,
+          dayLow,
+          change,
+          changePercent,
+          volume,
+          sector: SECTOR_MAP[originalSymbol] || 'Others',
+          averageVolume: fullDayAvgVol,
+          relativeVolume,
+          volumeSpike,
+          indexName,
+          lastUpdated: new Date().toISOString(),
+          atDayHigh,
+          atDayLow,
+          fiftyTwoWeekHigh: q.d[10] ?? 0,
+          fiftyTwoWeekLow: q.d[11] ?? 0,
+          marketCap: q.d[9] ?? 0,
+          ...(technicalService.getTechnicals(originalSymbol) || { macdWeeklyBuy: false, rsiDaily: 50, emaCrossDaily: false }),
+        };
+
+        results.push(stockData);
+        this.stockCache.set(stockData.symbol, stockData);
+      }
+    } catch (err: any) {
+      logger.error(`Bulk fetch failed: ${err.message}`);
     }
 
     this.lastFetchTime.set(indexName, Date.now());
-
     return results;
   }
 
