@@ -78,12 +78,26 @@ export function AlertToast({ toasts, onDismiss }: AlertToastProps) {
                       <span className="text-xs opacity-90 leading-snug mt-0.5">{toast.name}</span>
                     </div>
                   ) : (
-                    <div className="text-sm opacity-90 leading-snug mt-0.5">
+                      <div className="text-sm opacity-90 leading-snug mt-0.5">
                       <strong>{toast.symbol}</strong>{' '}
                       {toast.alertType === 'VOLUME_SPIKE' ? (
-                        <>is experiencing unusual volume at <strong className="tabular-nums">{formatPrice(toast.price)}</strong></>
+                        <>
+                          is experiencing unusual volume at <strong className="tabular-nums">{formatPrice(toast.price)}</strong>
+                          {toast.changePercent !== undefined && (
+                            <span className={`ml-1 text-xs font-semibold ${toast.changePercent >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                              ({toast.changePercent >= 0 ? '+' : ''}{toast.changePercent.toFixed(2)}%)
+                            </span>
+                          )}
+                        </>
                       ) : (
-                        <>reached {toast.alertType === 'DAY_HIGH' ? 'day high' : 'day low'} at <strong className="tabular-nums">{formatPrice(toast.price)}</strong></>
+                        <>
+                          reached {toast.alertType === 'DAY_HIGH' ? 'day high' : 'day low'} at <strong className="tabular-nums">{formatPrice(toast.price)}</strong>
+                          {toast.changePercent !== undefined && (
+                            <span className={`ml-1 text-xs font-semibold ${toast.changePercent >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                              ({toast.changePercent >= 0 ? '+' : ''}{toast.changePercent.toFixed(2)}%)
+                            </span>
+                          )}
+                        </>
                       )}
                     </div>
                   )}

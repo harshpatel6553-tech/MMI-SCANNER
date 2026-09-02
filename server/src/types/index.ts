@@ -76,6 +76,8 @@ export interface StockAlert {
   alertType: 'DAY_HIGH' | 'DAY_LOW' | 'VOLUME_SPIKE' | 'NEWS';
   /** Price at which the alert was triggered (₹) */
   price: number;
+  /** Percentage change of the stock at the time the alert was triggered */
+  changePercent?: number;
   /** Alert creation timestamp in ISO 8601 format */
   createdAt: string;
 }

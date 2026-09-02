@@ -32,6 +32,7 @@ export interface StockAlert {
   /** Type of price alert */
   alertType: 'DAY_HIGH' | 'DAY_LOW' | 'VOLUME_SPIKE' | 'NEWS';
   price: number;
+  changePercent?: number;
   createdAt: string;
 }
 

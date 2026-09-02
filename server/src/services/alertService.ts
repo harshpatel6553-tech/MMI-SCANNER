@@ -73,6 +73,7 @@ class AlertService {
           name: stock.name,
           alertType: 'DAY_HIGH',
           price: stock.price,
+          changePercent: stock.changePercent,
           createdAt: now,
         };
         newAlerts.push(alert);
@@ -93,6 +94,7 @@ class AlertService {
           name: stock.name,
           alertType: 'DAY_LOW',
           price: stock.price,
+          changePercent: stock.changePercent,
           createdAt: now,
         };
         newAlerts.push(alert);
@@ -111,6 +113,7 @@ class AlertService {
           name: stock.name,
           alertType: 'VOLUME_SPIKE',
           price: stock.price,
+          changePercent: stock.changePercent,
           createdAt: now,
         };
         newAlerts.push(alert);
