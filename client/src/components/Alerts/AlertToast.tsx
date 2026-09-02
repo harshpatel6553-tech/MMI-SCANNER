@@ -83,18 +83,18 @@ export function AlertToast({ toasts, onDismiss }: AlertToastProps) {
                       {toast.alertType === 'VOLUME_SPIKE' ? (
                         <>
                           is experiencing unusual volume at <strong className="tabular-nums">{formatPrice(toast.price)}</strong>
-                          {toast.changePercent !== undefined && (
-                            <span className={`ml-1 text-xs font-semibold ${toast.changePercent >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                              ({toast.changePercent >= 0 ? '+' : ''}{toast.changePercent.toFixed(2)}%)
+                          {toast.change !== undefined && toast.changePercent !== undefined && (
+                            <span className={`ml-2 text-xs font-medium tracking-tight ${toast.changePercent >= 0 ? 'text-[#10b981]' : 'text-[#ef4444]'}`}>
+                              {toast.change >= 0 ? '+' : '−'}{Math.abs(toast.change).toFixed(1)} {toast.changePercent >= 0 ? '+' : '−'}{Math.abs(toast.changePercent).toFixed(2)}%
                             </span>
                           )}
                         </>
                       ) : (
                         <>
                           reached {toast.alertType === 'DAY_HIGH' ? 'day high' : 'day low'} at <strong className="tabular-nums">{formatPrice(toast.price)}</strong>
-                          {toast.changePercent !== undefined && (
-                            <span className={`ml-1 text-xs font-semibold ${toast.changePercent >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                              ({toast.changePercent >= 0 ? '+' : ''}{toast.changePercent.toFixed(2)}%)
+                          {toast.change !== undefined && toast.changePercent !== undefined && (
+                            <span className={`ml-2 text-xs font-medium tracking-tight ${toast.changePercent >= 0 ? 'text-[#10b981]' : 'text-[#ef4444]'}`}>
+                              {toast.change >= 0 ? '+' : '−'}{Math.abs(toast.change).toFixed(1)} {toast.changePercent >= 0 ? '+' : '−'}{Math.abs(toast.changePercent).toFixed(2)}%
                             </span>
                           )}
                         </>

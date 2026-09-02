@@ -114,11 +114,11 @@ export function AlertPanel({ alerts, onClearAll }: AlertPanelProps) {
                         {isNews ? (
                           <span className="alert-news" title={alert.name}>{alert.name}</span>
                         ) : (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <span className={`alert-price ${typeClass}`}>{formatPrice(alert.price)}</span>
-                            {alert.changePercent !== undefined && (
-                              <span className={`text-[11px] font-bold ${alert.changePercent >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                ({alert.changePercent >= 0 ? '+' : ''}{alert.changePercent.toFixed(2)}%)
+                            {alert.change !== undefined && alert.changePercent !== undefined && (
+                              <span className={`text-[13px] font-medium tracking-tight ${alert.changePercent >= 0 ? 'text-[#10b981]' : 'text-[#ef4444]'}`}>
+                                {alert.change >= 0 ? '+' : '−'}{Math.abs(alert.change).toFixed(1)} {alert.changePercent >= 0 ? '+' : '−'}{Math.abs(alert.changePercent).toFixed(2)}%
                               </span>
                             )}
                           </div>

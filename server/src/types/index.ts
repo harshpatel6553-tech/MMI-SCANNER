@@ -78,6 +78,8 @@ export interface StockAlert {
   price: number;
   /** Percentage change of the stock at the time the alert was triggered */
   changePercent?: number;
+  /** Absolute price change of the stock at the time the alert was triggered */
+  change?: number;
   /** Alert creation timestamp in ISO 8601 format */
   createdAt: string;
 }
