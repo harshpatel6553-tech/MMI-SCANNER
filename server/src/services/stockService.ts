@@ -231,6 +231,15 @@ class StockService {
       logger.error(`Bulk fetch failed: ${err.message}`);
     }
 
+    // STRICT AUDIT: Check if any requested stocks were missed by the API
+    const fetchedSymbols = new Set(results.map(r => r.symbol));
+    const missingStocks = stocks.filter(s => !fetchedSymbols.has(s.symbol));
+    
+    if (missingStocks.length > 0) {
+      const missingSymbols = missingStocks.map(s => s.symbol).join(', ');
+      logger.error(`[CRITICAL] TradingView API completely missed ${missingStocks.length} stocks: ${missingSymbols}`);
+    }
+
     this.lastFetchTime.set(indexName, Date.now());
     return results;
   }
