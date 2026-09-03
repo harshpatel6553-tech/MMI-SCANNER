@@ -121,41 +121,35 @@ class StockService {
         return fullTvSym;
       });
 
-      const url = 'https://scanner.tradingview.com/india/scan';
-      const CHUNK_SIZE = 50;
-      let allData: any[] = [];
+      // CACHE BUSTER: Add a random query param to the URL to force TradingView to compute fresh data
+      const url = `https://scanner.tradingview.com/india/scan?cb=${Date.now()}`;
+      
+      const payload = {
+        symbols: { tickers: tvSymbols },
+        columns: ['name', 'close', 'high', 'low', 'open', 'volume', 'change', 'change_abs', 'Value.Traded', 'market_cap_basic', 'price_52_week_high', 'price_52_week_low']
+      };
 
-      for (let i = 0; i < tvSymbols.length; i += CHUNK_SIZE) {
-        const chunk = tvSymbols.slice(i, i + CHUNK_SIZE);
-        
-        const payload = {
-          symbols: { tickers: chunk },
-          columns: ['name', 'close', 'high', 'low', 'open', 'volume', 'change', 'change_abs', 'Value.Traded', 'market_cap_basic', 'price_52_week_high', 'price_52_week_low']
-        };
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+          'Origin': 'https://www.tradingview.com',
+          'Referer': 'https://www.tradingview.com/'
+        },
+        body: JSON.stringify(payload)
+      });
 
-        const res = await fetch(url, {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-            'Origin': 'https://www.tradingview.com',
-            'Referer': 'https://www.tradingview.com/'
-          },
-          body: JSON.stringify(payload)
-        });
-
-        if (res.ok) {
-          const data = await res.json() as any;
-          if (data && data.data && Array.isArray(data.data)) {
-            allData = allData.concat(data.data);
-          }
-        } else {
-          logger.error(`[CRITICAL] TradingView chunk failed with HTTP ${res.status} ${res.statusText}`);
-        }
-        
-        // Sleep 500ms between chunks to prevent Render IP from getting rate-limited
-        await new Promise(resolve => setTimeout(resolve, 500));
+      if (!res.ok) {
+        throw new Error(`TradingView API HTTP ${res.status} ${res.statusText}`);
       }
+
+      const data = await res.json() as any;
+      if (!data.data || !Array.isArray(data.data)) {
+        throw new Error('Invalid TradingView response format');
+      }
+      
+      let allData = data.data;
 
       for (const q of allData) {
         const originalSymbol = tvToNseMap.get(q.s);
