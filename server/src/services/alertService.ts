@@ -178,6 +178,21 @@ class AlertService {
   getTrackedSymbolCount(): number {
     return this.previousHighLowState.size;
   }
+
+  /**
+   * Dumps the entire internal memory of the agent for diagnostics.
+   * This proves exactly which stocks the agent is actively tracking.
+   */
+  getAgentDiagnostics() {
+    return Array.from(this.previousHighLowState.entries()).map(([symbol, state]) => ({
+      symbol,
+      isCurrentlyAtHigh: state.atHigh,
+      isCurrentlyAtLow: state.atLow,
+      highestPriceAgentHasSeenToday: state.maxPriceSeenToday,
+      lowestPriceAgentHasSeenToday: state.minPriceSeenToday,
+      lastAlertTime: state.lastAlertTime
+    }));
+  }
 }
 
 /**

@@ -225,4 +225,22 @@ router.get('/health', (_req: Request, res: Response): void => {
   }
 });
 
+/**
+ * GET /api/agent-memory
+ * 
+ * Dumps the entire internal state of the Alert Agent to prove it is 
+ * actively monitoring all stocks.
+ */
+router.get(
+  '/agent-memory',
+  (req: Request, res: Response) => {
+    res.json({
+      success: true,
+      message: "Live memory dump of the Alert Agent",
+      totalStocksBeingMonitored: alertService.getTrackedSymbolCount(),
+      agentMemory: alertService.getAgentDiagnostics()
+    });
+  }
+);
+
 export default router;
