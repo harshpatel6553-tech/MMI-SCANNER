@@ -137,7 +137,7 @@ class StockService {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
             'Origin': 'https://www.tradingview.com',
             'Referer': 'https://www.tradingview.com/'
           },
@@ -149,7 +149,12 @@ class StockService {
           if (data && data.data && Array.isArray(data.data)) {
             allData = allData.concat(data.data);
           }
+        } else {
+          logger.error(`[CRITICAL] TradingView chunk failed with HTTP ${res.status} ${res.statusText}`);
         }
+        
+        // Sleep 500ms between chunks to prevent Render IP from getting rate-limited
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
 
       for (const q of allData) {
