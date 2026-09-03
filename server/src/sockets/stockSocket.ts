@@ -258,7 +258,7 @@ export function broadcastStockUpdate(
     }
 
     if (changedStocks.length > 0 || alerts.length > 0) {
-      logger.debug(
+      logger.info(
         `Broadcasted ${changedStocks.length} deltas and ${alerts.length} alerts to ${sockets.size} clients`
       );
     }
