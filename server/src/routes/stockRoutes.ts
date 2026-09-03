@@ -234,12 +234,89 @@ router.get('/health', (_req: Request, res: Response): void => {
 router.get(
   '/agent-memory',
   (req: Request, res: Response) => {
-    res.json({
-      success: true,
-      message: "Live memory dump of the Alert Agent",
-      totalStocksBeingMonitored: alertService.getTrackedSymbolCount(),
-      agentMemory: alertService.getAgentDiagnostics()
-    });
+    const memory = alertService.getAgentDiagnostics();
+    const count = alertService.getTrackedSymbolCount();
+    
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Agent Memory Diagnostics</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+          body { font-family: -apple-system, system-ui, sans-serif; background: #0b0b0d; color: #fff; padding: 20px; max-width: 1200px; margin: 0 auto; }
+          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+          th, td { padding: 14px 12px; text-align: left; border-bottom: 1px solid #222; }
+          th { background: #111; color: #888; text-transform: uppercase; font-size: 12px; letter-spacing: 1px; }
+          tr:hover { background: #151515; }
+          .high { color: #10b981; font-weight: bold; background: rgba(16, 185, 129, 0.1); padding: 4px 8px; border-radius: 4px; }
+          .low { color: #ef4444; font-weight: bold; background: rgba(239, 68, 68, 0.1); padding: 4px 8px; border-radius: 4px; }
+          .search { width: 100%; padding: 16px; background: #111; border: 1px solid #333; color: white; border-radius: 8px; font-size: 16px; margin-bottom: 20px; outline: none; box-sizing: border-box; }
+          .search:focus { border-color: #da7f63; }
+          .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
+          h2 { margin: 0; font-weight: 500; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h2>🧠 Agent Internal Memory</h2>
+          <div style="background: #111; padding: 10px 20px; border-radius: 30px; border: 1px solid #333;">
+            <span style="color: #10b981; margin-right: 8px;">●</span> Actively Tracking <b style="color: #fff; margin-left: 4px;">${count} Stocks</b>
+          </div>
+        </div>
+        
+        <input type="text" id="search" class="search" placeholder="Search for a stock symbol (e.g. BSE)..." onkeyup="filter()">
+        
+        <table id="memoryTable">
+          <thead>
+            <tr>
+              <th>Symbol</th>
+              <th>Status</th>
+              <th>Highest Price Seen</th>
+              <th>Lowest Price Seen</th>
+              <th>Last Alert Triggered</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${memory.map(s => `
+              <tr>
+                <td style="font-weight: 600; font-size: 15px;">${s.symbol}</td>
+                <td>
+                  ${s.isCurrentlyAtHigh ? '<span class="high">🚀 AT DAY HIGH</span>' : ''}
+                  ${s.isCurrentlyAtLow ? '<span class="low">🩸 AT DAY LOW</span>' : ''}
+                  ${!s.isCurrentlyAtHigh && !s.isCurrentlyAtLow ? '<span style="color: #555;">Watching...</span>' : ''}
+                </td>
+                <td style="color: #ccc;">₹${s.highestPriceAgentHasSeenToday.toFixed(2)}</td>
+                <td style="color: #ccc;">₹${s.lowestPriceAgentHasSeenToday.toFixed(2)}</td>
+                <td style="color: #777;">${s.lastAlertTime > 0 ? new Date(s.lastAlertTime).toLocaleTimeString('en-IN') : 'None yet today'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+
+        <script>
+          function filter() {
+            var input = document.getElementById("search");
+            var filter = input.value.toUpperCase();
+            var table = document.getElementById("memoryTable");
+            var tr = table.getElementsByTagName("tr");
+            for (var i = 1; i < tr.length; i++) {
+              var td = tr[i].getElementsByTagName("td")[0];
+              if (td) {
+                var txtValue = td.textContent || td.innerText;
+                if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                  tr[i].style.display = "";
+                } else {
+                  tr[i].style.display = "none";
+                }
+              }       
+            }
+          }
+        </script>
+      </body>
+      </html>
+    `;
+    res.send(html);
   }
 );
 
