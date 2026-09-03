@@ -62,11 +62,12 @@ class AlertService {
 
       let triggeredAlert = false;
 
-      // STRICT NEW HIGH DETECTOR: Only alert if it's ACTUALLY higher than any price seen today!
-      const isNewHighValue = stock.atDayHigh && stock.price > previousState.maxPriceSeenToday;
+      // BULLETPROOF DETECTOR: Trigger alert if it's currently at day high, but wasn't in the previous check.
+      // This catches stocks that hit the high, drop slightly, and hit it again, which traders want to see!
+      const isNewHighValue = stock.atDayHigh && !previousState.atHigh;
       
       if (isNewHighValue) {
-        const alertId = this.generateDeterministicUUID(`${stock.symbol}_DAY_HIGH_${dayTimestamp}_${stock.price}`);
+        const alertId = this.generateDeterministicUUID(`${stock.symbol}_DAY_HIGH_${dayTimestamp}_${currentMs}`);
         const alert: StockAlert = {
           id: alertId,
           symbol: stock.symbol,
@@ -80,15 +81,15 @@ class AlertService {
         newAlerts.push(alert);
         triggeredAlert = true;
         logger.info(
-          `🚀 DAY HIGH ALERT: ${stock.symbol} (${stock.name}) broke out to new high of ₹${stock.price.toFixed(2)}`
+          `🚀 DAY HIGH ALERT: ${stock.symbol} (${stock.name}) hit day high of ₹${stock.price.toFixed(2)}`
         );
       }
 
-      // STRICT NEW LOW DETECTOR
-      const isNewLowValue = stock.atDayLow && stock.price < previousState.minPriceSeenToday;
+      // BULLETPROOF DETECTOR: Trigger if at day low, but wasn't in previous check
+      const isNewLowValue = stock.atDayLow && !previousState.atLow;
       
       if (isNewLowValue && !triggeredAlert) {
-        const alertId = this.generateDeterministicUUID(`${stock.symbol}_DAY_LOW_${dayTimestamp}_${stock.price}`);
+        const alertId = this.generateDeterministicUUID(`${stock.symbol}_DAY_LOW_${dayTimestamp}_${currentMs}`);
         const alert: StockAlert = {
           id: alertId,
           symbol: stock.symbol,
@@ -108,7 +109,7 @@ class AlertService {
 
       // Detect VOLUME_SPIKE transition
       if (stock.volumeSpike === true && previousState.volumeSpiked === false && !triggeredAlert) {
-        const alertId = this.generateDeterministicUUID(`${stock.symbol}_VOLUME_SPIKE_${dayTimestamp}`);
+        const alertId = this.generateDeterministicUUID(`${stock.symbol}_VOLUME_SPIKE_${dayTimestamp}_${currentMs}`);
         const alert: StockAlert = {
           id: alertId,
           symbol: stock.symbol,
