@@ -62,9 +62,9 @@ class AlertService {
 
       let triggeredAlert = false;
 
-      // BULLETPROOF DETECTOR: Trigger alert if it's currently at day high, but wasn't in the previous check.
-      // This catches stocks that hit the high, drop slightly, and hit it again, which traders want to see!
-      const isNewHighValue = stock.atDayHigh && !previousState.atHigh;
+      // BULLETPROOF DETECTOR: Trigger alert if it hits a strictly NEW high, OR if it bounces back to a previous high after a dip.
+      // This catches BOTH continuous upward grinding AND pull-back bounces perfectly.
+      const isNewHighValue = stock.atDayHigh && (!previousState.atHigh || stock.price > previousState.maxPriceSeenToday);
       
       if (isNewHighValue) {
         const alertId = this.generateDeterministicUUID(`${stock.symbol}_DAY_HIGH_${dayTimestamp}_${currentMs}`);
@@ -85,8 +85,8 @@ class AlertService {
         );
       }
 
-      // BULLETPROOF DETECTOR: Trigger if at day low, but wasn't in previous check
-      const isNewLowValue = stock.atDayLow && !previousState.atLow;
+      // BULLETPROOF DETECTOR: Trigger if at a strictly NEW low, OR if it bounces back to a previous low
+      const isNewLowValue = stock.atDayLow && (!previousState.atLow || stock.price < previousState.minPriceSeenToday);
       
       if (isNewLowValue && !triggeredAlert) {
         const alertId = this.generateDeterministicUUID(`${stock.symbol}_DAY_LOW_${dayTimestamp}_${currentMs}`);
