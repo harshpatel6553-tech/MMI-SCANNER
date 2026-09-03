@@ -237,14 +237,26 @@ router.get(
     const memory = alertService.getAgentDiagnostics();
     const count = alertService.getTrackedSymbolCount();
     
+    // Enrich with live price data to prove it is ticking every 3 seconds
+    const enrichedMemory = memory.map(s => {
+      const live = stockService.getCachedStock(s.symbol);
+      return {
+        ...s,
+        currentPrice: live ? live.price : 0,
+        dayHigh: live ? live.dayHigh : s.highestPriceAgentHasSeenToday,
+        dayLow: live ? live.dayLow : s.lowestPriceAgentHasSeenToday,
+      };
+    });
+    
     const html = `
       <!DOCTYPE html>
       <html>
       <head>
         <title>Agent Memory Diagnostics</title>
         <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta http-equiv="refresh" content="3"> <!-- Auto refresh every 3s -->
         <style>
-          body { font-family: -apple-system, system-ui, sans-serif; background: #0b0b0d; color: #fff; padding: 20px; max-width: 1200px; margin: 0 auto; }
+          body { font-family: -apple-system, system-ui, sans-serif; background: #0b0b0d; color: #fff; padding: 20px; max-width: 1400px; margin: 0 auto; }
           table { width: 100%; border-collapse: collapse; margin-top: 20px; }
           th, td { padding: 14px 12px; text-align: left; border-bottom: 1px solid #222; }
           th { background: #111; color: #888; text-transform: uppercase; font-size: 12px; letter-spacing: 1px; }
@@ -254,14 +266,16 @@ router.get(
           .search { width: 100%; padding: 16px; background: #111; border: 1px solid #333; color: white; border-radius: 8px; font-size: 16px; margin-bottom: 20px; outline: none; box-sizing: border-box; }
           .search:focus { border-color: #da7f63; }
           .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
-          h2 { margin: 0; font-weight: 500; }
+          h2 { margin: 0; font-weight: 500; display: flex; align-items: center; gap: 12px; }
+          .live-dot { height: 12px; width: 12px; background-color: #10b981; border-radius: 50%; display: inline-block; animation: pulse 1.5s infinite; }
+          @keyframes pulse { 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); } 70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); } 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); } }
         </style>
       </head>
       <body>
         <div class="header">
-          <h2>🧠 Agent Internal Memory</h2>
+          <h2><span class="live-dot"></span> 🧠 Agent Internal Memory</h2>
           <div style="background: #111; padding: 10px 20px; border-radius: 30px; border: 1px solid #333;">
-            <span style="color: #10b981; margin-right: 8px;">●</span> Actively Tracking <b style="color: #fff; margin-left: 4px;">${count} Stocks</b>
+             Actively Tracking <b style="color: #fff; margin-left: 4px;">${count} Stocks</b>
           </div>
         </div>
         
@@ -271,14 +285,16 @@ router.get(
           <thead>
             <tr>
               <th>Symbol</th>
-              <th>Status</th>
-              <th>Highest Price Seen</th>
-              <th>Lowest Price Seen</th>
+              <th>Live Status</th>
+              <th>Current Live Price</th>
+              <th>Actual Day High</th>
+              <th>Actual Day Low</th>
+              <th>Agent's Peak Tracking</th>
               <th>Last Alert Triggered</th>
             </tr>
           </thead>
           <tbody>
-            ${memory.map(s => `
+            ${enrichedMemory.map(s => `
               <tr>
                 <td style="font-weight: 600; font-size: 15px;">${s.symbol}</td>
                 <td>
@@ -286,8 +302,10 @@ router.get(
                   ${s.isCurrentlyAtLow ? '<span class="low">🩸 AT DAY LOW</span>' : ''}
                   ${!s.isCurrentlyAtHigh && !s.isCurrentlyAtLow ? '<span style="color: #555;">Watching...</span>' : ''}
                 </td>
-                <td style="color: #ccc;">₹${s.highestPriceAgentHasSeenToday.toFixed(2)}</td>
-                <td style="color: #ccc;">₹${s.lowestPriceAgentHasSeenToday.toFixed(2)}</td>
+                <td style="color: #fff; font-weight: bold; font-size: 16px;">₹${s.currentPrice.toFixed(2)}</td>
+                <td style="color: #10b981;">₹${s.dayHigh.toFixed(2)}</td>
+                <td style="color: #ef4444;">₹${s.dayLow.toFixed(2)}</td>
+                <td style="color: #666; font-size: 12px;">Peak High: ₹${s.highestPriceAgentHasSeenToday.toFixed(2)}<br>Peak Low: ₹${s.lowestPriceAgentHasSeenToday.toFixed(2)}</td>
                 <td style="color: #777;">${s.lastAlertTime > 0 ? new Date(s.lastAlertTime).toLocaleTimeString('en-IN') : 'None yet today'}</td>
               </tr>
             `).join('')}
@@ -295,6 +313,24 @@ router.get(
         </table>
 
         <script>
+          // Save scroll position for the auto-refresh
+          document.addEventListener("DOMContentLoaded", function(event) { 
+            var scrollpos = localStorage.getItem('scrollpos');
+            if (scrollpos) window.scrollTo(0, scrollpos);
+            
+            // Restore search term
+            var searchpos = localStorage.getItem('searchpos');
+            if (searchpos) {
+              document.getElementById("search").value = searchpos;
+              filter();
+            }
+          });
+
+          window.onbeforeunload = function(e) {
+            localStorage.setItem('scrollpos', window.scrollY);
+            localStorage.setItem('searchpos', document.getElementById("search").value);
+          };
+
           function filter() {
             var input = document.getElementById("search");
             var filter = input.value.toUpperCase();
