@@ -213,10 +213,10 @@ class StockService {
           lastUpdated: new Date().toISOString(),
           atDayHigh,
           atDayLow,
-          fiftyTwoWeekHigh: q.d[10] ?? 0,
-          fiftyTwoWeekLow: q.d[11] ?? 0,
-          marketCap: q.d[9] ?? 0,
-          ...(technicalService.getTechnicals(originalSymbol) || { macdWeeklyBuy: false, rsiDaily: 50, emaCrossDaily: false }),
+          fiftyTwoWeekHigh: meta.fiftyTwoWeekHigh ?? 0,
+          fiftyTwoWeekLow: meta.fiftyTwoWeekLow ?? 0,
+          marketCap: meta.marketCap ?? 0,
+          ...(technicalService.getTechnicals(baseStock.symbol) || { macdWeeklyBuy: false, rsiDaily: 50, emaCrossDaily: false }),
         };
 
         results.push(stockData);
