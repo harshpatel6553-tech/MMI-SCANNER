@@ -111,87 +111,83 @@ class StockService {
     const results: StockData[] = [];
     
     try {
-      // Convert to TradingView symbols (e.g. BAJAJ-AUTO -> BAJAJ_AUTO)
-      const tvToNseMap = new Map();
-      const tvSymbols = stocks.map(s => {
-        let tvSym = s.symbol.replace('-', '_');
-        // Handle special cases if needed, otherwise default to NSE:SYMBOL
-        const fullTvSym = 'NSE:' + tvSym;
-        tvToNseMap.set(fullTvSym, s.symbol);
-        return fullTvSym;
+      // 1. Create a map of Yahoo symbol -> Base Stock
+      const yahooToStockMap = new Map();
+      const yahooSymbols = stocks.map(s => {
+        const ySym = s.symbol + '.NS';
+        yahooToStockMap.set(ySym, s);
+        return ySym;
       });
 
-      // CACHE BUSTER: Add a random query param to the URL to force TradingView to compute fresh data
-      const url = `https://scanner.tradingview.com/india/scan?cb=${Date.now()}`;
-      
-      const payload = {
-        symbols: { tickers: tvSymbols },
-        columns: ['name', 'close', 'high', 'low', 'open', 'volume', 'change', 'change_abs', 'Value.Traded', 'market_cap_basic', 'price_52_week_high', 'price_52_week_low']
-      };
+      // 2. Yahoo Spark API limits to 20 symbols per request
+      const CHUNK_SIZE = 20;
+      let allSparkResults: any[] = [];
 
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-          'Origin': 'https://www.tradingview.com',
-          'Referer': 'https://www.tradingview.com/'
-        },
-        body: JSON.stringify(payload)
-      });
+      for (let i = 0; i < yahooSymbols.length; i += CHUNK_SIZE) {
+        const chunk = yahooSymbols.slice(i, i + CHUNK_SIZE);
+        const symbolsStr = chunk.join(',');
+        const url = `https://query1.finance.yahoo.com/v7/finance/spark?symbols=${encodeURIComponent(symbolsStr)}&range=1d&interval=1h`;
+        
+        const res = await fetch(url, {
+          headers: {
+            'User-Agent': USER_AGENT,
+            'Accept': 'application/json'
+          }
+        });
 
-      if (!res.ok) {
-        throw new Error(`TradingView API HTTP ${res.status} ${res.statusText}`);
+        if (res.ok) {
+          const data = await res.json() as any;
+          if (data && data.spark && data.spark.result) {
+            allSparkResults = allSparkResults.concat(data.spark.result);
+          }
+        } else {
+          logger.error(`[CRITICAL] Yahoo Spark chunk failed with HTTP ${res.status}`);
+        }
+        
+        // Very small delay to respect rate limits
+        await new Promise(resolve => setTimeout(resolve, 200));
       }
 
-      const data = await res.json() as any;
-      if (!data.data || !Array.isArray(data.data)) {
-        throw new Error('Invalid TradingView response format');
-      }
-      
-      let allData = data.data;
-
-      for (const q of allData) {
-        const originalSymbol = tvToNseMap.get(q.s);
-        const baseStock = stocks.find(s => s.symbol === originalSymbol);
+      for (const sparkObj of allSparkResults) {
+        if (!sparkObj || !sparkObj.response || !sparkObj.response[0] || !sparkObj.response[0].meta) continue;
+        const meta = sparkObj.response[0].meta;
+        const baseStock = yahooToStockMap.get(meta.symbol);
         if (!baseStock) continue;
 
-        const price = q.d[1] ?? 0;
+        const price: number = meta.regularMarketPrice ?? 0;
         if (price === 0) continue;
 
-        const dayHigh = q.d[2] ?? price;
-        const dayLow = q.d[3] ?? price;
-        const openPrice = q.d[4] ?? price;
-        const volume = q.d[5] ?? 0;
-        const changePercent = q.d[6] ?? 0;
-        const change = q.d[7] ?? 0;
-        const prevClose = price - change;
+        const dayHigh: number = meta.regularMarketDayHigh ?? price;
+        const dayLow: number = meta.regularMarketDayLow ?? price;
+        const prevClose: number = meta.previousClose ?? meta.chartPreviousClose ?? price;
+        const volume: number = meta.regularMarketVolume ?? 0;
+        
+        const change = price - prevClose;
+        const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
 
         const atDayHigh = dayHigh > 0 && price > 0 && price >= dayHigh;
         const atDayLow = dayLow > 0 && price > 0 && price <= dayLow;
 
-        const fullDayAvgVol = this.averageVolumeMap.get(originalSymbol) || volume || 1;
+        const fullDayAvgVol = this.averageVolumeMap.get(baseStock.symbol) || volume || 1;
 
         // --- ROLLING 1-HOUR VOLUME SPIKE LOGIC ---
         const nowMs = Date.now();
         const ONE_HOUR_MS = 60 * 60 * 1000;
         
-        let history = this.volumeHistory.get(originalSymbol);
+        let history = this.volumeHistory.get(baseStock.symbol);
         if (!history) {
           history = [];
-          this.volumeHistory.set(originalSymbol, history);
+          this.volumeHistory.set(baseStock.symbol, history);
         }
         
-        if (history.length === 0 || nowMs - history[history.length - 1].timestamp > 60000) {
-          history.push({ timestamp: nowMs, volume });
-        } else {
-          history[history.length - 1].volume = volume;
-        }
+        history.push({ timestamp: nowMs, volume });
         
-        while (history.length > 0 && nowMs - history[0].timestamp > ONE_HOUR_MS) {
+        // Remove entries older than 1 hour
+        const cutoffTime = nowMs - ONE_HOUR_MS;
+        while (history.length > 0 && history[0].timestamp < cutoffTime) {
           history.shift();
         }
-        
+
         const volumeWindowAgo = history[0].volume;
         const volumeTradedInWindow = volume - volumeWindowAgo;
         const averageHourlyVolume = fullDayAvgVol / 6.25;
@@ -199,17 +195,17 @@ class StockService {
         const volumeSpike = relativeVolume >= 3.0 && volumeTradedInWindow > 0;
 
         const stockData: StockData = {
-          symbol: originalSymbol,
-          name: this.nameMap.get(originalSymbol) || baseStock.name,
+          symbol: baseStock.symbol,
+          name: this.nameMap.get(baseStock.symbol) || baseStock.name,
           price,
           previousClose: prevClose,
-          open: openPrice,
+          open: meta.regularMarketOpen ?? price,
           dayHigh,
           dayLow,
           change,
           changePercent,
           volume,
-          sector: SECTOR_MAP[originalSymbol] || 'Others',
+          sector: SECTOR_MAP[baseStock.symbol] || 'Others',
           averageVolume: fullDayAvgVol,
           relativeVolume,
           volumeSpike,
