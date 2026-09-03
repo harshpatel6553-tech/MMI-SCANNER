@@ -111,55 +111,67 @@ class StockService {
     const results: StockData[] = [];
     
     try {
-      // 1. Create a map of TradingView symbol -> Base Stock to instantly filter the 5000+ market results
-      const tvToStockMap = new Map();
-      for (const s of stocks) {
-        const tvSym = 'NSE:' + s.symbol.replace('-', '_');
-        tvToStockMap.set(tvSym, s);
-      }
-
-      // 2. Fetch the ENTIRE NSE market in a single request. 
-      // This completely bypasses TradingView's ticker limits and Yahoo's rate limits.
-      const url = `https://scanner.tradingview.com/india/scan?cb=${Date.now()}`;
-      const payload = {
-        filter: [{ left: 'exchange', operation: 'equal', right: 'NSE' }],
-        columns: ['name', 'close', 'high', 'low', 'open', 'volume', 'change', 'change_abs', 'Value.Traded', 'market_cap_basic', 'price_52_week_high', 'price_52_week_low']
-      };
-
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'User-Agent': USER_AGENT,
-          'Origin': 'https://www.tradingview.com',
-          'Referer': 'https://www.tradingview.com/'
-        },
-        body: JSON.stringify(payload)
+      // 1. Create a map of Yahoo symbol -> Base Stock
+      const yahooToStockMap = new Map();
+      const yahooSymbols = stocks.map(s => {
+        const ySym = s.symbol + '.NS';
+        yahooToStockMap.set(ySym, s);
+        return ySym;
       });
 
-      if (!res.ok) {
-        throw new Error(`TradingView Bulk API failed with HTTP ${res.status}`);
+      // 2. Yahoo Spark API limits to 20 symbols per request. We will chunk them and fire them in PARALLEL.
+      const CHUNK_SIZE = 20;
+      const chunks = [];
+      for (let i = 0; i < yahooSymbols.length; i += CHUNK_SIZE) {
+        chunks.push(yahooSymbols.slice(i, i + CHUNK_SIZE));
       }
 
-      const data = await res.json() as any;
-      if (!data || !data.data || !Array.isArray(data.data)) {
-        throw new Error('Invalid TradingView response');
+      const fetchPromises = chunks.map(chunk => {
+        const symbolsStr = chunk.join(',');
+        // CACHE BUSTER + 1m interval guarantees absolutely zero-delay ticks
+        const url = `https://query1.finance.yahoo.com/v7/finance/spark?symbols=${encodeURIComponent(symbolsStr)}&range=1d&interval=1m&cb=${Date.now()}`;
+        return fetch(url, {
+          headers: {
+            'User-Agent': USER_AGENT,
+            'Accept': 'application/json'
+          }
+        }).then(async res => {
+          if (!res.ok) {
+            logger.error(`[CRITICAL] Yahoo Spark chunk failed with HTTP ${res.status}`);
+            return [];
+          }
+          const data = await res.json() as any;
+          return data?.spark?.result || [];
+        }).catch(err => {
+          logger.error(`[CRITICAL] Yahoo Spark chunk error: ${err.message}`);
+          return [];
+        });
+      });
+
+      const chunkedResults = await Promise.all(fetchPromises);
+      
+      let allSparkResults: any[] = [];
+      for (const res of chunkedResults) {
+        allSparkResults = allSparkResults.concat(res);
       }
 
-      for (const q of data.data) {
-        const baseStock = tvToStockMap.get(q.s);
+      for (const sparkObj of allSparkResults) {
+        if (!sparkObj || !sparkObj.response || !sparkObj.response[0] || !sparkObj.response[0].meta) continue;
+        const meta = sparkObj.response[0].meta;
+        const baseStock = yahooToStockMap.get(meta.symbol);
         if (!baseStock) continue;
 
-        const price = q.d[1] ?? 0;
+        const price = meta.regularMarketPrice ?? 0;
         if (price === 0) continue;
 
-        const dayHigh = q.d[2] ?? price;
-        const dayLow = q.d[3] ?? price;
-        const openPrice = q.d[4] ?? price;
-        const volume = q.d[5] ?? 0;
-        const changePercent = q.d[6] ?? 0;
-        const change = q.d[7] ?? 0;
-        const prevClose = price - change;
+        const dayHigh = meta.regularMarketDayHigh ?? price;
+        const dayLow = meta.regularMarketDayLow ?? price;
+        const openPrice = meta.regularMarketOpen ?? price;
+        const volume = meta.regularMarketVolume ?? 0;
+        const prevClose = meta.previousClose ?? meta.chartPreviousClose ?? price;
+        
+        const change = price - prevClose;
+        const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
 
         const atDayHigh = dayHigh > 0 && price > 0 && price >= dayHigh;
         const atDayLow = dayLow > 0 && price > 0 && price <= dayLow;
@@ -209,9 +221,9 @@ class StockService {
           lastUpdated: new Date().toISOString(),
           atDayHigh,
           atDayLow,
-          fiftyTwoWeekHigh: q.d[10] ?? 0,
-          fiftyTwoWeekLow: q.d[11] ?? 0,
-          marketCap: q.d[9] ?? 0,
+          fiftyTwoWeekHigh: meta.fiftyTwoWeekHigh ?? 0,
+          fiftyTwoWeekLow: meta.fiftyTwoWeekLow ?? 0,
+          marketCap: meta.marketCap ?? 0,
           ...(technicalService.getTechnicals(baseStock.symbol) || { macdWeeklyBuy: false, rsiDaily: 50, emaCrossDaily: false }),
         };
 
