@@ -12,13 +12,23 @@ export function AlertPanel({ alerts, onClearAll }: AlertPanelProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [filter, setFilter] = useState<'ALL' | 'HIGH' | 'LOW' | 'NEWS' | 'SPIKE'>('ALL');
 
+  const [searchQuery, setSearchQuery] = useState('');
+
   const filteredAlerts = useMemo(() => {
-    if (filter === 'ALL') return alerts;
     return alerts.filter(a => {
-      const typeLabel = a.alertType === 'DAY_HIGH' ? 'HIGH' : a.alertType === 'DAY_LOW' ? 'LOW' : a.alertType === 'NEWS' ? 'NEWS' : 'SPIKE';
-      return typeLabel === filter;
+      if (filter !== 'ALL') {
+        const typeLabel = a.alertType === 'DAY_HIGH' ? 'HIGH' : a.alertType === 'DAY_LOW' ? 'LOW' : a.alertType === 'NEWS' ? 'NEWS' : 'SPIKE';
+        if (typeLabel !== filter) return false;
+      }
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        if (!a.symbol.toLowerCase().includes(q) && !a.name.toLowerCase().includes(q)) {
+          return false;
+        }
+      }
+      return true;
     });
-  }, [alerts, filter]);
+  }, [alerts, filter, searchQuery]);
 
   const counts = useMemo(() => {
     const c = { ALL: alerts.length, HIGH: 0, LOW: 0, NEWS: 0, SPIKE: 0 };
@@ -87,6 +97,40 @@ export function AlertPanel({ alerts, onClearAll }: AlertPanelProps) {
                   NEWS {counts.NEWS}
                 </button>
               )}
+            </div>
+            
+            <div style={{ padding: '0 20px 12px 20px' }}>
+              <div style={{ position: 'relative' }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', opacity: 0.5 }}>
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input 
+                  type="text" 
+                  placeholder="Search stocks..." 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  style={{
+                    width: '100%',
+                    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    borderRadius: '8px',
+                    padding: '8px 12px 8px 32px',
+                    color: 'var(--ink)',
+                    fontSize: '13px',
+                    outline: 'none',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--accent)';
+                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.03)';
+                  }}
+                />
+              </div>
             </div>
 
             <div className="alert-list">
