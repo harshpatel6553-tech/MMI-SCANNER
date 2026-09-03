@@ -213,7 +213,8 @@ export function broadcastStockUpdate(
     
     // Compute deltas (only stocks that actually changed price/volume/etc.)
     for (const stock of stocks) {
-      const stockStr = JSON.stringify(stock);
+      const { lastUpdated, ...stockWithoutTime } = stock;
+      const stockStr = JSON.stringify(stockWithoutTime);
       if (lastBroadcastState.get(stock.symbol) !== stockStr) {
         changedStocks.push(stock);
         lastBroadcastState.set(stock.symbol, stockStr);
