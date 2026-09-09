@@ -1,5 +1,6 @@
 import React from 'react';
 import { useDashboard } from '../../contexts/DashboardContext';
+import { ProfileDropdown } from '../Topbar/ProfileDropdown';
 
 export function Sidebar() {
   const { activeTab, setActiveTab } = useDashboard();
@@ -60,8 +61,8 @@ export function Sidebar() {
         </div>
       </div>
 
-      <div className="sidebar-foot">
-        <div className="status-chip"><span className="dot-live"></span><span>503 stocks · live feed</span></div>
+      <div className="sidebar-foot" style={{ display: 'flex', justifyContent: 'center', paddingBottom: '16px' }}>
+        <ProfileDropdown />
       </div>
     </aside>
   );

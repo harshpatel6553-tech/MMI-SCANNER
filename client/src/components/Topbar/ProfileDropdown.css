@@ -1,13 +1,12 @@
 .profile-dropdown-container {
   position: relative;
   display: inline-block;
-  margin-left: 12px;
 }
 
 .avatar-trigger {
   position: relative;
-  width: 36px;
-  height: 36px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   cursor: pointer;
   border: 1px solid var(--border);
@@ -48,8 +47,8 @@
 
 .profile-dropdown-menu {
   position: absolute;
-  top: calc(100% + 12px);
-  right: 0;
+  bottom: calc(100% + 12px);
+  left: 0;
   width: 260px;
   background: var(--bg-surface);
   border: 1px solid var(--border);

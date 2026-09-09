@@ -24,13 +24,13 @@ COPY . .
 # Build the TypeScript project
 RUN npm run build
 
-# Expose port
-EXPOSE 5000
+# Expose port (Hugging Face Spaces requires port 7860)
+EXPOSE 7860
 
 # Set environment variables for Puppeteer to use the installed Chrome
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable
-ENV PORT=5000
+ENV PORT=7860
 
 # Start the application
 CMD [ "node", "dist/index.js" ]
