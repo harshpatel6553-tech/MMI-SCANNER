@@ -42,7 +42,7 @@ export function CometCard({ children, className = '' }: CometCardProps) {
         transition: 'transform 0.1s ease'
       }}
     >
-      <div className="comet-card-content" style={{ transform: 'translateZ(20px)' }}>
+      <div className="comet-card-content" style={{ transform: 'translateZ(30px)' }}>
         {children}
       </div>
     </div>

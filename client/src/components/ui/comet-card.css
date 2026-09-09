@@ -2,34 +2,33 @@
   position: relative;
   overflow: hidden;
   border-radius: 12px;
-  /* background for the border when the comet isn't over it */
-  background: var(--border); 
+  background: var(--border-soft); 
+  display: flex;
+  flex-direction: column;
 }
 
 .comet-card-wrapper::before {
   content: '';
   position: absolute;
-  top: 50%;
-  left: 50%;
+  top: -50%;
+  left: -50%;
   width: 200%;
   height: 200%;
-  background: conic-gradient(from 0deg, transparent 0%, transparent 80%, var(--accent) 100%);
-  transform-origin: 0 0;
+  background: conic-gradient(from 0deg, transparent 0%, transparent 70%, var(--accent) 100%);
   animation: comet-spin 3s linear infinite;
   z-index: 0;
 }
 
 @keyframes comet-spin {
-  0% { transform: translate(-50%, -50%) rotate(0deg); }
-  100% { transform: translate(-50%, -50%) rotate(360deg); }
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .comet-card-content {
   position: relative;
   z-index: 1;
   background: var(--bg-surface);
-  border-radius: 11px; /* slightly less than wrapper to show border */
-  margin: 1px; /* The thickness of the glowing border */
-  height: calc(100% - 2px);
-  width: calc(100% - 2px);
+  border-radius: 11px;
+  margin: 1.5px; /* The thickness of the glowing border */
+  flex-grow: 1;
 }
