@@ -2,33 +2,22 @@
   position: relative;
   overflow: hidden;
   border-radius: 12px;
-  background: var(--border-soft); 
+  background: transparent;
   display: flex;
   flex-direction: column;
-}
-
-.comet-card-wrapper::before {
-  content: '';
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: conic-gradient(from 0deg, transparent 0%, transparent 70%, var(--accent) 100%);
-  animation: comet-spin 3s linear infinite;
-  z-index: 0;
-}
-
-@keyframes comet-spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
 }
 
 .comet-card-content {
   position: relative;
   z-index: 1;
   background: var(--bg-surface);
-  border-radius: 11px;
-  margin: 1.5px; /* The thickness of the glowing border */
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
   flex-grow: 1;
+  transition: border-color 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out);
+}
+
+.comet-card-wrapper:hover .comet-card-content {
+  border-color: var(--border);
+  box-shadow: var(--shadow-md);
 }
