@@ -1,5 +1,6 @@
 import React from 'react';
 import { useStocks } from '../../hooks/useStocks';
+import { CometCard } from '../ui/comet-card';
 
 export function AdvanceDeclineWidget() {
   const { stats } = useStocks({ index: 'ALL', priceMin: 0, priceMax: 0, volumeMin: 0, search: '' }, 'symbol', 'asc');
@@ -9,19 +10,21 @@ export function AdvanceDeclineWidget() {
   const adRatio = stats.advanceDeclineRatio === Infinity ? '∞' : stats.advanceDeclineRatio.toFixed(2);
 
   return (
-    <div className="card ad-card">
-      <div className="ad-head">
-        <span className="t">Advance / Decline</span>
-        <span className="r">A/D {adRatio}</span>
+    <CometCard>
+      <div className="ad-card" style={{ padding: '16px', display: 'flex', flexDirection: 'column', height: '100%' }}>
+        <div className="ad-head">
+          <span className="t">Advance / Decline</span>
+          <span className="r">A/D {adRatio}</span>
+        </div>
+        <div className="ad-bar">
+          <div className="g" style={{width: gainerPct+"%"}}></div>
+          <div className="r" style={{width: loserPct+"%"}}></div>
+        </div>
+        <div className="ad-labels">
+          <span><b className="num">{stats.gainers}</b> advancing</span>
+          <span><b className="num">{stats.losers}</b> declining</span>
+        </div>
       </div>
-      <div className="ad-bar">
-        <div className="g" style={{width: gainerPct+"%"}}></div>
-        <div className="r" style={{width: loserPct+"%"}}></div>
-      </div>
-      <div className="ad-labels">
-        <span><b className="num">{stats.gainers}</b> advancing</span>
-        <span><b className="num">{stats.losers}</b> declining</span>
-      </div>
-    </div>
+    </CometCard>
   );
 }
