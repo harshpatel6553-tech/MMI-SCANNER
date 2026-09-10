@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { SocketProvider } from './context/SocketContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { DashboardProvider, useDashboard } from './contexts/DashboardContext';
@@ -19,7 +19,7 @@ import { EarningsResults } from './components/EarningsResults/EarningsResults';
 import { PromoterWatch } from './components/PromoterWatch/PromoterWatch';
 import { PaperTradingDashboard } from './components/PaperTrading/PaperTradingDashboard';
 import { AdminDashboard } from './components/AdminDashboard/AdminDashboard';
-import { MusicPlayer } from './components/MusicPlayer/MusicPlayer';
+import { MusicPlayer } from './components/MusicPlayer/VengeancePlayer';
 
 import { AlertPanel } from './components/Alerts/AlertPanel';
 import { AlertToast } from './components/Alerts/AlertToast';
@@ -118,6 +118,23 @@ function AppContent() {
       >
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--text-1)" strokeWidth="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" /></svg>
         <span style={{ color: 'var(--text-1)', fontSize: 13, fontWeight: 600 }}>Customize Layout</span>
+      </div>
+
+      {/* Vengeance Music Player Widget */}
+      <div style={{ position: 'fixed', bottom: '24px', right: '24px', zIndex: 50 }}>
+        <MusicPlayer
+          tracks={[
+            { title: 'Lofi Hip Hop Radio', artist: 'ChillHop 24/7', src: 'https://lofi.stream.laut.fm/lofi', artwork: 'https://images.unsplash.com/photo-1516280440503-6c8a829da493?q=80&w=200&auto=format&fit=crop' },
+            { title: 'Jazz Cafe', artist: 'Smooth Jazz 24/7', src: 'https://jazz.stream.laut.fm/jazz', artwork: 'https://images.unsplash.com/photo-1415201364774-f6f0bb35f28f?q=80&w=200&auto=format&fit=crop' },
+            { title: 'Classical Music', artist: 'Musopen Radio', src: 'https://live.musopen.org:8085/streamvbr0', artwork: 'https://images.unsplash.com/photo-1507838153414-b4b713384a76?q=80&w=200&auto=format&fit=crop' },
+            { title: 'Study Beats', artist: 'Focus FM', src: 'https://streams.ilovemusic.de/iloveradio17.mp3', artwork: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?q=80&w=200&auto=format&fit=crop' },
+            { title: 'Synthwave / Electronic', artist: 'Future Neon', src: 'https://streams.ilovemusic.de/iloveradio2.mp3', artwork: 'https://images.unsplash.com/photo-1571974599782-87624638275e?q=80&w=200&auto=format&fit=crop' },
+            { title: 'Deep Ambient', artist: 'Calm Waves', src: 'https://ambient.stream.laut.fm/ambient', artwork: 'https://images.unsplash.com/photo-1470219556762-1771e7f9427d?q=80&w=200&auto=format&fit=crop' },
+          ]}
+          accentColor='#da7f63'
+          defaultCollapsed={true}
+          autoPlay={false}
+        />
       </div>
 
       {/* Customize Panel */}
