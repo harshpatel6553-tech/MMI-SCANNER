@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { SocketProvider } from './context/SocketContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { DashboardProvider, useDashboard } from './contexts/DashboardContext';
@@ -19,6 +19,7 @@ import { EarningsResults } from './components/EarningsResults/EarningsResults';
 import { PromoterWatch } from './components/PromoterWatch/PromoterWatch';
 import { PaperTradingDashboard } from './components/PaperTrading/PaperTradingDashboard';
 import { AdminDashboard } from './components/AdminDashboard/AdminDashboard';
+import { MusicPlayer } from './components/MusicPlayer/MusicPlayer';
 
 import { AlertPanel } from './components/Alerts/AlertPanel';
 import { AlertToast } from './components/Alerts/AlertToast';
@@ -102,7 +103,7 @@ function AppContent() {
         style={{
           position: 'fixed',
           bottom: 20,
-          right: 20,
+          right: 120, /* Moved to make room for music player */
           background: 'var(--bg-surface)',
           border: '1px solid var(--border)',
           padding: 10,
@@ -318,5 +319,7 @@ export default function App() {
     </SocketProvider>
   );
 }
+
+
 
 
