@@ -54,15 +54,15 @@ function filterStocksBySubscription(
 }
 
 /** Track online users: socketId -> { email, connectedAt } */
-const onlineUsers: Map<string, { email: string; connectedAt: string }> = new Map();
+const onlineUsers: Map<string, { email: string; connectedAt: string; avatar?: string }> = new Map();
 
 /** Set of admin socket IDs that should receive live user updates */
 const adminSockets: Set<string> = new Set();
 
 /** Helper: get the deduplicated online user list */
-function getOnlineUserList(): { email: string; connectedAt: string }[] {
+function getOnlineUserList(): { email: string; connectedAt: string; avatar?: string }[] {
   const seen = new Set<string>();
-  const result: { email: string; connectedAt: string }[] = [];
+  const result: { email: string; connectedAt: string; avatar?: string }[] = [];
   for (const user of onlineUsers.values()) {
     if (!seen.has(user.email)) {
       seen.add(user.email);
@@ -130,6 +130,7 @@ export function setupSocketHandlers(io: TypedServer): void {
         onlineUsers.set(socket.id, {
           email: data.email,
           connectedAt: new Date().toISOString(),
+          avatar: data.avatar,
         });
         logger.info(`👤 User identified: ${data.email} (${socket.id})`);
 

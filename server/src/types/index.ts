@@ -125,7 +125,7 @@ export interface ServerToClientEvents {
     lastUpdate: string;
   }) => void;
   /** Live online users list (admin only) */
-  'admin:online-users': (users: { email: string; connectedAt: string }[]) => void;
+  'admin:online-users': (users: { email: string; connectedAt: string; avatar?: string }[]) => void;
   /** Force all clients to immediately refresh their browser */
   'server:force_refresh': () => void;
 }
@@ -137,7 +137,7 @@ export interface ClientToServerEvents {
   /** Explicitly request the latest news snapshot */
   'news:request_snapshot': () => void;
   /** Identify the connected user by email */
-  'auth:identify': (data: { email: string; isAdmin?: boolean }) => void;
+  'auth:identify': (data: { email: string; isAdmin?: boolean; avatar?: string }) => void;
   /** Admin requests the current online user list */
   'admin:request-online-users': () => void;
   /** Admin triggers a global refresh of all clients */
