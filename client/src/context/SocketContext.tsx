@@ -35,6 +35,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
         newSocket.emit('auth:identify', {
           email: user.email,
           isAdmin: profile?.is_admin || false,
+          avatar: localStorage.getItem('mmi-user-avatar') || undefined,
         });
       }
     });

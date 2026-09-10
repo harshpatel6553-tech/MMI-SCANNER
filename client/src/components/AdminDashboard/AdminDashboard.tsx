@@ -22,7 +22,7 @@ export function AdminDashboard() {
   const { profile, signOut } = useAuth();
   const [users, setUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
-  const [onlineUsers, setOnlineUsers] = useState<{ email: string; connectedAt: string }[]>([]);
+  const [onlineUsers, setOnlineUsers] = useState<{ email: string; connectedAt: string; avatar?: string }[]>([]);
   const { socket } = useSocketContext();
   
   const [filters, setFilters] = useState<FilterState>({ email: '', status: 'all' });
@@ -33,7 +33,7 @@ export function AdminDashboard() {
   useEffect(() => {
     if (!socket) return;
     socket.emit('admin:request-online-users');
-    socket.on('admin:online-users', (users: { email: string; connectedAt: string }[]) => {
+    socket.on('admin:online-users', (users: { email: string; connectedAt: string; avatar?: string }[]) => {
       setOnlineUsers(users);
     });
     return () => { socket.off('admin:online-users'); };
@@ -188,7 +188,7 @@ export function AdminDashboard() {
         <div className="flex justify-between items-center mb-4">
           <h3 className="flex items-center gap-2 m-0 text-lg font-semibold">
             <span className="inline-block w-2.5 h-2.5 rounded-full bg-green-400 shadow-[0_0_8px_#4ade80] animate-pulse"></span>
-            Live Users — {onlineUsers.length} Online
+            Live Users ï¿½ {onlineUsers.length} Online
           </h3>
           <button 
             className="px-4 py-1.5 rounded-md text-sm font-medium border transition-colors bg-red-500/15 border-red-500/40 text-red-500 hover:bg-red-500/20"
@@ -202,10 +202,16 @@ export function AdminDashboard() {
         ) : (
           <div className="flex flex-wrap gap-2 mt-4">
             {onlineUsers.map((u, i) => (
-              <div key={i} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-green-400/10 border border-green-400/20 text-sm text-green-400">
-                <span className="w-2 h-2 rounded-full bg-green-400 shrink-0"></span>
-                <span className="text-gray-200">{u.email}</span>
-                <span className="text-xs text-gray-500">since {new Date(u.connectedAt).toLocaleTimeString()}</span>
+              <div key={i} className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg bg-green-400/10 border border-green-400/20 text-sm text-green-400 shadow-[0_0_15px_rgba(74,222,128,0.05)] transition-all hover:bg-green-400/20">
+                {u.avatar ? (
+                  <img src={u.avatar} alt="Avatar" className="w-5 h-5 rounded-full ring-1 ring-green-400/50 object-cover" />
+                ) : (
+                  <div className="w-5 h-5 rounded-full bg-green-400/20 flex items-center justify-center text-[10px] font-bold text-green-400 ring-1 ring-green-400/50">
+                    {u.email.substring(0, 2).toUpperCase()}
+                  </div>
+                )}
+                <span className="text-gray-200 font-medium">{u.email}</span>
+                <span className="text-xs text-green-400/70">since {new Date(u.connectedAt).toLocaleTimeString()}</span>
               </div>
             ))}
           </div>
@@ -305,8 +311,23 @@ export function AdminDashboard() {
                         />
                       </td>
                       <td className="py-3 px-4">
-                        <div className="font-medium text-gray-200">{item.email}</div>
-                        <div className="text-xs text-gray-500">{item.id.substring(0,8)}...</div>
+                        <div className="flex items-center gap-3">
+                          {(() => {
+                            const onlineData = onlineUsers.find(u => u.email === item.email);
+                            const avatarUrl = onlineData?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(item.email)}`;
+                            const isOnline = !!onlineData;
+                            return (
+                              <div className="relative shrink-0">
+                                <img src={avatarUrl} alt="Avatar" className="w-9 h-9 rounded-full bg-white/5 object-cover ring-1 ring-white/10 shadow-sm" />
+                                {isOnline && <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-400 rounded-full ring-2 ring-[#0b0b0d]"></div>}
+                              </div>
+                            );
+                          })()}
+                          <div>
+                            <div className="font-medium text-gray-200">{item.email}</div>
+                            <div className="text-xs text-gray-500">{item.id.substring(0,8)}...</div>
+                          </div>
+                        </div>
                       </td>
                       <td className="py-3 px-4 text-gray-400">{date}</td>
                       <td className="py-3 px-4">
@@ -367,3 +388,4 @@ export function AdminDashboard() {
     </div>
   );
 }
+
