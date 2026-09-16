@@ -67,6 +67,57 @@ function calcEMA(data: Candle[], period: number): LineData[] {
   return out;
 }
 
+function calcSMA(data: Candle[], period: number): LineData[] {
+  if (data.length < period) return [];
+  const out: LineData[] = [];
+  let sum = 0;
+  for (let i = 0; i < period; i++) {
+    sum += data[i].close;
+  }
+  out.push({ time: data[period - 1].time as any, value: +(sum / period).toFixed(2) });
+  for (let i = period; i < data.length; i++) {
+    sum += data[i].close - data[i - period].close;
+    out.push({ time: data[i].time as any, value: +(sum / period).toFixed(2) });
+  }
+  return out;
+}
+
+function calcRSI(data: Candle[], period = 14): LineData[] {
+  if (data.length <= period) return [];
+  const out: LineData[] = [];
+  let gains = 0;
+  let losses = 0;
+
+  for (let i = 1; i <= period; i++) {
+    const diff = data[i].close - data[i - 1].close;
+    if (diff >= 0) gains += diff;
+    else losses -= diff;
+  }
+
+  let avgGain = gains / period;
+  let avgLoss = losses / period;
+  let rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
+  let rsi = avgLoss === 0 ? 100 : 100 - (100 / (1 + rs));
+
+  out.push({ time: data[period].time as any, value: +rsi.toFixed(2) });
+
+  for (let i = period + 1; i < data.length; i++) {
+    const diff = data[i].close - data[i - 1].close;
+    const gain = diff > 0 ? diff : 0;
+    const loss = diff < 0 ? -diff : 0;
+
+    avgGain = (avgGain * (period - 1) + gain) / period;
+    avgLoss = (avgLoss * (period - 1) + loss) / period;
+
+    rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
+    rsi = avgLoss === 0 ? 100 : 100 - (100 / (1 + rs));
+
+    out.push({ time: data[i].time as any, value: +rsi.toFixed(2) });
+  }
+
+  return out;
+}
+
 // ── Main Component ─────────────────────────────────────────────────────────────
 
 export function ChartView({ allStocks: propStocks }: ChartViewProps) {
@@ -97,17 +148,19 @@ export function ChartView({ allStocks: propStocks }: ChartViewProps) {
   const chartRef      = useRef<IChartApi | null>(null);
   const candleRef     = useRef<ISeriesApi<'Candlestick'> | null>(null);
   const volumeRef     = useRef<ISeriesApi<'Histogram'> | null>(null);
-  const ema9Ref       = useRef<ISeriesApi<'Line'> | null>(null);
-  const ema21Ref      = useRef<ISeriesApi<'Line'> | null>(null);
-  const ema50Ref      = useRef<ISeriesApi<'Line'> | null>(null);
-  const ema200Ref     = useRef<ISeriesApi<'Line'> | null>(null);
+  const ema13Ref      = useRef<ISeriesApi<'Line'> | null>(null);
+  const ema34Ref      = useRef<ISeriesApi<'Line'> | null>(null);
+  const dma50Ref      = useRef<ISeriesApi<'Line'> | null>(null);
+  const dma200Ref     = useRef<ISeriesApi<'Line'> | null>(null);
+  const rsiRef        = useRef<ISeriesApi<'Line'> | null>(null);
+  const rsiMapRef     = useRef<Map<number, number>>(new Map());
   const lastCandleRef = useRef<Candle | null>(null);
   const candlesRef    = useRef<Candle[]>([]);
 
   const [loading, setLoading] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [candles, setCandles] = useState<Candle[]>([]);
-  const [activeInds, setActiveInds] = useState<Set<string>>(new Set(['ema9', 'ema21', 'volume']));
+  const [activeInds, setActiveInds] = useState<Set<string>>(new Set(['ema13', 'ema34', 'volume', 'rsi']));
   const [hoverOhlc, setHoverOhlc] = useState<Candle | null>(null);
   const [tickPrice, setTickPrice] = useState<number>(0);
 
@@ -213,10 +266,24 @@ export function ChartView({ allStocks: propStocks }: ChartViewProps) {
     const setEma = (ref: React.MutableRefObject<ISeriesApi<'Line'> | null>, key: string, period: number) => {
       ref.current?.setData(inds.has(key) ? calcEMA(deduped, period) : []);
     };
-    setEma(ema9Ref,   'ema9',   9);
-    setEma(ema21Ref,  'ema21',  21);
-    setEma(ema50Ref,  'ema50',  50);
-    setEma(ema200Ref, 'ema200', 200);
+    const setDma = (ref: React.MutableRefObject<ISeriesApi<'Line'> | null>, key: string, period: number) => {
+      ref.current?.setData(inds.has(key) ? calcSMA(deduped, period) : []);
+    };
+    setEma(ema13Ref,  'ema13',  13);
+    setEma(ema34Ref,  'ema34',  34);
+    setDma(dma50Ref,  'dma50',  50);
+    setDma(dma200Ref, 'dma200', 200);
+
+    if (rsiRef.current) {
+      if (inds.has('rsi')) {
+        const rsiData = calcRSI(deduped, 14);
+        rsiRef.current.setData(rsiData);
+        rsiMapRef.current = new Map(rsiData.map(d => [Number(d.time), d.value]));
+      } else {
+        rsiRef.current.setData([]);
+        rsiMapRef.current.clear();
+      }
+    }
 
     chartRef.current?.timeScale().fitContent();
   }, []);
@@ -341,10 +408,49 @@ export function ChartView({ allStocks: propStocks }: ChartViewProps) {
       crosshairMarkerVisible: true,
     });
 
-    ema9Ref.current   = chart.addLineSeries(lineOpts('#3b82f6', 1));
-    ema21Ref.current  = chart.addLineSeries(lineOpts('#f59e0b', 1));
-    ema50Ref.current  = chart.addLineSeries(lineOpts('#a855f7', 2));
-    ema200Ref.current = chart.addLineSeries(lineOpts('#ef4444', 2));
+    ema13Ref.current  = chart.addLineSeries(lineOpts('#38bdf8', 1));
+    ema34Ref.current  = chart.addLineSeries(lineOpts('#f59e0b', 1));
+    dma50Ref.current  = chart.addLineSeries(lineOpts('#a855f7', 2));
+    dma200Ref.current = chart.addLineSeries(lineOpts('#ef4444', 2));
+
+    rsiRef.current = chart.addLineSeries({
+      color: '#c084fc',
+      lineWidth: 2,
+      priceScaleId: 'rsi_scale',
+      priceFormat: {
+        type: 'custom',
+        formatter: (p: number) => p.toFixed(1),
+      },
+      priceLineVisible: false,
+      lastValueVisible: true,
+      crosshairMarkerVisible: true,
+    });
+
+    chart.priceScale('rsi_scale').applyOptions({
+      scaleMargins: {
+        top: 0.74,
+        bottom: 0.02,
+      },
+      autoScale: true,
+    });
+
+    rsiRef.current.createPriceLine({
+      price: 70,
+      color: 'rgba(239, 68, 68, 0.45)',
+      lineWidth: 1,
+      lineStyle: LineStyle.Dotted,
+      axisLabelVisible: true,
+      title: '70 OB',
+    });
+
+    rsiRef.current.createPriceLine({
+      price: 30,
+      color: 'rgba(16, 185, 129, 0.45)',
+      lineWidth: 1,
+      lineStyle: LineStyle.Dotted,
+      axisLabelVisible: true,
+      title: '30 OS',
+    });
 
     // Real-time hover crosshair update
     chart.subscribeCrosshairMove(param => {
@@ -513,9 +619,43 @@ export function ChartView({ allStocks: propStocks }: ChartViewProps) {
   const candleOpen = activeCandle?.open || currentStockData.open || displayPrice;
   const candleHigh = activeCandle?.high || currentStockData.dayHigh || displayPrice;
   const candleLow = activeCandle?.low || currentStockData.dayLow || displayPrice;
-  const candleChange = displayPrice - candleOpen;
-  const candleChangePct = candleOpen > 0 ? (candleChange / candleOpen) * 100 : currentStockData.changePercent;
+
+  // In financial markets / day frame, change & % change are ALWAYS calculated relative to Previous Close
+  const prevClose = useMemo(() => {
+    if (hoverOhlc) {
+      const idx = candlesRef.current.findIndex(c => c.time === hoverOhlc.time);
+      if (idx > 0) {
+        return candlesRef.current[idx - 1].close;
+      }
+      if (idx === 0) {
+        return hoverOhlc.open;
+      }
+      if (currentStockData.previousClose > 0) return currentStockData.previousClose;
+      return hoverOhlc.open;
+    }
+    // Live bar / default: use official previous close from NSE live feed
+    if (currentStockData.previousClose > 0) return currentStockData.previousClose;
+    if (candlesRef.current.length >= 2) return candlesRef.current[candlesRef.current.length - 2].close;
+    return currentStockData.open || displayPrice;
+  }, [hoverOhlc, currentStockData.previousClose, currentStockData.open, displayPrice]);
+
+  const candleChange = displayPrice - prevClose;
+  const candleChangePct = prevClose > 0 ? (candleChange / prevClose) * 100 : 0;
   const isUp = candleChange >= 0;
+
+  // Active RSI lookup for header
+  const currentRsi = useMemo(() => {
+    if (hoverOhlc && rsiMapRef.current.has(Number(hoverOhlc.time))) {
+      return rsiMapRef.current.get(Number(hoverOhlc.time)) ?? null;
+    }
+    if (candlesRef.current.length > 14) {
+      const lastTime = candlesRef.current[candlesRef.current.length - 1]?.time;
+      if (lastTime && rsiMapRef.current.has(Number(lastTime))) {
+        return rsiMapRef.current.get(Number(lastTime)) ?? null;
+      }
+    }
+    return null;
+  }, [hoverOhlc, candles]);
 
   return (
     <div style={styles.root}>
@@ -579,32 +719,44 @@ export function ChartView({ allStocks: propStocks }: ChartViewProps) {
         {/* Indicator Toggles */}
         <div style={styles.indBar}>
           <button
-            style={{ ...styles.indBtn, color: activeInds.has('ema9') ? '#3b82f6' : '#58636d' }}
-            onClick={() => toggleIndicator('ema9')}
+            style={{ ...styles.indBtn, color: activeInds.has('ema13') ? '#38bdf8' : '#58636d' }}
+            onClick={() => toggleIndicator('ema13')}
+            title="13 Exponential Moving Average"
           >
-            ● EMA 9
+            ● EMA 13
           </button>
           <button
-            style={{ ...styles.indBtn, color: activeInds.has('ema21') ? '#f59e0b' : '#58636d' }}
-            onClick={() => toggleIndicator('ema21')}
+            style={{ ...styles.indBtn, color: activeInds.has('ema34') ? '#f59e0b' : '#58636d' }}
+            onClick={() => toggleIndicator('ema34')}
+            title="34 Exponential Moving Average"
           >
-            ● EMA 21
+            ● EMA 34
           </button>
           <button
-            style={{ ...styles.indBtn, color: activeInds.has('ema50') ? '#a855f7' : '#58636d' }}
-            onClick={() => toggleIndicator('ema50')}
+            style={{ ...styles.indBtn, color: activeInds.has('dma50') ? '#a855f7' : '#58636d' }}
+            onClick={() => toggleIndicator('dma50')}
+            title="50 Daily Moving Average (50 DMA / SMA)"
           >
-            ● EMA 50
+            ● 50 DMA
           </button>
           <button
-            style={{ ...styles.indBtn, color: activeInds.has('ema200') ? '#ef4444' : '#58636d' }}
-            onClick={() => toggleIndicator('ema200')}
+            style={{ ...styles.indBtn, color: activeInds.has('dma200') ? '#ef4444' : '#58636d' }}
+            onClick={() => toggleIndicator('dma200')}
+            title="200 Daily Moving Average (200 DMA / SMA)"
           >
-            ● EMA 200
+            ● 200 DMA
+          </button>
+          <button
+            style={{ ...styles.indBtn, color: activeInds.has('rsi') ? '#c084fc' : '#58636d' }}
+            onClick={() => toggleIndicator('rsi')}
+            title="Relative Strength Index (RSI 14 with 70/30 levels)"
+          >
+            ● RSI (14)
           </button>
           <button
             style={{ ...styles.indBtn, color: activeInds.has('volume') ? '#089981' : '#58636d' }}
             onClick={() => toggleIndicator('volume')}
+            title="Volume Histogram"
           >
             ● VOL
           </button>
@@ -664,6 +816,11 @@ export function ChartView({ allStocks: propStocks }: ChartViewProps) {
               {currentStockData.volume > 0 && (
                 <span style={{ ...styles.ohlcItem, marginLeft: 8 }}>
                   Vol: <b>{formatVolume(activeCandle?.volume || currentStockData.volume)}</b>
+                </span>
+              )}
+              {activeInds.has('rsi') && currentRsi !== null && (
+                <span style={{ ...styles.ohlcItem, marginLeft: 8, color: '#c084fc' }}>
+                  RSI(14): <b style={{ color: currentRsi >= 70 ? '#ef4444' : currentRsi <= 30 ? '#10b981' : '#c084fc' }}>{currentRsi.toFixed(1)}</b>
                 </span>
               )}
             </div>
