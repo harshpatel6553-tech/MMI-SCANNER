@@ -356,4 +356,159 @@ router.get(
   }
 );
 
+
+// ══════════════════════════════════════════════════════════════
+//  CHART ENDPOINTS — Used by TradePro Trading View app
+// ══════════════════════════════════════════════════════════════
+
+const USER_AGENT_CHART = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+
+/** Map TradePro timeframe codes → Yahoo Finance interval + range */
+const TF_TO_YAHOO: Record<string, { interval: string; range: string }> = {
+  '1m':  { interval: '1m',  range: '1d'  },
+  '5m':  { interval: '5m',  range: '5d'  },
+  '15m': { interval: '15m', range: '1mo' },
+  '1h':  { interval: '60m', range: '3mo' },
+  '1D':  { interval: '1d',  range: '1y'  },
+  '1W':  { interval: '1wk', range: '5y'  },
+  '1M':  { interval: '1mo', range: 'max' },
+};
+
+const RANGE_TO_YAHOO: Record<string, string> = {
+  '1D': '1d', '5D': '5d', '1M': '1mo', '3M': '3mo',
+  '6M': '6mo', 'YTD': 'ytd', '1Y': '1y', 'ALL': 'max',
+};
+
+/**
+ * GET /api/stocks/chart/:symbol
+ *
+ * Returns OHLCV candlestick data for the given symbol.
+ *
+ * Query params:
+ *   - tf    : timeframe key — 1m | 5m | 15m | 1h | 1D | 1W | 1M  (default: 1D)
+ *   - range : range override — 1D | 5D | 1M | 3M | 6M | YTD | 1Y | ALL
+ *
+ * Response:
+ *   { symbol, interval, range, candles: [{time, open, high, low, close, volume}] }
+ */
+router.get('/chart/:symbol', async (req: Request, res: Response): Promise<void> => {
+  const rawSymbol = (req.params.symbol as string).toUpperCase();
+  // Accept both "RELIANCE" and "RELIANCE.NS"
+  const yfSymbol = rawSymbol.endsWith('.NS') ? rawSymbol : `${rawSymbol}.NS`;
+
+  const tf = (req.query.tf as string) || '1D';
+  const rangeKey = req.query.range as string | undefined;
+
+  const tfConfig = TF_TO_YAHOO[tf] || TF_TO_YAHOO['1D'];
+  const range    = rangeKey ? (RANGE_TO_YAHOO[rangeKey] || tfConfig.range) : tfConfig.range;
+
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yfSymbol)}?interval=${tfConfig.interval}&range=${range}&includePrePost=false`;
+
+  try {
+    const upstream = await fetch(url, {
+      headers: { 'User-Agent': USER_AGENT_CHART, 'Accept': 'application/json' },
+    });
+
+    if (!upstream.ok) {
+      res.status(502).json({ error: `Yahoo Finance returned HTTP ${upstream.status}` });
+      return;
+    }
+
+    const data = await upstream.json() as any;
+    const result = data?.chart?.result?.[0];
+    if (!result) {
+      res.status(404).json({ error: 'No data returned for symbol' });
+      return;
+    }
+
+    const timestamps: number[] = result.timestamp || [];
+    const q = result.indicators?.quote?.[0] || {};
+    const candles = [];
+
+    for (let i = 0; i < timestamps.length; i++) {
+      const o = q.open?.[i], h = q.high?.[i], l = q.low?.[i], c = q.close?.[i], v = q.volume?.[i];
+      if (o == null || h == null || l == null || c == null || isNaN(o)) continue;
+      candles.push({
+        time:   timestamps[i],
+        open:   parseFloat(o.toFixed(2)),
+        high:   parseFloat(h.toFixed(2)),
+        low:    parseFloat(l.toFixed(2)),
+        close:  parseFloat(c.toFixed(2)),
+        volume: v || 0,
+      });
+    }
+
+    res.json({
+      symbol:   yfSymbol,
+      interval: tfConfig.interval,
+      range,
+      candles,
+    });
+  } catch (err: any) {
+    logger.error(`[chart] Failed for ${yfSymbol}: ${err.message}`);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * GET /api/stocks/quote/:symbol
+ *
+ * Returns a single real-time quote using the Yahoo Spark v7 API
+ * (same approach as the main screener).
+ *
+ * Response:
+ *   { symbol, price, open, dayHigh, dayLow, previousClose,
+ *     change, changePercent, volume, fiftyTwoWeekHigh, fiftyTwoWeekLow }
+ */
+router.get('/quote/:symbol', async (req: Request, res: Response): Promise<void> => {
+  const rawSymbol = (req.params.symbol as string).toUpperCase();
+  const yfSymbol  = rawSymbol.endsWith('.NS') ? rawSymbol : `${rawSymbol}.NS`;
+
+  const url = `https://query1.finance.yahoo.com/v7/finance/spark?symbols=${encodeURIComponent(yfSymbol)}&range=1d&interval=1m&cb=${Date.now()}`;
+
+  try {
+    const upstream = await fetch(url, {
+      headers: { 'User-Agent': USER_AGENT_CHART, 'Accept': 'application/json' },
+    });
+
+    if (!upstream.ok) {
+      res.status(502).json({ error: `Yahoo Spark returned HTTP ${upstream.status}` });
+      return;
+    }
+
+    const data    = await upstream.json() as any;
+    const results = data?.spark?.result || [];
+    const sparkObj = results.find((r: any) => r?.response?.[0]?.meta?.symbol === yfSymbol);
+    const meta     = sparkObj?.response?.[0]?.meta;
+
+    if (!meta) {
+      res.status(404).json({ error: 'Symbol not found' });
+      return;
+    }
+
+    const price      = meta.regularMarketPrice ?? 0;
+    const prevClose  = meta.previousClose ?? meta.chartPreviousClose ?? price;
+    const change     = parseFloat((price - prevClose).toFixed(2));
+    const changePct  = prevClose > 0 ? parseFloat(((change / prevClose) * 100).toFixed(2)) : 0;
+
+    res.json({
+      symbol:           yfSymbol,
+      price:            parseFloat(price.toFixed(2)),
+      open:             parseFloat((meta.regularMarketOpen   ?? price).toFixed(2)),
+      dayHigh:          parseFloat((meta.regularMarketDayHigh ?? price).toFixed(2)),
+      dayLow:           parseFloat((meta.regularMarketDayLow  ?? price).toFixed(2)),
+      previousClose:    parseFloat(prevClose.toFixed(2)),
+      change,
+      changePercent:    changePct,
+      volume:           meta.regularMarketVolume ?? 0,
+      fiftyTwoWeekHigh: meta.fiftyTwoWeekHigh ?? 0,
+      fiftyTwoWeekLow:  meta.fiftyTwoWeekLow  ?? 0,
+    });
+  } catch (err: any) {
+    logger.error(`[quote] Failed for ${yfSymbol}: ${err.message}`);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 export default router;
+

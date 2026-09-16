@@ -19,6 +19,7 @@ import { EarningsResults } from './components/EarningsResults/EarningsResults';
 import { PromoterWatch } from './components/PromoterWatch/PromoterWatch';
 import { PaperTradingDashboard } from './components/PaperTrading/PaperTradingDashboard';
 import { AdminDashboard } from './components/AdminDashboard/AdminDashboard';
+import { ChartView } from './components/ChartView/ChartView';
 
 import { AlertPanel } from './components/Alerts/AlertPanel';
 import { AlertToast } from './components/Alerts/AlertToast';
@@ -48,18 +49,22 @@ function AppContent() {
       <div className="main">
         <Topbar allStocks={allStocks} />
 
-        <div className="content">
-          <div className="page-head">
-            <div className="eyebrow">{activeTab} · {new Date().toLocaleDateString('en-US', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()}</div>
-            <div className="page-title">
-              {activeTab === 'Overview' 
-                ? (advancers >= decliners ? "Today's tape is running green." : "Today's tape is running red.")
-                : activeTab}
+        <div className="content" style={activeTab === 'Charts' ? { padding: 0, overflow: 'hidden', height: '100%' } : {}}>
+          {activeTab !== 'Charts' && (
+            <div className="page-head">
+              <div className="eyebrow">{activeTab} · {new Date().toLocaleDateString('en-US', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()}</div>
+              <div className="page-title">
+                {activeTab === 'Overview' 
+                  ? (advancers >= decliners ? "Today's tape is running green." : "Today's tape is running red.")
+                  : activeTab}
+              </div>
+              <div className="page-sub">
+                <b style={{ color: 'var(--up)', fontWeight: 600 }}>{advancers}▲</b> advancers vs <b style={{ color: 'var(--down)', fontWeight: 600 }}>{decliners}▼</b> decliners across {allStocks.length} tracked stocks — here's what's moving.
+              </div>
             </div>
-            <div className="page-sub">
-              <b style={{ color: 'var(--up)', fontWeight: 600 }}>{advancers}▲</b> advancers vs <b style={{ color: 'var(--down)', fontWeight: 600 }}>{decliners}▼</b> decliners across {allStocks.length} tracked stocks — here's what's moving.
-            </div>
-          </div>
+          )}
+
+          {activeTab === 'Charts' && <ChartView />}
 
           {activeTab === 'Overview' && (
             <>

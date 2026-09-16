@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { useDashboard } from '../../contexts/DashboardContext';
 import { ProfileDropdown } from '../Topbar/ProfileDropdown';
 
@@ -34,6 +34,11 @@ export function Sidebar() {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="9"/><path d="M12 3v9l6 3"/></svg>
             <span>Sectors</span>
           </div>
+          <div className={`nav-item ${activeTab === 'Charts' ? 'active' : ''}`} onClick={() => setActiveTab('Charts')}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="4" width="4" height="12" rx="1"/><rect x="9" y="8" width="4" height="8" rx="1"/><rect x="16" y="2" width="4" height="18" rx="1"/><path d="M2 20h20"/></svg>
+            <span>Charts</span>
+            <span className="nav-badge" style={{ background: 'rgba(31,111,235,0.2)', color: '#58a6ff' }}>NEW</span>
+          </div>
         </div>
 
         <div className="nav-group">
@@ -57,7 +62,6 @@ export function Sidebar() {
         <div className="nav-group">
           <div className="nav-label">Account</div>
           <div className={`nav-item ${activeTab === 'Admin' ? 'active' : ''}`} onClick={() => setActiveTab('Admin')}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 000 20 14.5 14.5 0 000-20z"/><path d="M2 12h20"/></svg><span>Admin Panel</span></div>
-
         </div>
       </div>
 
