@@ -275,8 +275,8 @@ export function ChartPane({
 
     // Directly use the working backend endpoint without hanging aliases
     const endpoints = [
-      `${apiBase}/api/stocks/chart/${cleanSym}?tf=${tfVal}${rangeVal ? `&range=${rangeVal}` : ''}`,
       `/api/stocks/chart/${cleanSym}?tf=${tfVal}${rangeVal ? `&range=${rangeVal}` : ''}`,
+      `${apiBase}/api/stocks/chart/${cleanSym}?tf=${tfVal}${rangeVal ? `&range=${rangeVal}` : ''}`,
     ];
 
     let candlesResult: Candle[] | null = null;
@@ -302,8 +302,37 @@ export function ChartPane({
       setLoading(false);
       setFetchError(null);
     } else {
-      setFetchError(`Connecting to live market stream for ${cleanSym}...`);
-      setLoading(false);
+      // Check if we have live stock data in memory to prevent blocking error screens
+      const live = liveStocks.find(s => s.symbol.toUpperCase() === cleanSym);
+      if (live && live.price > 0) {
+        const now = Math.floor(Date.now() / 1000);
+        const prevPrice = live.previousClose > 0 ? live.previousClose : live.price;
+        const openPrice = live.open > 0 ? live.open : live.price;
+        const fallbackBars: Candle[] = [
+          {
+            time: now - 86400,
+            open: prevPrice,
+            high: Math.max(prevPrice, openPrice),
+            low: Math.min(prevPrice, openPrice),
+            close: prevPrice,
+            volume: 0,
+          },
+          {
+            time: now,
+            open: openPrice,
+            high: Math.max(openPrice, live.dayHigh || live.price),
+            low: Math.min(openPrice, live.dayLow || live.price),
+            close: live.price,
+            volume: live.volume || 0,
+          }
+        ];
+        applyData(fallbackBars, activeInds);
+        setLoading(false);
+        setFetchError(null);
+      } else {
+        setFetchError(`Connecting to live market stream for ${cleanSym}...`);
+        setLoading(false);
+      }
     }
   }, [applyData, activeInds]);
 
