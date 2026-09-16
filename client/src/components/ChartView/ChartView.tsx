@@ -152,8 +152,10 @@ export function ChartView({ allStocks: propStocks }: ChartViewProps) {
   const ema34Ref      = useRef<ISeriesApi<'Line'> | null>(null);
   const dma50Ref      = useRef<ISeriesApi<'Line'> | null>(null);
   const dma200Ref     = useRef<ISeriesApi<'Line'> | null>(null);
-  const rsiRef        = useRef<ISeriesApi<'Line'> | null>(null);
-  const rsiMapRef     = useRef<Map<number, number>>(new Map());
+  const rsiContainerRef = useRef<HTMLDivElement>(null);
+  const rsiChartRef     = useRef<IChartApi | null>(null);
+  const rsiSeriesRef    = useRef<ISeriesApi<'Line'> | null>(null);
+  const rsiMapRef       = useRef<Map<number, number>>(new Map());
   const lastCandleRef = useRef<Candle | null>(null);
   const candlesRef    = useRef<Candle[]>([]);
 
@@ -274,14 +276,13 @@ export function ChartView({ allStocks: propStocks }: ChartViewProps) {
     setDma(dma50Ref,  'dma50',  50);
     setDma(dma200Ref, 'dma200', 200);
 
-    if (rsiRef.current) {
+    const rsiData = calcRSI(deduped, 14);
+    rsiMapRef.current = new Map(rsiData.map(d => [Number(d.time), d.value]));
+    if (rsiSeriesRef.current) {
       if (inds.has('rsi')) {
-        const rsiData = calcRSI(deduped, 14);
-        rsiRef.current.setData(rsiData);
-        rsiMapRef.current = new Map(rsiData.map(d => [Number(d.time), d.value]));
+        rsiSeriesRef.current.setData(rsiData);
       } else {
-        rsiRef.current.setData([]);
-        rsiMapRef.current.clear();
+        rsiSeriesRef.current.setData([]);
       }
     }
 
@@ -387,15 +388,17 @@ export function ChartView({ allStocks: propStocks }: ChartViewProps) {
       priceLineColor: '#089981',
     });
 
-    // Volume series with dedicated volume scale
+    // Volume series with dedicated volume scale (no price scale label)
     volumeRef.current = chart.addHistogramSeries({
       priceFormat: { type: 'volume' },
       priceScaleId: 'vol_scale',
+      lastValueVisible: false,
+      priceLineVisible: false,
     });
 
     chart.priceScale('vol_scale').applyOptions({
       scaleMargins: {
-        top: 0.8,
+        top: 0.82,
         bottom: 0,
       },
     });
@@ -412,45 +415,6 @@ export function ChartView({ allStocks: propStocks }: ChartViewProps) {
     ema34Ref.current  = chart.addLineSeries(lineOpts('#f59e0b', 1));
     dma50Ref.current  = chart.addLineSeries(lineOpts('#a855f7', 2));
     dma200Ref.current = chart.addLineSeries(lineOpts('#ef4444', 2));
-
-    rsiRef.current = chart.addLineSeries({
-      color: '#c084fc',
-      lineWidth: 2,
-      priceScaleId: 'rsi_scale',
-      priceFormat: {
-        type: 'custom',
-        formatter: (p: number) => p.toFixed(1),
-      },
-      priceLineVisible: false,
-      lastValueVisible: true,
-      crosshairMarkerVisible: true,
-    });
-
-    chart.priceScale('rsi_scale').applyOptions({
-      scaleMargins: {
-        top: 0.74,
-        bottom: 0.02,
-      },
-      autoScale: true,
-    });
-
-    rsiRef.current.createPriceLine({
-      price: 70,
-      color: 'rgba(239, 68, 68, 0.45)',
-      lineWidth: 1,
-      lineStyle: LineStyle.Dotted,
-      axisLabelVisible: true,
-      title: '70 OB',
-    });
-
-    rsiRef.current.createPriceLine({
-      price: 30,
-      color: 'rgba(16, 185, 129, 0.45)',
-      lineWidth: 1,
-      lineStyle: LineStyle.Dotted,
-      axisLabelVisible: true,
-      title: '30 OS',
-    });
 
     // Real-time hover crosshair update
     chart.subscribeCrosshairMove(param => {
@@ -502,7 +466,12 @@ export function ChartView({ allStocks: propStocks }: ChartViewProps) {
     const updatedHigh = Math.max(currentBar.high, livePrice);
     const updatedLow = currentBar.low > 0 ? Math.min(currentBar.low, livePrice) : livePrice;
     const updatedClose = livePrice;
-    const updatedVolume = currentStockData.volume || currentBar.volume;
+    // ONLY update volume with full-day cumulative volume if timeframe is '1D' (Daily)!
+    // In intraday timeframes (1m, 5m, 15m, 1h), currentStockData.volume is the entire day's
+    // cumulative volume, which must NOT overwrite the specific intraday candle's volume!
+    const updatedVolume = tf === '1D'
+      ? (currentStockData.volume || currentBar.volume)
+      : currentBar.volume;
 
     currentBar.high = updatedHigh;
     currentBar.low = updatedLow;
@@ -534,7 +503,7 @@ export function ChartView({ allStocks: propStocks }: ChartViewProps) {
     } catch (e) {
       console.warn('[ChartView] Live candle tick update:', e);
     }
-  }, [currentStockData.price, currentStockData.volume, activeInds]);
+  }, [currentStockData.price, currentStockData.volume, activeInds, tf]);
 
   // ── ACTIVE MICRO-TICK HEARTBEAT LOOP (PULSES CANDLE REAL-TIME) ─
   useEffect(() => {
@@ -595,6 +564,149 @@ export function ChartView({ allStocks: propStocks }: ChartViewProps) {
     setSearchQ('');
     setHoverOhlc(null);
   };
+
+  // ── DEDICATED SEPARATE RSI SUBPANE (NO OVERLAPPING WITH CANDLESTICKS) ──
+  useEffect(() => {
+    if (!activeInds.has('rsi') || !rsiContainerRef.current) {
+      if (rsiChartRef.current) {
+        rsiChartRef.current.remove();
+        rsiChartRef.current = null;
+        rsiSeriesRef.current = null;
+      }
+      return;
+    }
+
+    if (rsiChartRef.current) {
+      rsiChartRef.current.remove();
+      rsiChartRef.current = null;
+    }
+
+    const rsiChart = createChart(rsiContainerRef.current, {
+      layout: {
+        background: { color: '#0d1117' },
+        textColor: '#8b949e',
+        fontSize: 10,
+        fontFamily: 'Space Grotesk, -apple-system, sans-serif',
+      },
+      grid: {
+        vertLines: { color: 'rgba(255, 255, 255, 0.03)' },
+        horzLines: { color: 'rgba(255, 255, 255, 0.03)' },
+      },
+      rightPriceScale: {
+        borderColor: '#21262d',
+        scaleMargins: { top: 0.12, bottom: 0.12 },
+        autoScale: false,
+      },
+      timeScale: {
+        visible: false,
+        borderColor: '#21262d',
+      },
+      crosshair: {
+        mode: CrosshairMode.Normal,
+        vertLine: { color: '#58636d', width: 1, style: LineStyle.Dashed },
+        horzLine: { color: '#58636d', width: 1, style: LineStyle.Dashed },
+      },
+      handleScroll: { mouseWheel: true, pressedMouseMove: true },
+      handleScale: { mouseWheel: true, pinch: true, axisPressedMouseMove: true },
+      width: rsiContainerRef.current.clientWidth || 800,
+      height: rsiContainerRef.current.clientHeight || 125,
+    });
+
+    const rsiSeries = rsiChart.addLineSeries({
+      color: '#c084fc',
+      lineWidth: 2,
+      priceFormat: {
+        type: 'custom',
+        formatter: (p: number) => p.toFixed(1),
+      },
+      lastValueVisible: true,
+      priceLineVisible: false,
+    });
+
+    // Reference lines: 70 Overbought and 30 Oversold
+    rsiSeries.createPriceLine({
+      price: 70,
+      color: 'rgba(239, 68, 68, 0.65)',
+      lineWidth: 1,
+      lineStyle: LineStyle.Dotted,
+      axisLabelVisible: true,
+      title: '70 OB',
+    });
+
+    rsiSeries.createPriceLine({
+      price: 50,
+      color: 'rgba(255, 255, 255, 0.15)',
+      lineWidth: 1,
+      lineStyle: LineStyle.Dashed,
+      axisLabelVisible: false,
+      title: '',
+    });
+
+    rsiSeries.createPriceLine({
+      price: 30,
+      color: 'rgba(16, 185, 129, 0.65)',
+      lineWidth: 1,
+      lineStyle: LineStyle.Dotted,
+      axisLabelVisible: true,
+      title: '30 OS',
+    });
+
+    if (candlesRef.current.length > 14) {
+      const rsiData = calcRSI(candlesRef.current, 14);
+      rsiSeries.setData(rsiData);
+      rsiMapRef.current = new Map(rsiData.map(d => [Number(d.time), d.value]));
+    }
+
+    rsiChartRef.current = rsiChart;
+    rsiSeriesRef.current = rsiSeries;
+
+    // Two-way synchronization of logical range
+    let isSyncing = false;
+    chartRef.current?.timeScale().subscribeVisibleLogicalRangeChange(range => {
+      if (isSyncing || !range || !rsiChartRef.current) return;
+      isSyncing = true;
+      try {
+        rsiChartRef.current.timeScale().setVisibleLogicalRange(range);
+      } catch {}
+      isSyncing = false;
+    });
+
+    rsiChart.timeScale().subscribeVisibleLogicalRangeChange(range => {
+      if (isSyncing || !range || !chartRef.current) return;
+      isSyncing = true;
+      try {
+        chartRef.current.timeScale().setVisibleLogicalRange(range);
+      } catch {}
+      isSyncing = false;
+    });
+
+    // Sync initial range
+    const currentRange = chartRef.current?.timeScale().getVisibleLogicalRange();
+    if (currentRange) {
+      try {
+        rsiChart.timeScale().setVisibleLogicalRange(currentRange);
+      } catch {}
+    }
+
+    const ro = new ResizeObserver(() => {
+      if (rsiContainerRef.current && rsiChartRef.current) {
+        rsiChartRef.current.resize(
+          rsiContainerRef.current.clientWidth,
+          rsiContainerRef.current.clientHeight
+        );
+      }
+    });
+    ro.observe(rsiContainerRef.current);
+
+    return () => {
+      ro.disconnect();
+      if (rsiChartRef.current) {
+        rsiChartRef.current.remove();
+        rsiChartRef.current = null;
+        rsiSeriesRef.current = null;
+      }
+    };
+  }, [activeInds.has('rsi')]);
 
   const handleTimeframeChange = (newTf: Timeframe) => {
     setTf(newTf);
@@ -813,11 +925,14 @@ export function ChartView({ allStocks: propStocks }: ChartViewProps) {
               <span style={{ color: isUp ? '#089981' : '#f23645', fontWeight: 700, marginLeft: 6 }}>
                 {isUp ? '+' : ''}{fmt(candleChange)} ({isUp ? '+' : ''}{candleChangePct.toFixed(2)}%)
               </span>
-              {currentStockData.volume > 0 && (
-                <span style={{ ...styles.ohlcItem, marginLeft: 8 }}>
-                  Vol: <b>{formatVolume(activeCandle?.volume || currentStockData.volume)}</b>
-                </span>
-              )}
+              <span style={{ ...styles.ohlcItem, marginLeft: 8 }}>
+                Vol: <b>{formatVolume(activeCandle?.volume || (tf === '1D' ? currentStockData.volume : currentLiveBar?.volume || 0))}</b>
+                {tf !== '1D' && currentStockData.volume > 0 && (
+                  <span style={{ color: '#8b949e', marginLeft: 4, fontSize: 11 }}>
+                    (Day: {formatVolume(currentStockData.volume)})
+                  </span>
+                )}
+              </span>
               {activeInds.has('rsi') && currentRsi !== null && (
                 <span style={{ ...styles.ohlcItem, marginLeft: 8, color: '#c084fc' }}>
                   RSI(14): <b style={{ color: currentRsi >= 70 ? '#ef4444' : currentRsi <= 30 ? '#10b981' : '#c084fc' }}>{currentRsi.toFixed(1)}</b>
@@ -857,7 +972,59 @@ export function ChartView({ allStocks: propStocks }: ChartViewProps) {
             style={styles.chartArea}
             onMouseLeave={() => setHoverOhlc(null)}
           >
-            <div ref={containerRef} style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }} />
+            {/* Main Candlestick Chart Canvas */}
+            <div style={{ flex: 1, width: '100%', position: 'relative', minHeight: 0 }}>
+              <div ref={containerRef} style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }} />
+            </div>
+
+            {/* Dedicated Separate RSI Subpane (Zero overlapping with candles) */}
+            {activeInds.has('rsi') && (
+              <div style={{
+                height: 125,
+                width: '100%',
+                flexShrink: 0,
+                position: 'relative',
+                borderTop: '1px solid #21262d',
+                background: '#0d1117',
+              }}>
+                <div style={{
+                  position: 'absolute',
+                  top: 3,
+                  left: 10,
+                  zIndex: 5,
+                  fontSize: 11,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  color: '#8b949e',
+                  pointerEvents: 'auto',
+                }}>
+                  <span style={{ color: '#c084fc', fontWeight: 700 }}>RSI (14)</span>
+                  <span style={{
+                    fontWeight: 700,
+                    color: (currentRsi ?? 50) >= 70 ? '#ef4444' : (currentRsi ?? 50) <= 30 ? '#10b981' : '#c084fc',
+                  }}>
+                    {currentRsi !== null ? currentRsi.toFixed(1) : '—'}
+                  </span>
+                  <button
+                    onClick={() => toggleIndicator('rsi')}
+                    title="Close RSI Pane"
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#8b949e',
+                      cursor: 'pointer',
+                      fontSize: 11,
+                      padding: '0 4px',
+                      lineHeight: 1,
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
+                <div ref={rsiContainerRef} style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }} />
+              </div>
+            )}
             {loading && (
               <div style={styles.loadingOverlay}>
                 <div style={styles.spinner} />
@@ -1222,6 +1389,8 @@ const styles: Record<string, React.CSSProperties> = {
     flex: 1,
     width: '100%',
     height: '100%',
+    display: 'flex',
+    flexDirection: 'column',
     position: 'relative',
     overflow: 'hidden',
     minHeight: 0,
