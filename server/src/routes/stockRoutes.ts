@@ -365,7 +365,7 @@ const USER_AGENT_CHART = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/
 
 /** Map TradePro timeframe codes → Yahoo Finance interval + range */
 const TF_TO_YAHOO: Record<string, { interval: string; range: string }> = {
-  '1m':  { interval: '1m',  range: '1d'  },
+  '1m':  { interval: '1m',  range: '5d'  },
   '5m':  { interval: '5m',  range: '5d'  },
   '15m': { interval: '15m', range: '1mo' },
   '1h':  { interval: '60m', range: '3mo' },
@@ -379,47 +379,16 @@ const RANGE_TO_YAHOO: Record<string, string> = {
   '6M': '6mo', 'YTD': 'ytd', '1Y': '1y', 'ALL': 'max',
 };
 
-/**
- * GET /api/stocks/chart/:symbol
- *
- * Returns OHLCV candlestick data for the given symbol.
- *
- * Query params:
- *   - tf    : timeframe key — 1m | 5m | 15m | 1h | 1D | 1W | 1M  (default: 1D)
- *   - range : range override — 1D | 5D | 1M | 3M | 6M | YTD | 1Y | ALL
- *
- * Response:
- *   { symbol, interval, range, candles: [{time, open, high, low, close, volume}] }
- */
-router.get('/chart/:symbol', async (req: Request, res: Response): Promise<void> => {
-  const rawSymbol = (req.params.symbol as string).toUpperCase();
-  // Accept both "RELIANCE" and "RELIANCE.NS"
-  const yfSymbol = rawSymbol.endsWith('.NS') ? rawSymbol : `${rawSymbol}.NS`;
-
-  const tf = (req.query.tf as string) || '1D';
-  const rangeKey = req.query.range as string | undefined;
-
-  const tfConfig = TF_TO_YAHOO[tf] || TF_TO_YAHOO['1D'];
-  const range    = rangeKey ? (RANGE_TO_YAHOO[rangeKey] || tfConfig.range) : tfConfig.range;
-
-  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yfSymbol)}?interval=${tfConfig.interval}&range=${range}&includePrePost=false`;
-
+async function queryYahooCandles(sym: string, interval: string, range: string): Promise<any[] | null> {
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=${interval}&range=${range}&includePrePost=false`;
   try {
     const upstream = await fetch(url, {
       headers: { 'User-Agent': USER_AGENT_CHART, 'Accept': 'application/json' },
     });
-
-    if (!upstream.ok) {
-      res.status(502).json({ error: `Yahoo Finance returned HTTP ${upstream.status}` });
-      return;
-    }
-
+    if (!upstream.ok) return null;
     const data = await upstream.json() as any;
     const result = data?.chart?.result?.[0];
-    if (!result) {
-      res.status(404).json({ error: 'No data returned for symbol' });
-      return;
-    }
+    if (!result) return null;
 
     const timestamps: number[] = result.timestamp || [];
     const q = result.indicators?.quote?.[0] || {};
@@ -437,15 +406,73 @@ router.get('/chart/:symbol', async (req: Request, res: Response): Promise<void> 
         volume: v || 0,
       });
     }
+    return candles;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * GET /api/stocks/chart/:symbol
+ *
+ * Returns OHLCV candlestick data for the given symbol.
+ */
+router.get('/chart/:symbol', async (req: Request, res: Response): Promise<void> => {
+  const rawSymbol = (req.params.symbol as string).toUpperCase().replace('.NS', '').replace('.BO', '');
+  const tf = (req.query.tf as string) || '1D';
+  const rangeKey = req.query.range as string | undefined;
+
+  const tfConfig = TF_TO_YAHOO[tf] || TF_TO_YAHOO['1D'];
+  let range      = rangeKey ? (RANGE_TO_YAHOO[rangeKey] || tfConfig.range) : tfConfig.range;
+
+  // For intraday timeframes (1m, 5m), if range is 1d, expand to 5d so off-hours/weekends always have candles
+  if ((tf === '1m' || tf === '5m') && range === '1d') {
+    range = '5d';
+  }
+
+  try {
+    // 1. Try primary NSE symbol
+    let candles = await queryYahooCandles(`${rawSymbol}.NS`, tfConfig.interval, range);
+
+    // 2. If empty and range was tight, retry with wider range
+    if ((!candles || candles.length === 0) && range !== '5d' && range !== '1y' && range !== 'max') {
+      candles = await queryYahooCandles(`${rawSymbol}.NS`, tfConfig.interval, '5d');
+    }
+
+    // 3. If still empty, try BSE symbol
+    if (!candles || candles.length === 0) {
+      candles = await queryYahooCandles(`${rawSymbol}.BO`, tfConfig.interval, range);
+    }
+
+    // 4. If still empty or failed, fallback to live cached quote
+    if (!candles || candles.length === 0) {
+      const cached = stockService.getCachedStocks().find(s => s.symbol.toUpperCase() === rawSymbol);
+      if (cached && cached.price > 0) {
+        const nowTs = Math.floor(Date.now() / 1000);
+        candles = [{
+          time: nowTs,
+          open: cached.open || cached.price,
+          high: cached.dayHigh || cached.price,
+          low: cached.dayLow || cached.price,
+          close: cached.price,
+          volume: cached.volume || 0,
+        }];
+      }
+    }
+
+    if (!candles || candles.length === 0) {
+      res.status(404).json({ error: `No candle data available for ${rawSymbol}` });
+      return;
+    }
 
     res.json({
-      symbol:   yfSymbol,
+      symbol: `${rawSymbol}.NS`,
       interval: tfConfig.interval,
       range,
       candles,
     });
   } catch (err: any) {
-    logger.error(`[chart] Failed for ${yfSymbol}: ${err.message}`);
+    logger.error(`[chart] Failed for ${rawSymbol}: ${err.message}`);
     res.status(500).json({ error: err.message });
   }
 });

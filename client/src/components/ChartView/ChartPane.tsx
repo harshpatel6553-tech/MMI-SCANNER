@@ -21,6 +21,16 @@ export type Timeframe = typeof TIMEFRAMES[number];
 export const RANGES = ['1D', '5D', '1M', '3M', '6M', 'YTD', '1Y', 'ALL'] as const;
 export type Range = typeof RANGES[number];
 
+export const TF_DEFAULT_RANGE: Record<Timeframe, Range> = {
+  '1m':  '5D',
+  '5m':  '5D',
+  '15m': '1M',
+  '1h':  '3M',
+  '1D':  '1Y',
+  '1W':  'ALL',
+  '1M':  'ALL',
+};
+
 export interface ChartSlot {
   id: string;
   symbol: string;
@@ -248,6 +258,12 @@ export function ChartPane({
     }
 
     chartRef.current?.timeScale().fitContent();
+    requestAnimationFrame(() => {
+      chartRef.current?.timeScale().fitContent();
+    });
+    setTimeout(() => {
+      chartRef.current?.timeScale().fitContent();
+    }, 60);
   }, []);
 
   // Fetch real candles from API
@@ -257,10 +273,10 @@ export function ChartPane({
     const cleanSym = sym.replace('.NS', '').toUpperCase();
     const apiBase = getApiBase();
 
+    // Directly use the working backend endpoint without hanging aliases
     const endpoints = [
-      `/api/chart?symbol=${cleanSym}&tf=${tfVal}${rangeVal ? `&range=${rangeVal}` : ''}`,
-      `/api/stocks/chart/${cleanSym}?tf=${tfVal}${rangeVal ? `&range=${rangeVal}` : ''}`,
       `${apiBase}/api/stocks/chart/${cleanSym}?tf=${tfVal}${rangeVal ? `&range=${rangeVal}` : ''}`,
+      `/api/stocks/chart/${cleanSym}?tf=${tfVal}${rangeVal ? `&range=${rangeVal}` : ''}`,
     ];
 
     let candlesResult: Candle[] | null = null;
@@ -318,9 +334,10 @@ export function ChartPane({
       },
       rightPriceScale: {
         borderColor: '#21262d',
+        autoScale: true,
         scaleMargins: {
           top: 0.08,
-          bottom: 0.20,
+          bottom: 0.22,
         },
       },
       timeScale: {
@@ -350,14 +367,14 @@ export function ChartPane({
 
     volumeRef.current = chart.addHistogramSeries({
       priceFormat: { type: 'volume' },
-      priceScaleId: 'vol_scale',
+      priceScaleId: '', // overlay on price scale
       lastValueVisible: false,
       priceLineVisible: false,
     });
 
-    chart.priceScale('vol_scale').applyOptions({
+    volumeRef.current.priceScale().applyOptions({
       scaleMargins: {
-        top: 0.82,
+        top: 0.80,
         bottom: 0,
       },
     });
@@ -397,7 +414,12 @@ export function ChartPane({
 
     const ro = new ResizeObserver(() => {
       if (containerRef.current && chartRef.current) {
-        chartRef.current.resize(containerRef.current.clientWidth, containerRef.current.clientHeight);
+        const w = containerRef.current.clientWidth;
+        const h = containerRef.current.clientHeight;
+        if (w > 0 && h > 0) {
+          chartRef.current.resize(w, h);
+          chartRef.current.timeScale().fitContent();
+        }
       }
     });
     ro.observe(containerRef.current);
@@ -642,8 +664,10 @@ export function ChartPane({
   };
 
   const handleTimeframeChange = (newTf: Timeframe) => {
-    onUpdateSlot({ timeframe: newTf });
+    const newRange = TF_DEFAULT_RANGE[newTf] || '1Y';
+    onUpdateSlot({ timeframe: newTf, range: newRange });
     setHoverOhlc(null);
+    loadChart(symbol, newTf, newRange);
   };
 
   const handleRangeChange = (r: Range) => {

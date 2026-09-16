@@ -36,10 +36,10 @@ export function ChartView({ allStocks: propStocks }: ChartViewProps) {
   const [activeSlotIdx, setActiveSlotIdx] = useState<number>(0);
 
   const [slots, setSlots] = useState<ChartSlot[]>([
-    { id: 'slot-1', symbol: chartSymbol || 'RELIANCE', timeframe: '1D',  range: '1Y' },
-    { id: 'slot-2', symbol: 'TCS',                   timeframe: '15m', range: '1M' },
-    { id: 'slot-3', symbol: 'HDFCBANK',              timeframe: '5m',  range: '5D' },
-    { id: 'slot-4', symbol: 'INFY',                  timeframe: '1h',  range: '3M' },
+    { id: 'slot-1', symbol: chartSymbol || 'RELIANCE', timeframe: '1D', range: '1Y' },
+    { id: 'slot-2', symbol: 'TCS',                   timeframe: '1D', range: '1Y' },
+    { id: 'slot-3', symbol: 'HDFCBANK',              timeframe: '1D', range: '1Y' },
+    { id: 'slot-4', symbol: 'INFY',                  timeframe: '1D', range: '1Y' },
   ]);
 
   const [watchFilter, setWatchFilter]   = useState<'all' | 'nifty50' | 'starred' | 'gainers' | 'losers'>('all');

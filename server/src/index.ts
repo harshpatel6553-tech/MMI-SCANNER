@@ -111,6 +111,23 @@ app.use('/api/news', newsRoutes);
 app.use('/api/deals', dealsRoutes);
 app.use('/api/settings', settingsRoutes);
 
+// Chart alias route for trade/chart requests
+app.get('/api/chart', (req, res) => {
+  const symbol = req.query.symbol as string;
+  if (!symbol) {
+    res.status(400).json({ error: 'Missing symbol parameter' });
+    return;
+  }
+  const qIdx = req.url.indexOf('?');
+  const queryString = qIdx >= 0 ? req.url.slice(qIdx) : '';
+  res.redirect(307, `/api/stocks/chart/${encodeURIComponent(symbol)}${queryString}`);
+});
+
+// Explicit 404 for unhandled API endpoints so clients never hang
+app.all('/api/*', (req, res) => {
+  res.status(404).json({ error: `API route ${req.method} ${req.path} not found` });
+});
+
 // SPA Fallback for React Router
 if (fs.existsSync(clientDistPath)) {
   app.get('*', (req, res) => {
