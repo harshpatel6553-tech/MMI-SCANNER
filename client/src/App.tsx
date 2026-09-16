@@ -64,7 +64,7 @@ function AppContent() {
             </div>
           )}
 
-          {activeTab === 'Charts' && <ChartView />}
+          {activeTab === 'Charts' && <ChartView allStocks={allStocks} />}
 
           {activeTab === 'Overview' && (
             <>

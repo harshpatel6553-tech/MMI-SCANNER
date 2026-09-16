@@ -1,5 +1,5 @@
 import React, {
-  useEffect, useRef, useState, useCallback,
+  useEffect, useRef, useState, useCallback, useMemo,
 } from 'react';
 import {
   createChart,
@@ -11,6 +11,11 @@ import {
   HistogramData,
   LineData,
 } from 'lightweight-charts';
+import type { StockData } from '../../types';
+import { useStocks } from '../../hooks/useStocks';
+import { useWatchlist } from '../../hooks/useWatchlist';
+import { useDashboard } from '../../contexts/DashboardContext';
+import { formatPrice, formatVolume } from '../../utils/formatters';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -23,15 +28,8 @@ interface Candle {
   volume: number;
 }
 
-interface WatchStock {
-  ticker: string;
-  yf: string;
-  name: string;
-  sector: string;
-  mockBase: number;
-  last: number;
-  chg: number;
-  chgPct: number;
+interface ChartViewProps {
+  allStocks?: StockData[];
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -40,36 +38,17 @@ const API_BASE = (import.meta.env.VITE_SOCKET_URL || window.location.origin);
 const SERVER = `${API_BASE}/api/stocks`;
 
 const TIMEFRAMES = ['1m', '5m', '15m', '1h', '1D', '1W', '1M'] as const;
-const RANGES     = ['1D', '5D', '1M', '3M', '6M', 'YTD', '1Y', 'ALL'] as const;
+type Timeframe = typeof TIMEFRAMES[number];
 
-const NSE_STOCKS: Omit<WatchStock, 'last' | 'chg' | 'chgPct'>[] = [
-  { ticker: 'RELIANCE',   yf: 'RELIANCE.NS',   name: 'Reliance Industries',    sector: 'Energy',       mockBase: 2820  },
-  { ticker: 'TCS',        yf: 'TCS.NS',         name: 'Tata Consultancy Svcs', sector: 'IT',           mockBase: 3920  },
-  { ticker: 'HDFCBANK',   yf: 'HDFCBANK.NS',   name: 'HDFC Bank',             sector: 'Banking',      mockBase: 1710  },
-  { ticker: 'INFY',       yf: 'INFY.NS',        name: 'Infosys',               sector: 'IT',           mockBase: 1810  },
-  { ticker: 'ICICIBANK',  yf: 'ICICIBANK.NS',  name: 'ICICI Bank',            sector: 'Banking',      mockBase: 1150  },
-  { ticker: 'SBIN',       yf: 'SBIN.NS',        name: 'State Bank of India',   sector: 'Banking',      mockBase: 810   },
-  { ticker: 'BAJFINANCE', yf: 'BAJFINANCE.NS', name: 'Bajaj Finance',         sector: 'Finance',      mockBase: 7250  },
-  { ticker: 'BHARTIARTL', yf: 'BHARTIARTL.NS', name: 'Bharti Airtel',         sector: 'Telecom',      mockBase: 1620  },
-  { ticker: 'KOTAKBANK',  yf: 'KOTAKBANK.NS',  name: 'Kotak Mahindra Bank',   sector: 'Banking',      mockBase: 1820  },
-  { ticker: 'LT',         yf: 'LT.NS',          name: 'Larsen & Toubro',       sector: 'Infra',        mockBase: 3620  },
-  { ticker: 'AXISBANK',   yf: 'AXISBANK.NS',   name: 'Axis Bank',             sector: 'Banking',      mockBase: 1160  },
-  { ticker: 'ASIANPAINT', yf: 'ASIANPAINT.NS', name: 'Asian Paints',          sector: 'Consumer',     mockBase: 3050  },
-  { ticker: 'MARUTI',     yf: 'MARUTI.NS',      name: 'Maruti Suzuki',         sector: 'Auto',         mockBase: 11200 },
-  { ticker: 'WIPRO',      yf: 'WIPRO.NS',       name: 'Wipro',                 sector: 'IT',           mockBase: 462   },
-  { ticker: 'TITAN',      yf: 'TITAN.NS',       name: 'Titan Company',         sector: 'Consumer',     mockBase: 3840  },
-  { ticker: 'SUNPHARMA',  yf: 'SUNPHARMA.NS',  name: 'Sun Pharmaceutical',    sector: 'Pharma',       mockBase: 1720  },
-  { ticker: 'TATAMOTORS', yf: 'TATAMOTORS.NS', name: 'Tata Motors',           sector: 'Auto',         mockBase: 960   },
-  { ticker: 'HCLTECH',    yf: 'HCLTECH.NS',    name: 'HCL Technologies',      sector: 'IT',           mockBase: 1820  },
-  { ticker: 'NTPC',       yf: 'NTPC.NS',        name: 'NTPC Limited',          sector: 'Energy',       mockBase: 382   },
-  { ticker: 'ONGC',       yf: 'ONGC.NS',        name: 'Oil & Natural Gas',     sector: 'Energy',       mockBase: 282   },
-  { ticker: 'TATASTEEL',  yf: 'TATASTEEL.NS',  name: 'Tata Steel',            sector: 'Metals',       mockBase: 162   },
-  { ticker: 'ADANIENT',   yf: 'ADANIENT.NS',   name: 'Adani Enterprises',     sector: 'Conglomerate', mockBase: 2820  },
-  { ticker: 'COALINDIA',  yf: 'COALINDIA.NS',  name: 'Coal India',            sector: 'Mining',       mockBase: 485   },
-  { ticker: 'DRREDDY',    yf: 'DRREDDY.NS',    name: "Dr Reddy's Labs",       sector: 'Pharma',       mockBase: 6520  },
-  { ticker: 'CIPLA',      yf: 'CIPLA.NS',       name: 'Cipla',                 sector: 'Pharma',       mockBase: 1620  },
-  { ticker: 'EBGNG',      yf: 'EBGNG.NS',       name: 'EBGNG',                 sector: 'Electronics',  mockBase: 636   },
-];
+const TV_INTERVAL_MAP: Record<Timeframe, string> = {
+  '1m': '1',
+  '5m': '5',
+  '15m': '15',
+  '1h': '60',
+  '1D': 'D',
+  '1W': 'W',
+  '1M': 'M',
+};
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -90,18 +69,33 @@ function calcEMA(data: Candle[], period: number): LineData[] {
   return out;
 }
 
-function seedPrice(stock: Omit<WatchStock, 'last' | 'chg' | 'chgPct'>): WatchStock {
-  const base   = stock.mockBase;
-  const chgPct = +(( Math.random() - 0.47) * 6).toFixed(2);
-  const last   = +(base * (1 + chgPct / 100)).toFixed(2);
-  const chg    = +(last - base).toFixed(2);
-  return { ...stock, last, chg, chgPct };
-}
-
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function ChartView() {
-  // Chart refs
+export function ChartView({ allStocks: propStocks }: ChartViewProps) {
+  // Live stock data from hook if not passed from parent
+  const { allStocks: hookStocks, priceFlash } = useStocks(
+    { index: 'ALL', priceMin: 0, priceMax: 0, volumeMin: 0, search: '' },
+    'volume',
+    'desc'
+  );
+  const liveStocks = (propStocks && propStocks.length > 0) ? propStocks : hookStocks;
+
+  const { selectedStock, setSelectedStock } = useDashboard();
+  const { isWatchlisted, toggle: toggleWatchlist } = useWatchlist();
+
+  // Selected symbol (default to selectedStock from dashboard or RELIANCE)
+  const [currentSymbol, setCurrentSymbol] = useState<string>(() => {
+    return selectedStock || 'RELIANCE';
+  });
+
+  const [tf, setTf] = useState<Timeframe>('1D');
+  const [chartMode, setChartMode] = useState<'tradingview' | 'lightweight'>('tradingview');
+  const [watchFilter, setWatchFilter] = useState<'all' | 'nifty50' | 'starred' | 'gainers' | 'losers'>('all');
+  const [searchQ, setSearchQ] = useState('');
+  const [showSearchDrop, setShowSearchDrop] = useState(false);
+  const [watchSearch, setWatchSearch] = useState('');
+
+  // Lightweight chart state
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef     = useRef<IChartApi | null>(null);
   const candleRef    = useRef<ISeriesApi<'Candlestick'> | null>(null);
@@ -111,25 +105,120 @@ export function ChartView() {
   const ema50Ref     = useRef<ISeriesApi<'Line'> | null>(null);
   const ema200Ref    = useRef<ISeriesApi<'Line'> | null>(null);
 
-  // State
-  const [symbol, setSymbol]       = useState('RELIANCE.NS');
-  const [tf, setTf]               = useState('1D');
-  const [range, setRange]         = useState('1Y');
-  const [loading, setLoading]     = useState(false);
-  const [candles, setCandles]     = useState<Candle[]>([]);
-  const [ohlc, setOhlc]           = useState<Candle | null>(null);
-  const [prevOhlc, setPrevOhlc]   = useState<Candle | null>(null);
-  const [searchQ, setSearchQ]     = useState('');
-  const [showDrop, setShowDrop]   = useState(false);
-  const [watchlist, setWatchlist] = useState<WatchStock[]>(() => NSE_STOCKS.map(seedPrice));
+  const [loading, setLoading] = useState(false);
+  const [chartError, setChartError] = useState<string | null>(null);
+  const [candles, setCandles] = useState<Candle[]>([]);
   const [activeInds, setActiveInds] = useState(new Set(['ema13', 'ema34', 'ema50', 'ema200']));
-  const [showIndModal, setShowIndModal] = useState(false);
 
-  const currentStock = NSE_STOCKS.find(s => s.yf === symbol) || NSE_STOCKS[0];
-
-  // ── Init chart ───────────────────────────────────────────────
+  // Sync with global selectedStock when it changes outside
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (selectedStock && selectedStock !== currentSymbol) {
+      setCurrentSymbol(selectedStock);
+    }
+  }, [selectedStock]);
+
+  // Current selected stock object from live data
+  const currentStockData = useMemo(() => {
+    return liveStocks.find(s => s.symbol.toUpperCase() === currentSymbol.toUpperCase()) || {
+      symbol: currentSymbol,
+      name: currentSymbol,
+      price: 0,
+      open: 0,
+      dayHigh: 0,
+      dayLow: 0,
+      previousClose: 0,
+      change: 0,
+      changePercent: 0,
+      volume: 0,
+      sector: 'NSE Equity',
+      fiftyTwoWeekHigh: 0,
+      fiftyTwoWeekLow: 0,
+    } as StockData;
+  }, [liveStocks, currentSymbol]);
+
+  // Filtered stocks for the right-hand Watchlist panel
+  const filteredWatchlist = useMemo(() => {
+    let list = [...liveStocks];
+
+    if (watchFilter === 'nifty50') {
+      list = list.filter(s => s.indexName === 'NIFTY50');
+    } else if (watchFilter === 'starred') {
+      list = list.filter(s => isWatchlisted(s.symbol));
+    } else if (watchFilter === 'gainers') {
+      list = list.filter(s => s.changePercent > 0).sort((a, b) => b.changePercent - a.changePercent);
+    } else if (watchFilter === 'losers') {
+      list = list.filter(s => s.changePercent < 0).sort((a, b) => a.changePercent - b.changePercent);
+    }
+
+    if (watchSearch.trim()) {
+      const q = watchSearch.trim().toUpperCase();
+      list = list.filter(s => s.symbol.toUpperCase().includes(q) || s.name.toUpperCase().includes(q));
+    }
+
+    return list;
+  }, [liveStocks, watchFilter, isWatchlisted, watchSearch]);
+
+  // Quick search autocomplete options
+  const searchResults = useMemo(() => {
+    if (!searchQ.trim()) return [];
+    const q = searchQ.trim().toUpperCase();
+    return liveStocks.filter(s => s.symbol.toUpperCase().includes(q) || s.name.toUpperCase().includes(q)).slice(0, 10);
+  }, [liveStocks, searchQ]);
+
+  // ── Lightweight Chart Setup ──────────────────────────────────────
+  const applyData = useCallback((data: Candle[], inds: Set<string>) => {
+    if (!candleRef.current) return;
+    const sorted = [...data].sort((a, b) => a.time - b.time);
+
+    candleRef.current.setData(
+      sorted.map(d => ({ time: d.time as any, open: d.open, high: d.high, low: d.low, close: d.close }))
+    );
+    volumeRef.current?.setData(
+      sorted.map(d => ({
+        time: d.time as any, value: d.volume,
+        color: d.close >= d.open ? 'rgba(38,166,154,0.45)' : 'rgba(239,83,80,0.45)',
+      }))
+    );
+
+    const setEma = (ref: React.MutableRefObject<ISeriesApi<'Line'> | null>, key: string, period: number) => {
+      ref.current?.setData(inds.has(key) ? calcEMA(sorted, period) : []);
+    };
+    setEma(ema13Ref,  'ema13',  13);
+    setEma(ema34Ref,  'ema34',  34);
+    setEma(ema50Ref,  'ema50',  50);
+    setEma(ema200Ref, 'ema200', 200);
+
+    chartRef.current?.timeScale().fitContent();
+  }, []);
+
+  const loadLightweightChart = useCallback(async (sym: string, timeframe: string) => {
+    setLoading(true);
+    setChartError(null);
+    try {
+      const res = await fetch(`${SERVER}/chart/${sym.replace('.NS', '')}?tf=${timeframe}`);
+      const contentType = res.headers.get('content-type') || '';
+      if (!res.ok || !contentType.includes('application/json')) {
+        throw new Error('Backend chart API unavailable');
+      }
+      const json = await res.json();
+      if (!json.candles || json.candles.length === 0) {
+        throw new Error('No candlestick data returned');
+      }
+      setCandles(json.candles);
+      applyData(json.candles, activeInds);
+    } catch (e: any) {
+      console.warn('[ChartView] Lightweight chart fetch failed, falling back to TradingView:', e.message);
+      setChartError(e.message);
+      setChartMode('tradingview');
+    } finally {
+      setLoading(false);
+    }
+  }, [applyData, activeInds]);
+
+  // Init Lightweight chart canvas if mode is lightweight
+  useEffect(() => {
+    if (chartMode !== 'lightweight' || !containerRef.current) return;
+
     const chart = createChart(containerRef.current, {
       layout: {
         background: { color: '#0d1117' },
@@ -155,8 +244,6 @@ export function ChartView() {
         timeVisible: true,
         secondsVisible: false,
       },
-      handleScroll:  { mouseWheel: true, pressedMouseMove: true },
-      handleScale:   { mouseWheel: true, pinch: true, axisPressedMouseMove: true },
       width:  containerRef.current.offsetWidth,
       height: containerRef.current.offsetHeight,
     });
@@ -169,28 +256,17 @@ export function ChartView() {
 
     volumeRef.current = chart.addHistogramSeries({
       priceFormat: { type: 'volume' },
-      priceScaleId: 'vol',
+      priceScaleId: '',
     });
-    chart.priceScale('vol').applyOptions({ scaleMargins: { top: 0.80, bottom: 0 } });
 
-    const lineOpts = (color: string, width: number) => ({
-      color, lineWidth: width as any,
+    const lineOpts = (color: string, width: 1 | 2 | 3 | 4) => ({
+      color, lineWidth: width,
       priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false,
     });
-    ema13Ref.current  = chart.addLineSeries(lineOpts('#f59e0b', 1.5));
-    ema34Ref.current  = chart.addLineSeries(lineOpts('#3b82f6', 1.5));
+    ema13Ref.current  = chart.addLineSeries(lineOpts('#f59e0b', 1));
+    ema34Ref.current  = chart.addLineSeries(lineOpts('#3b82f6', 1));
     ema50Ref.current  = chart.addLineSeries(lineOpts('#22c55e', 2));
-    ema200Ref.current = chart.addLineSeries(lineOpts('#ef4444', 2.5));
-
-    chart.subscribeCrosshairMove(param => {
-      if (!param?.time || !param.seriesData || !candleRef.current) return;
-      const bar = param.seriesData.get(candleRef.current) as CandlestickData;
-      if (!bar) return;
-      setOhlc({
-        time: param.time as number,
-        open: bar.open, high: bar.high, low: bar.low, close: bar.close, volume: 0,
-      });
-    });
+    ema200Ref.current = chart.addLineSeries(lineOpts('#ef4444', 2));
 
     const ro = new ResizeObserver(() => {
       if (containerRef.current)
@@ -199,336 +275,335 @@ export function ChartView() {
     ro.observe(containerRef.current);
     chartRef.current = chart;
 
-    return () => { ro.disconnect(); chart.remove(); chartRef.current = null; };
-  }, []);
+    loadLightweightChart(currentSymbol, tf);
 
-  // ── Apply candles + EMAs ─────────────────────────────────────
-  const applyData = useCallback((data: Candle[], inds: Set<string>) => {
-    const sorted = [...data].sort((a, b) => a.time - b.time);
-
-    candleRef.current?.setData(
-      sorted.map(d => ({ time: d.time as any, open: d.open, high: d.high, low: d.low, close: d.close }))
-    );
-    volumeRef.current?.setData(
-      sorted.map(d => ({
-        time: d.time as any, value: d.volume,
-        color: d.close >= d.open ? 'rgba(38,166,154,0.45)' : 'rgba(239,83,80,0.45)',
-      }))
-    );
-
-    const setEma = (ref: React.MutableRefObject<ISeriesApi<'Line'> | null>, key: string, period: number) => {
-      ref.current?.setData(inds.has(key) ? calcEMA(sorted, period) : []);
+    return () => {
+      ro.disconnect();
+      chart.remove();
+      chartRef.current = null;
     };
-    setEma(ema13Ref,  'ema13',  13);
-    setEma(ema34Ref,  'ema34',  34);
-    setEma(ema50Ref,  'ema50',  50);
-    setEma(ema200Ref, 'ema200', 200);
+  }, [chartMode, currentSymbol, tf, loadLightweightChart]);
 
-    chartRef.current?.timeScale().fitContent();
-
-    if (sorted.length) {
-      setOhlc(sorted[sorted.length - 1]);
-      setPrevOhlc(sorted.length > 1 ? sorted[sorted.length - 2] : sorted[0]);
-    }
-  }, []);
-
-  // ── Fetch candles ────────────────────────────────────────────
-  const loadChart = useCallback(async (sym: string, timeframe: string, rangeKey?: string) => {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams({ tf: timeframe });
-      if (rangeKey) params.set('range', rangeKey);
-      const res = await fetch(`${SERVER}/chart/${sym.replace('.NS', '')}?${params}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      setCandles(json.candles);
-      applyData(json.candles, activeInds);
-    } catch (e) {
-      console.warn('[ChartView] fetch failed', e);
-    } finally {
-      setLoading(false);
-    }
-  }, [applyData, activeInds]);
-
-  // Initial load
-  useEffect(() => { loadChart(symbol, tf); }, []);
-
-  // Re-apply when indicators toggled
-  useEffect(() => {
-    if (candles.length) applyData(candles, activeInds);
-  }, [activeInds]);
-
-  // ── Watchlist live quotes (poll every 5s) ────────────────────
-  useEffect(() => {
-    const refresh = async () => {
-      const results = await Promise.allSettled(
-        NSE_STOCKS.map(s =>
-          fetch(`${SERVER}/quote/${s.ticker}`, { signal: AbortSignal.timeout(4000) })
-            .then(r => r.ok ? r.json() : null)
-            .catch(() => null)
-        )
-      );
-      setWatchlist(NSE_STOCKS.map((s, i) => {
-        const r = results[i];
-        if (r.status === 'fulfilled' && r.value) {
-          return {
-            ...s,
-            last:   r.value.price,
-            chg:    r.value.change,
-            chgPct: r.value.changePercent,
-          };
-        }
-        return seedPrice(s);
-      }));
-    };
-    refresh();
-    const id = setInterval(refresh, 5000);
-    return () => clearInterval(id);
-  }, []);
-
-  // ── Handlers ─────────────────────────────────────────────────
-  const handleSymbolSelect = (yf: string) => {
-    setSymbol(yf);
+  // Handle symbol selection
+  const handleSelectSymbol = (sym: string) => {
+    const cleanSym = sym.replace('.NS', '').toUpperCase();
+    setCurrentSymbol(cleanSym);
+    setSelectedStock(cleanSym);
+    setShowSearchDrop(false);
     setSearchQ('');
-    setShowDrop(false);
-    loadChart(yf, tf);
+    if (chartMode === 'lightweight') {
+      loadLightweightChart(cleanSym, tf);
+    }
   };
 
-  const handleTf = (t: string) => {
-    setTf(t);
-    loadChart(symbol, t);
-  };
+  const isUp = currentStockData.change >= 0;
 
-  const handleRange = (r: string) => {
-    setRange(r);
-    const tfMap: Record<string, string> = {
-      '1D': '5m', '5D': '15m', '1M': '1h', '3M': '1D',
-      '6M': '1D', 'YTD': '1D', '1Y': '1D', 'ALL': '1W',
-    };
-    const newTf = tfMap[r] || '1D';
-    setTf(newTf);
-    loadChart(symbol, newTf, r);
-  };
-
-  const toggleInd = (key: string) => {
-    setActiveInds(prev => {
-      const next = new Set(prev);
-      next.has(key) ? next.delete(key) : next.add(key);
-      return next;
-    });
-  };
-
-  const searchResults = searchQ.trim()
-    ? NSE_STOCKS.filter(s =>
-        s.ticker.includes(searchQ.toUpperCase()) ||
-        s.name.toUpperCase().includes(searchQ.toUpperCase())
-      ).slice(0, 8)
-    : [];
-
-  const chgVal  = ohlc && prevOhlc ? ohlc.close - prevOhlc.close : null;
-  const chgPct  = ohlc && prevOhlc && prevOhlc.close > 0 ? ((ohlc.close - prevOhlc.close) / prevOhlc.close) * 100 : null;
-  const isUp    = (chgVal ?? 0) >= 0;
-
-  // ── Render ───────────────────────────────────────────────────
   return (
     <div style={styles.root}>
-
-      {/* ── TOP BAR ──────────────────────────────────────────── */}
+      {/* ── TOP ACTION BAR ───────────────────────────────────────── */}
       <div style={styles.topBar}>
-        {/* Symbol search */}
+        {/* Symbol search & quick badge */}
         <div style={styles.symbolArea}>
           <div style={{ position: 'relative' }}>
             <input
-              style={styles.searchInput}
+              type="text"
+              placeholder="Search 500+ NSE stocks..."
               value={searchQ}
-              onChange={e => { setSearchQ(e.target.value); setShowDrop(true); }}
-              onFocus={() => setShowDrop(true)}
-              onBlur={() => setTimeout(() => setShowDrop(false), 150)}
-              placeholder="Search symbol…"
+              onChange={e => { setSearchQ(e.target.value); setShowSearchDrop(true); }}
+              onFocus={() => setShowSearchDrop(true)}
+              style={styles.searchInput}
             />
-            {showDrop && searchResults.length > 0 && (
+            {showSearchDrop && searchResults.length > 0 && (
               <div style={styles.dropdown}>
                 {searchResults.map(s => (
-                  <div key={s.yf} style={styles.dropItem} onMouseDown={() => handleSymbolSelect(s.yf)}>
-                    <span style={styles.dropTicker}>{s.ticker}</span>
+                  <div
+                    key={s.symbol}
+                    style={styles.dropItem}
+                    onMouseDown={() => handleSelectSymbol(s.symbol)}
+                  >
+                    <span style={styles.dropTicker}>{s.symbol}</span>
                     <span style={styles.dropName}>{s.name}</span>
-                    <span style={styles.dropSector}>{s.sector}</span>
+                    <span style={{
+                      fontFamily: 'var(--font-mono, monospace)',
+                      fontWeight: 600,
+                      color: s.change >= 0 ? '#26a69a' : '#ef5350',
+                      marginLeft: 'auto'
+                    }}>
+                      ₹{s.price.toFixed(2)}
+                    </span>
                   </div>
                 ))}
               </div>
             )}
           </div>
-          <span style={styles.symLabel}>{currentStock.ticker}</span>
-          <span style={styles.badge}>NSE</span>
-          <span style={styles.badge}>{tf}</span>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={styles.symLabel}>{currentStockData.symbol}</span>
+            <span style={styles.badge}>NSE</span>
+            <span style={styles.badge}>{tf}</span>
+          </div>
         </div>
 
-        {/* Timeframes */}
+        {/* Live OHLC & Metrics Bar */}
+        <div style={styles.metricsBar}>
+          <span style={styles.metricItem}>
+            LTP: <b style={{ color: isUp ? '#26a69a' : '#ef5350', fontFamily: 'var(--font-mono, monospace)' }}>
+              ₹{currentStockData.price > 0 ? currentStockData.price.toFixed(2) : '—'}
+            </b>
+            <span style={{ color: isUp ? '#26a69a' : '#ef5350', marginLeft: 4, fontWeight: 600 }}>
+              ({isUp ? '+' : ''}{currentStockData.changePercent.toFixed(2)}%)
+            </span>
+          </span>
+          <span style={styles.metricItem}>O: <b>{currentStockData.open > 0 ? currentStockData.open.toFixed(2) : '—'}</b></span>
+          <span style={styles.metricItem}>H: <b style={{ color: '#26a69a' }}>{currentStockData.dayHigh > 0 ? currentStockData.dayHigh.toFixed(2) : '—'}</b></span>
+          <span style={styles.metricItem}>L: <b style={{ color: '#ef5350' }}>{currentStockData.dayLow > 0 ? currentStockData.dayLow.toFixed(2) : '—'}</b></span>
+          <span style={styles.metricItem}>Vol: <b>{formatVolume(currentStockData.volume)}</b></span>
+          {currentStockData.sector && (
+            <span style={{ ...styles.badge, background: 'rgba(218, 127, 99, 0.15)', color: '#da7f63' }}>
+              {currentStockData.sector}
+            </span>
+          )}
+        </div>
+
+        {/* Timeframe Buttons */}
         <div style={styles.tfArea}>
           {TIMEFRAMES.map(t => (
-            <button key={t} style={{ ...styles.tfBtn, ...(tf === t ? styles.tfBtnActive : {}) }}
-              onClick={() => handleTf(t)}>{t}</button>
-          ))}
-        </div>
-
-        {/* Actions */}
-        <div style={styles.actionsArea}>
-          <button style={styles.actionBtn} onClick={() => setShowIndModal(true)}>
-            ⊞ Indicators
-          </button>
-        </div>
-      </div>
-
-      {/* ── MAIN LAYOUT ──────────────────────────────────────── */}
-      <div style={styles.mainLayout}>
-
-        {/* Left toolbar */}
-        <div style={styles.leftBar}>
-          {[
-            { icon: '⊕', label: 'Crosshair' },
-            { icon: '↗', label: 'Trend Line' },
-            { icon: '—', label: 'H-Line' },
-            { icon: '↕', label: 'V-Line' },
-            { icon: '◇', label: 'Fibonacci' },
-            { icon: '□', label: 'Rectangle' },
-            { icon: 'T', label: 'Text' },
-            { icon: '🔍', label: 'Zoom' },
-          ].map(tool => (
-            <button key={tool.label} title={tool.label} style={styles.toolBtn}>
-              {tool.icon}
+            <button
+              key={t}
+              style={{ ...styles.tfBtn, ...(tf === t ? styles.tfBtnActive : {}) }}
+              onClick={() => setTf(t)}
+            >
+              {t}
             </button>
           ))}
         </div>
 
-        {/* Chart wrapper */}
-        <div style={styles.chartWrapper}>
+        {/* Chart Engine Switcher */}
+        <div style={styles.actionsArea}>
+          <button
+            style={{
+              ...styles.actionBtn,
+              background: chartMode === 'tradingview' ? 'rgba(38,166,154,0.18)' : '#21262d',
+              color: chartMode === 'tradingview' ? '#26a69a' : '#c9d1d9',
+              border: `1px solid ${chartMode === 'tradingview' ? 'rgba(38,166,154,0.4)' : '#30363d'}`,
+              fontWeight: chartMode === 'tradingview' ? 700 : 500,
+            }}
+            onClick={() => setChartMode('tradingview')}
+          >
+            ⚡ TradingView
+          </button>
+          <button
+            style={{
+              ...styles.actionBtn,
+              background: chartMode === 'lightweight' ? 'rgba(31,111,235,0.18)' : '#21262d',
+              color: chartMode === 'lightweight' ? '#58a6ff' : '#c9d1d9',
+              border: `1px solid ${chartMode === 'lightweight' ? 'rgba(31,111,235,0.4)' : '#30363d'}`,
+              fontWeight: chartMode === 'lightweight' ? 700 : 500,
+            }}
+            onClick={() => setChartMode('lightweight')}
+          >
+            📊 Terminal
+          </button>
+        </div>
+      </div>
 
-          {/* OHLC bar */}
-          <div style={styles.ohlcBar}>
-            <span style={styles.ohlcSymbol}>{currentStock.name} · {tf} · NSE</span>
-            <div style={styles.ohlcVals}>
-              <span style={styles.ohlcItem}>O <b>{fmt(ohlc?.open)}</b></span>
-              <span style={styles.ohlcItem}>H <b style={{ color: '#26a69a' }}>{fmt(ohlc?.high)}</b></span>
-              <span style={styles.ohlcItem}>L <b style={{ color: '#ef5350' }}>{fmt(ohlc?.low)}</b></span>
-              <span style={styles.ohlcItem}>C <b>{fmt(ohlc?.close)}</b></span>
-              {chgVal !== null && (
-                <span style={{ color: isUp ? '#26a69a' : '#ef5350', fontWeight: 700, marginLeft: 8 }}>
-                  {isUp ? '+' : ''}{fmt(chgVal)} ({isUp ? '+' : ''}{chgPct?.toFixed(2)}%)
-                </span>
+      {/* ── MAIN LAYOUT ────────────────────────────────────────── */}
+      <div style={styles.mainLayout}>
+        {/* Chart Area */}
+        <div style={styles.chartWrapper}>
+          {chartMode === 'tradingview' ? (
+            <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+              <iframe
+                key={`${currentSymbol}-${tf}`}
+                src={`https://s.tradingview.com/widgetembed/?frameElementId=tradingview_chart&symbol=NSE%3A${encodeURIComponent(currentSymbol)}&interval=${TV_INTERVAL_MAP[tf] || 'D'}&hidesidetoolbar=0&symboledit=1&saveimage=1&toolbarbg=161b22&theme=dark&style=1&timezone=Asia%2FKolkata&withdateranges=1&showpopupbutton=1&locale=en`}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  border: 'none',
+                  display: 'block',
+                  background: '#0d1117',
+                }}
+                title={`${currentSymbol} TradingView Chart`}
+                allow="fullscreen"
+              />
+            </div>
+          ) : (
+            <div style={styles.chartArea}>
+              <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
+              {loading && (
+                <div style={styles.loadingOverlay}>
+                  <div style={styles.spinner} />
+                  <span style={{ color: '#8b949e', fontSize: 13 }}>Loading candlestick data…</span>
+                </div>
+              )}
+              {chartError && (
+                <div style={styles.errorBanner}>
+                  <span>⚠️ {chartError}. Switched to TradingView feed.</span>
+                  <button onClick={() => setChartMode('tradingview')} style={styles.switchBtn}>
+                    Switch to TradingView
+                  </button>
+                </div>
               )}
             </div>
-            <div style={styles.emaLabels}>
-              {activeInds.has('ema13')  && <span style={{ color: '#f59e0b' }}>EMA13</span>}
-              {activeInds.has('ema34')  && <span style={{ color: '#3b82f6' }}>EMA34</span>}
-              {activeInds.has('ema50')  && <span style={{ color: '#22c55e' }}>EMA50</span>}
-              {activeInds.has('ema200') && <span style={{ color: '#ef4444' }}>EMA200</span>}
-            </div>
-          </div>
-
-          {/* Chart canvas */}
-          <div style={styles.chartArea}>
-            <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
-            {loading && (
-              <div style={styles.loadingOverlay}>
-                <div style={styles.spinner} />
-                <span style={{ color: '#8b949e', fontSize: 13 }}>Loading data…</span>
-              </div>
-            )}
-          </div>
-
-          {/* Range bar */}
-          <div style={styles.rangeBar}>
-            {RANGES.map(r => (
-              <button key={r} style={{ ...styles.rangeBtn, ...(range === r ? styles.rangeBtnActive : {}) }}
-                onClick={() => handleRange(r)}>{r}</button>
-            ))}
-          </div>
+          )}
         </div>
 
-        {/* ── WATCHLIST ──────────────────────────────────────── */}
+        {/* ── RIGHT LIVE WATCHLIST PANEL ──────────────────────── */}
         <div style={styles.watchPanel}>
+          {/* Header & Watchlist Tabs */}
           <div style={styles.watchHeader}>
-            <span style={{ fontWeight: 700, fontSize: 12, color: '#c9d1d9', letterSpacing: 1 }}>WATCHLIST</span>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+              <span style={{ fontWeight: 700, fontSize: 12, color: '#c9d1d9', letterSpacing: 0.5 }}>
+                MARKET WATCH ({filteredWatchlist.length})
+              </span>
+              <span style={{ fontSize: 10, color: '#26a69a', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#26a69a', display: 'inline-block' }} />
+                LIVE
+              </span>
+            </div>
+
+            {/* Quick Watchlist Filters */}
+            <div style={styles.watchTabsRow}>
+              <button
+                style={{ ...styles.watchTabBtn, ...(watchFilter === 'all' ? styles.watchTabActive : {}) }}
+                onClick={() => setWatchFilter('all')}
+              >
+                All
+              </button>
+              <button
+                style={{ ...styles.watchTabBtn, ...(watchFilter === 'nifty50' ? styles.watchTabActive : {}) }}
+                onClick={() => setWatchFilter('nifty50')}
+              >
+                Nifty 50
+              </button>
+              <button
+                style={{ ...styles.watchTabBtn, ...(watchFilter === 'starred' ? styles.watchTabActive : {}) }}
+                onClick={() => setWatchFilter('starred')}
+              >
+                ⭐ Watchlist
+              </button>
+              <button
+                style={{ ...styles.watchTabBtn, ...(watchFilter === 'gainers' ? styles.watchTabActive : {}) }}
+                onClick={() => setWatchFilter('gainers')}
+              >
+                ▲ Gainers
+              </button>
+              <button
+                style={{ ...styles.watchTabBtn, ...(watchFilter === 'losers' ? styles.watchTabActive : {}) }}
+                onClick={() => setWatchFilter('losers')}
+              >
+                ▼ Losers
+              </button>
+            </div>
+
+            {/* In-Watchlist Search */}
+            <input
+              type="text"
+              placeholder="Filter list..."
+              value={watchSearch}
+              onChange={e => setWatchSearch(e.target.value)}
+              style={styles.watchSearchInput}
+            />
           </div>
+
+          {/* Column Header */}
           <div style={styles.watchColRow}>
             <span style={{ flex: 1.6 }}>Symbol</span>
             <span style={{ flex: 1, textAlign: 'right' }}>Last</span>
             <span style={{ flex: 1, textAlign: 'right' }}>Chg%</span>
           </div>
+
+          {/* Watchlist Items */}
           <div style={styles.watchBody}>
-            {watchlist.map(s => {
-              const up = s.chg >= 0;
-              const hue = s.ticker.split('').reduce((a, c) => a + c.charCodeAt(0), 0) % 360;
+            {filteredWatchlist.map(s => {
+              const up = s.change >= 0;
+              const flash = priceFlash?.get(s.symbol);
+              const isSelected = s.symbol.toUpperCase() === currentSymbol.toUpperCase();
+              const starred = isWatchlisted(s.symbol);
+
               return (
                 <div
-                  key={s.yf}
+                  key={s.symbol}
                   style={{
                     ...styles.watchItem,
-                    ...(s.yf === symbol ? styles.watchItemActive : {}),
+                    ...(isSelected ? styles.watchItemActive : {}),
+                    backgroundColor: flash === 'up'
+                      ? 'rgba(38,166,154,0.2)'
+                      : flash === 'down'
+                      ? 'rgba(239,83,80,0.2)'
+                      : isSelected
+                      ? 'rgba(31,111,235,0.12)'
+                      : 'transparent',
                   }}
-                  onClick={() => handleSymbolSelect(s.yf)}
+                  onClick={() => handleSelectSymbol(s.symbol)}
                 >
-                  <div style={{ flex: 1.6, display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
-                    <div style={{ ...styles.watchLogo, background: `hsl(${hue},55%,42%)` }}>
-                      {s.ticker[0]}
-                    </div>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={styles.watchTicker}>{s.ticker}</div>
-                      <div style={styles.watchName}>{s.name}</div>
-                    </div>
+                  {/* Star Toggle */}
+                  <span
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleWatchlist(s.symbol);
+                    }}
+                    style={{
+                      cursor: 'pointer',
+                      color: starred ? '#f59e0b' : '#484f58',
+                      fontSize: 14,
+                      marginRight: 6,
+                      userSelect: 'none',
+                    }}
+                    title={starred ? 'Remove from Watchlist' : 'Add to Watchlist'}
+                  >
+                    {starred ? '★' : '☆'}
+                  </span>
+
+                  {/* Stock Symbol & Name */}
+                  <div style={{ flex: 1.5, minWidth: 0, overflow: 'hidden' }}>
+                    <div style={styles.watchTicker}>{s.symbol}</div>
+                    <div style={styles.watchName}>{s.name}</div>
                   </div>
-                  <div style={{ flex: 1, textAlign: 'right', fontSize: 12, color: '#c9d1d9', fontWeight: 500 }}>
-                    {fmt(s.last)}
-                  </div>
+
+                  {/* Real Last Traded Price */}
                   <div style={{
-                    flex: 1, textAlign: 'right', fontSize: 11, fontWeight: 700,
-                    color: up ? '#26a69a' : '#ef5350',
-                    background: up ? 'rgba(38,166,154,0.1)' : 'rgba(239,83,80,0.1)',
-                    borderRadius: 4, padding: '2px 5px',
+                    flex: 1,
+                    textAlign: 'right',
+                    fontFamily: 'var(--font-mono, monospace)',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: '#c9d1d9',
                   }}>
-                    {up ? '+' : ''}{s.chgPct.toFixed(2)}%
+                    {s.price > 0 ? s.price.toFixed(2) : '—'}
+                  </div>
+
+                  {/* Real Change % Pill */}
+                  <div style={{
+                    flex: 1,
+                    textAlign: 'right',
+                    fontFamily: 'var(--font-mono, monospace)',
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: up ? '#26a69a' : '#ef5350',
+                  }}>
+                    <span style={{
+                      padding: '2px 5px',
+                      borderRadius: 4,
+                      background: up ? 'rgba(38,166,154,0.15)' : 'rgba(239,83,80,0.15)',
+                    }}>
+                      {up ? '+' : ''}{s.changePercent.toFixed(2)}%
+                    </span>
                   </div>
                 </div>
               );
             })}
+
+            {filteredWatchlist.length === 0 && (
+              <div style={{ padding: 24, textAlign: 'center', color: '#8b949e', fontSize: 12 }}>
+                {watchFilter === 'starred'
+                  ? 'No stocks in Watchlist. Click ☆ next to any stock to add.'
+                  : 'No matching stocks found.'}
+              </div>
+            )}
           </div>
         </div>
       </div>
-
-      {/* ── INDICATORS MODAL ─────────────────────────────────── */}
-      {showIndModal && (
-        <div style={styles.modalBg} onClick={() => setShowIndModal(false)}>
-          <div style={styles.modalBox} onClick={e => e.stopPropagation()}>
-            <div style={styles.modalHead}>
-              <span style={{ fontWeight: 700 }}>Indicators</span>
-              <button style={styles.modalClose} onClick={() => setShowIndModal(false)}>✕</button>
-            </div>
-            {[
-              { key: 'ema13',  label: 'EMA 13',   color: '#f59e0b' },
-              { key: 'ema34',  label: 'EMA 34',   color: '#3b82f6' },
-              { key: 'ema50',  label: 'EMA 50',   color: '#22c55e' },
-              { key: 'ema200', label: 'EMA 200',  color: '#ef4444' },
-            ].map(ind => (
-              <div key={ind.key} style={styles.indRow} onClick={() => toggleInd(ind.key)}>
-                <div style={{ width: 10, height: 10, borderRadius: '50%', background: ind.color }} />
-                <span style={{ flex: 1, color: '#c9d1d9' }}>{ind.label}</span>
-                <div style={{
-                  width: 36, height: 20, borderRadius: 10,
-                  background: activeInds.has(ind.key) ? '#1f6feb' : '#30363d',
-                  position: 'relative', transition: 'background 0.2s',
-                }}>
-                  <div style={{
-                    position: 'absolute', top: 2,
-                    left: activeInds.has(ind.key) ? 18 : 2,
-                    width: 16, height: 16, borderRadius: '50%',
-                    background: '#fff', transition: 'left 0.2s',
-                  }} />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -537,116 +612,254 @@ export function ChartView() {
 
 const styles: Record<string, React.CSSProperties> = {
   root: {
-    display: 'flex', flexDirection: 'column',
-    height: 'calc(100vh - 60px)', // fits inside MMI layout (below topbar)
-    background: '#0d1117', overflow: 'hidden',
-    fontFamily: 'Inter, system-ui, sans-serif',
+    display: 'flex',
+    flexDirection: 'column',
+    height: 'calc(100vh - 60px)',
+    background: '#0d1117',
+    overflow: 'hidden',
+    fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
   },
   topBar: {
-    display: 'flex', alignItems: 'center', gap: 8,
-    padding: '0 12px', height: 48, flexShrink: 0,
-    background: '#161b22', borderBottom: '1px solid #21262d',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 12,
+    padding: '0 16px',
+    height: 48,
+    flexShrink: 0,
+    background: '#161b22',
+    borderBottom: '1px solid #21262d',
   },
-  symbolArea: { display: 'flex', alignItems: 'center', gap: 8, paddingRight: 12, borderRight: '1px solid #21262d' },
+  symbolArea: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+    paddingRight: 14,
+    borderRight: '1px solid #21262d',
+  },
   searchInput: {
-    background: '#21262d', border: '1px solid #30363d', borderRadius: 6,
-    color: '#c9d1d9', fontSize: 13, padding: '5px 10px', outline: 'none', width: 160,
+    background: '#21262d',
+    border: '1px solid #30363d',
+    borderRadius: 6,
+    color: '#c9d1d9',
+    fontSize: 12,
+    padding: '6px 12px',
+    outline: 'none',
+    width: 190,
   },
   dropdown: {
-    position: 'absolute', top: '110%', left: 0, width: 280, zIndex: 999,
-    background: '#161b22', border: '1px solid #30363d', borderRadius: 8,
-    boxShadow: '0 8px 24px rgba(0,0,0,0.5)', overflow: 'hidden',
+    position: 'absolute',
+    top: '115%',
+    left: 0,
+    width: 320,
+    maxHeight: 340,
+    overflowY: 'auto',
+    zIndex: 9999,
+    background: '#161b22',
+    border: '1px solid #30363d',
+    borderRadius: 8,
+    boxShadow: '0 12px 32px rgba(0,0,0,0.7)',
   },
   dropItem: {
-    display: 'flex', alignItems: 'center', gap: 8,
-    padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid #21262d',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    padding: '8px 12px',
+    cursor: 'pointer',
+    borderBottom: '1px solid #21262d',
   },
-  dropTicker: { fontWeight: 700, color: '#fff', fontSize: 13, minWidth: 80 },
-  dropName:   { flex: 1, color: '#8b949e', fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
-  dropSector: { color: '#58636d', fontSize: 10 },
-  symLabel:   { fontSize: 14, fontWeight: 700, color: '#fff' },
-  badge:      { fontSize: 10, padding: '2px 6px', borderRadius: 4, background: '#21262d', color: '#8b949e', fontWeight: 600 },
-  tfArea:     { display: 'flex', alignItems: 'center', gap: 2, paddingLeft: 8 },
-  tfBtn:      { background: 'none', border: 'none', color: '#8b949e', cursor: 'pointer', padding: '5px 9px', borderRadius: 5, fontSize: 12, fontWeight: 600 },
-  tfBtnActive:{ background: 'rgba(31,111,235,0.15)', color: '#58a6ff' },
-  actionsArea:{ marginLeft: 'auto', display: 'flex', gap: 6 },
-  actionBtn:  {
-    background: '#21262d', border: '1px solid #30363d', borderRadius: 6,
-    color: '#c9d1d9', cursor: 'pointer', padding: '5px 12px', fontSize: 12,
+  dropTicker: { fontWeight: 700, color: '#fff', fontSize: 13, minWidth: 85 },
+  dropName: { flex: 1, color: '#8b949e', fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  symLabel: { fontSize: 14, fontWeight: 700, color: '#fff' },
+  badge: {
+    fontSize: 10,
+    padding: '2px 6px',
+    borderRadius: 4,
+    background: '#21262d',
+    color: '#8b949e',
+    fontWeight: 600,
   },
-  mainLayout: { flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 },
-  leftBar:    {
-    width: 44, background: '#161b22', borderRight: '1px solid #21262d',
-    display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '8px 0', gap: 4,
+  metricsBar: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 14,
+    fontSize: 11.5,
+    color: '#8b949e',
+    overflowX: 'auto',
+    whiteSpace: 'nowrap',
   },
-  toolBtn:    {
-    width: 34, height: 32, background: 'none', border: 'none',
-    color: '#8b949e', cursor: 'pointer', borderRadius: 5, fontSize: 14,
+  metricItem: { display: 'flex', alignItems: 'center', gap: 3 },
+  tfArea: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 3,
+    marginLeft: 'auto',
+    paddingLeft: 10,
   },
-  chartWrapper: { flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 },
-  ohlcBar:    {
-    height: 36, display: 'flex', alignItems: 'center', gap: 16,
-    padding: '0 12px', borderBottom: '1px solid #21262d',
-    fontSize: 12, flexShrink: 0, background: 'transparent', overflow: 'hidden',
+  tfBtn: {
+    background: 'none',
+    border: 'none',
+    color: '#8b949e',
+    cursor: 'pointer',
+    padding: '4px 8px',
+    borderRadius: 5,
+    fontSize: 11.5,
+    fontWeight: 600,
   },
-  ohlcSymbol: { color: '#c9d1d9', fontWeight: 600, whiteSpace: 'nowrap', marginRight: 4 },
-  ohlcVals:   { display: 'flex', gap: 12, alignItems: 'center' },
-  ohlcItem:   { color: '#8b949e', whiteSpace: 'nowrap' },
-  emaLabels:  { display: 'flex', gap: 10, marginLeft: 8, fontSize: 11, fontWeight: 600 },
-  chartArea:  { flex: 1, position: 'relative', overflow: 'hidden', minHeight: 0 },
+  tfBtnActive: { background: 'rgba(31,111,235,0.2)', color: '#58a6ff' },
+  actionsArea: { display: 'flex', gap: 6 },
+  actionBtn: {
+    borderRadius: 6,
+    cursor: 'pointer',
+    padding: '5px 10px',
+    fontSize: 11.5,
+    transition: 'all 0.15s ease',
+  },
+  mainLayout: {
+    flex: 1,
+    display: 'flex',
+    overflow: 'hidden',
+    minHeight: 0,
+  },
+  chartWrapper: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    overflow: 'hidden',
+    minWidth: 0,
+    background: '#0d1117',
+    position: 'relative',
+  },
+  chartArea: {
+    flex: 1,
+    position: 'relative',
+    overflow: 'hidden',
+    minHeight: 0,
+  },
   loadingOverlay: {
-    position: 'absolute', inset: 0, background: 'rgba(13,17,23,0.8)',
-    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12,
+    position: 'absolute',
+    inset: 0,
+    background: 'rgba(13,17,23,0.85)',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    zIndex: 10,
   },
   spinner: {
-    width: 32, height: 32, border: '3px solid #21262d', borderTopColor: '#1f6feb',
-    borderRadius: '50%', animation: 'spin 0.8s linear infinite',
+    width: 32,
+    height: 32,
+    border: '3px solid #21262d',
+    borderTopColor: '#1f6feb',
+    borderRadius: '50%',
+    animation: 'spin 0.8s linear infinite',
   },
-  rangeBar: {
-    height: 32, background: '#161b22', borderTop: '1px solid #21262d',
-    display: 'flex', alignItems: 'center', padding: '0 8px', gap: 2, flexShrink: 0,
+  errorBanner: {
+    position: 'absolute',
+    top: 16,
+    left: '50%',
+    transform: 'translateX(-50%)',
+    background: 'rgba(239, 83, 80, 0.15)',
+    border: '1px solid rgba(239, 83, 80, 0.4)',
+    color: '#ff7b72',
+    padding: '8px 16px',
+    borderRadius: 6,
+    fontSize: 12,
+    display: 'flex',
+    alignItems: 'center',
+    gap: 12,
+    zIndex: 20,
   },
-  rangeBtn:       { background: 'none', border: 'none', color: '#8b949e', cursor: 'pointer', padding: '3px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600 },
-  rangeBtnActive: { background: 'rgba(31,111,235,0.15)', color: '#58a6ff' },
+  switchBtn: {
+    background: '#21262d',
+    border: '1px solid #30363d',
+    color: '#fff',
+    borderRadius: 4,
+    padding: '3px 8px',
+    fontSize: 11,
+    cursor: 'pointer',
+  },
   watchPanel: {
-    width: 268, background: '#161b22', borderLeft: '1px solid #21262d',
-    display: 'flex', flexDirection: 'column', flexShrink: 0,
+    width: 290,
+    background: '#161b22',
+    borderLeft: '1px solid #21262d',
+    display: 'flex',
+    flexDirection: 'column',
+    flexShrink: 0,
   },
-  watchHeader: { padding: '10px 10px 6px', borderBottom: '1px solid #21262d' },
+  watchHeader: {
+    padding: '10px 10px 8px',
+    borderBottom: '1px solid #21262d',
+  },
+  watchTabsRow: {
+    display: 'flex',
+    gap: 4,
+    overflowX: 'auto',
+    marginBottom: 8,
+  },
+  watchTabBtn: {
+    background: 'none',
+    border: 'none',
+    color: '#8b949e',
+    fontSize: 10.5,
+    fontWeight: 600,
+    padding: '3px 6px',
+    borderRadius: 4,
+    cursor: 'pointer',
+    whiteSpace: 'nowrap',
+  },
+  watchTabActive: {
+    background: '#21262d',
+    color: '#58a6ff',
+  },
+  watchSearchInput: {
+    width: '100%',
+    boxSizing: 'border-box',
+    background: '#0d1117',
+    border: '1px solid #30363d',
+    borderRadius: 5,
+    color: '#c9d1d9',
+    fontSize: 11,
+    padding: '5px 8px',
+    outline: 'none',
+  },
   watchColRow: {
-    display: 'flex', padding: '4px 10px', fontSize: 10,
-    color: '#58636d', fontWeight: 600, letterSpacing: 0.5,
-    borderBottom: '1px solid #21262d', textTransform: 'uppercase',
+    display: 'flex',
+    padding: '5px 12px',
+    fontSize: 10,
+    color: '#58636d',
+    fontWeight: 600,
+    letterSpacing: 0.5,
+    borderBottom: '1px solid #21262d',
+    textTransform: 'uppercase',
   },
-  watchBody:  { flex: 1, overflowY: 'auto' },
-  watchItem:  {
-    display: 'flex', alignItems: 'center', padding: '6px 10px',
-    cursor: 'pointer', borderBottom: '1px solid rgba(33,38,45,0.6)',
-    transition: 'background 0.1s', position: 'relative',
+  watchBody: {
+    flex: 1,
+    overflowY: 'auto',
   },
-  watchItemActive: { background: 'rgba(31,111,235,0.08)', borderLeft: '2px solid #1f6feb' },
-  watchLogo:  {
-    width: 20, height: 20, borderRadius: '50%', display: 'flex',
-    alignItems: 'center', justifyContent: 'center',
-    fontSize: 9, fontWeight: 700, color: '#fff', flexShrink: 0,
+  watchItem: {
+    display: 'flex',
+    alignItems: 'center',
+    padding: '7px 12px',
+    cursor: 'pointer',
+    borderBottom: '1px solid rgba(33,38,45,0.6)',
+    transition: 'background-color 0.15s ease',
   },
-  watchTicker: { fontSize: 12, fontWeight: 600, color: '#c9d1d9', lineHeight: 1.2 },
-  watchName:   { fontSize: 9, color: '#58636d', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 90 },
-  modalBg:    {
-    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)',
-    zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center',
+  watchItemActive: {
+    borderLeft: '3px solid #1f6feb',
   },
-  modalBox:   {
-    background: '#161b22', border: '1px solid #30363d', borderRadius: 10,
-    width: 320, padding: '0 0 8px', boxShadow: '0 16px 48px rgba(0,0,0,0.6)',
+  watchTicker: {
+    fontSize: 12,
+    fontWeight: 700,
+    color: '#c9d1d9',
+    lineHeight: 1.2,
   },
-  modalHead:  {
-    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-    padding: '14px 16px', borderBottom: '1px solid #21262d', fontWeight: 700,
-  },
-  modalClose: { background: 'none', border: 'none', color: '#8b949e', cursor: 'pointer', fontSize: 16 },
-  indRow:     {
-    display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px',
-    cursor: 'pointer', borderBottom: '1px solid rgba(33,38,45,0.5)',
+  watchName: {
+    fontSize: 9.5,
+    color: '#58636d',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    maxWidth: 100,
   },
 };
