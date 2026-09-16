@@ -9,7 +9,7 @@ interface TopbarProps {
 }
 
 export function Topbar({ allStocks }: TopbarProps) {
-  const { searchQuery, setSearchQuery, setSelectedStock } = useDashboard();
+  const { searchQuery, setSearchQuery, setSelectedStock, activeTab, setChartSymbol } = useDashboard();
   const [time, setTime] = useState('');
 
   const searchItems = useMemo(() => {
@@ -18,7 +18,13 @@ export function Topbar({ allStocks }: TopbarProps) {
       title: `${stock.symbol} - ${stock.name}`,
       section: (stock.sector || 'Stocks') as any,
       icon: <ArrowRight size={16} />,
-      action: () => setSelectedStock(stock.symbol),
+      action: () => {
+        if (activeTab === 'Charts') {
+          setChartSymbol(stock.symbol);
+        } else {
+          setSelectedStock(stock.symbol);
+        }
+      },
     }));
     items.unshift({
       id: 'clear',
@@ -28,7 +34,7 @@ export function Topbar({ allStocks }: TopbarProps) {
       action: () => setSearchQuery(''),
     });
     return items;
-  }, [allStocks, setSearchQuery, setSelectedStock]);
+  }, [allStocks, setSearchQuery, setSelectedStock, activeTab, setChartSymbol]);
 
   useEffect(() => {
     const pad = (n: number) => n.toString().padStart(2, '0');

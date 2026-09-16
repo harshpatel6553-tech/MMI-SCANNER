@@ -128,11 +128,11 @@ export function ChartView({ allStocks: propStocks }: ChartViewProps) {
   );
   const liveStocks = (propStocks && propStocks.length > 0) ? propStocks : hookStocks;
 
-  const { selectedStock, setSelectedStock } = useDashboard();
+  const { selectedStock, setSelectedStock, chartSymbol, setChartSymbol } = useDashboard();
   const { isWatchlisted, toggle: toggleWatchlist } = useWatchlist();
 
   const [currentSymbol, setCurrentSymbol] = useState<string>(() => {
-    return selectedStock || 'RELIANCE';
+    return chartSymbol || selectedStock || 'RELIANCE';
   });
 
   const [tf, setTf] = useState<Timeframe>('1D');
@@ -166,12 +166,17 @@ export function ChartView({ allStocks: propStocks }: ChartViewProps) {
   const [hoverOhlc, setHoverOhlc] = useState<Candle | null>(null);
   const [tickPrice, setTickPrice] = useState<number>(0);
 
-  // Sync with global selectedStock when changed outside
+  // Sync with global chartSymbol or selectedStock when changed outside
   useEffect(() => {
-    if (selectedStock && selectedStock.toUpperCase() !== currentSymbol.toUpperCase()) {
-      setCurrentSymbol(selectedStock.toUpperCase());
+    const targetSym = chartSymbol || selectedStock;
+    if (targetSym && targetSym.toUpperCase() !== currentSymbol.toUpperCase()) {
+      setCurrentSymbol(targetSym.toUpperCase());
     }
-  }, [selectedStock]);
+    // Prevent FundamentalsModal (screener fetch) from popping up in chart view
+    if (selectedStock) {
+      setSelectedStock(null);
+    }
+  }, [chartSymbol, selectedStock]);
 
   // Current stock data from live scanner
   const currentStockData = useMemo(() => {
@@ -555,11 +560,12 @@ export function ChartView({ allStocks: propStocks }: ChartViewProps) {
     });
   };
 
-  // Handle symbol selection
+  // Handle symbol selection (strictly technical chart, never trigger Screener modal)
   const handleSelectSymbol = (sym: string) => {
     const cleanSym = sym.replace('.NS', '').toUpperCase();
     setCurrentSymbol(cleanSym);
-    setSelectedStock(cleanSym);
+    setChartSymbol(cleanSym);
+    setSelectedStock(null);
     setShowSearchDrop(false);
     setSearchQ('');
     setHoverOhlc(null);

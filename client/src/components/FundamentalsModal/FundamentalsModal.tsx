@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDashboard } from '../../contexts/DashboardContext';
 import { X, TrendingUp, DollarSign, PieChart, Activity, Briefcase } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -17,7 +17,7 @@ interface Fundamentals {
 }
 
 export function FundamentalsModal({ stocks }: { stocks: StockData[] }) {
-  const { selectedStock, setSelectedStock } = useDashboard();
+  const { selectedStock, setSelectedStock, activeTab } = useDashboard();
   const [data, setData] = useState<Fundamentals | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -25,7 +25,7 @@ export function FundamentalsModal({ stocks }: { stocks: StockData[] }) {
   const stockInfo = stocks.find(s => s.symbol === selectedStock);
 
   useEffect(() => {
-    if (!selectedStock) return;
+    if (!selectedStock || activeTab === 'Charts') return;
     let isMounted = true;
     
     setLoading(true);
@@ -52,7 +52,9 @@ export function FundamentalsModal({ stocks }: { stocks: StockData[] }) {
       });
 
     return () => { isMounted = false; };
-  }, [selectedStock]);
+  }, [selectedStock, activeTab]);
+
+  if (activeTab === 'Charts') return null;
 
   return (
     <AnimatePresence>
