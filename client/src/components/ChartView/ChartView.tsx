@@ -12,6 +12,7 @@ import {
   Timeframe,
   Range,
 } from './ChartPane';
+import { StockLogo } from '../common/StockLogo';
 
 export type LayoutMode = '1' | '2-vert' | '2-horiz' | '4-grid';
 
@@ -141,6 +142,7 @@ export function ChartView({ allStocks: propStocks }: ChartViewProps) {
                     style={styles.dropItem}
                     onMouseDown={() => handleSelectSymbol(s.symbol)}
                   >
+                    <StockLogo symbol={s.symbol} name={s.name} size={20} style={{ marginRight: 8, flexShrink: 0 }} />
                     <span style={styles.dropTicker}>{s.symbol}</span>
                     <span style={styles.dropName}>{s.name}</span>
                     <span style={{
@@ -445,6 +447,8 @@ export function ChartView({ allStocks: propStocks }: ChartViewProps) {
                   >
                     {starred ? '★' : '☆'}
                   </span>
+
+                  <StockLogo symbol={s.symbol} name={s.name} size={24} style={{ marginRight: 8, flexShrink: 0 }} />
 
                   <div style={{ flex: 1.5, minWidth: 0, overflow: 'hidden' }}>
                     <div style={styles.watchTicker}>{s.symbol}</div>

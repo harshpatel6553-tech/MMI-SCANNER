@@ -13,6 +13,7 @@ import {
 } from 'lightweight-charts';
 import type { StockData } from '../../types';
 import { formatVolume } from '../../utils/formatters';
+import { StockLogo } from '../common/StockLogo';
 
 export const TIMEFRAMES = ['1m', '5m', '15m', '1h', '1D', '1W', '1M'] as const;
 export type Timeframe = typeof TIMEFRAMES[number];
@@ -730,6 +731,7 @@ export function ChartPane({
             background: isActive ? '#1f6feb' : '#484f58',
             boxShadow: isActive ? '0 0 6px #1f6feb' : 'none',
           }} />
+          <StockLogo symbol={symbol} name={currentStockData.name} size={18} />
           <span style={{ color: '#fff', fontWeight: 700, fontSize: isMultiView ? 12 : 13 }}>
             {symbol}
           </span>

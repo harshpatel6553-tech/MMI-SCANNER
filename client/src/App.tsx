@@ -87,7 +87,7 @@ function AppContent() {
           {activeTab === 'Heatmap' && <Heatmap stocks={stocks} />}
           {activeTab === 'Sectors' && <SectorBreakdown sectorData={sectorData} />}
           {activeTab === 'Technical' && <TechnicalScanner />}
-          {activeTab === 'Watchlist' && <div className="card" style={{ padding: 24 }}>Full Watchlist view under construction. Use Overview widget.</div>}
+          {activeTab === 'Watchlist' && <MarketTableWidget fullView={true} watchlistOnly={true} />}
           {activeTab === 'LiveNews' && <LiveNewsFeed />}
           {activeTab === 'Results' && <EarningsResults />}
           {activeTab === 'Promoter' && <PromoterWatch />}

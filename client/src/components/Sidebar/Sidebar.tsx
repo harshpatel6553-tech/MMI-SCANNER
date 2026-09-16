@@ -1,9 +1,11 @@
-﻿import React from 'react';
+import React from 'react';
 import { useDashboard } from '../../contexts/DashboardContext';
+import { useWatchlist } from '../../hooks/useWatchlist';
 import { ProfileDropdown } from '../Topbar/ProfileDropdown';
 
 export function Sidebar() {
   const { activeTab, setActiveTab } = useDashboard();
+  const { count } = useWatchlist();
 
   return (
     <aside className="sidebar">
@@ -44,7 +46,7 @@ export function Sidebar() {
         <div className="nav-group">
           <div className="nav-label">Signals</div>
           <div className={`nav-item ${activeTab === 'Technical' ? 'active' : ''}`} onClick={() => setActiveTab('Technical')}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg><span>Technical</span><span className="nav-badge">13</span></div>
-          <div className={`nav-item ${activeTab === 'Watchlist' ? 'active' : ''}`} onClick={() => setActiveTab('Watchlist')}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.7 7L12 17.3 5.7 20.9l1.7-7L2 9.2l7.1-.6z"/></svg><span>Watchlist</span><span className="nav-badge">1</span></div>
+          <div className={`nav-item ${activeTab === 'Watchlist' ? 'active' : ''}`} onClick={() => setActiveTab('Watchlist')}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.7 7L12 17.3 5.7 20.9l1.7-7L2 9.2l7.1-.6z"/></svg><span>Watchlist</span><span className="nav-badge">{count}</span></div>
         </div>
 
         <div className="nav-group">

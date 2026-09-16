@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useStocks } from '../../hooks/useStocks';
 import { CometCard } from '../ui/comet-card';
+import { StockLogo } from '../common/StockLogo';
 
 export function TopMoversWidget() {
   const [tab, setTab] = useState<'gainers'|'losers'>('gainers');
@@ -24,6 +25,7 @@ export function TopMoversWidget() {
             const flash = priceFlash.get(g.symbol);
             return (
             <div className="mover-row" key={g.symbol}>
+              <StockLogo symbol={g.symbol} name={g.name} size={22} style={{ marginRight: 6, flexShrink: 0 }} />
               <div className="mover-sym">{g.symbol}</div>
               <div className="mover-co">{g.name}</div>
               <svg className="spark" viewBox="0 0 52 22">

@@ -322,6 +322,17 @@ a {
   .watch-row:last-child{border-bottom:none;}
   .star{width:14px; height:14px; flex:none; color:var(--amber);}
 
+  /* Stock Logo Badges (TradingView Style) */
+  .stock-logo-circle {
+    box-sizing: border-box;
+    transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .watch-row:hover .stock-logo-circle,
+  .mover-row:hover .stock-logo-circle,
+  tbody tr:hover .stock-logo-circle {
+    transform: scale(1.08);
+  }
+
   /* ---------- TABLE ---------- */
   .table-card{padding:0; overflow:hidden;}
   .table-card .card-head{padding:16px 18px 12px; margin-bottom:0; border-bottom:1px solid var(--border-soft);}
