@@ -14,6 +14,7 @@ import {
 import type { StockData } from '../../types';
 import { formatVolume } from '../../utils/formatters';
 import { StockLogo } from '../common/StockLogo';
+import { isMarketOpen } from '../../utils/marketHours';
 
 export const TIMEFRAMES = ['1m', '5m', '15m', '1h', '1D', '1W', '1M'] as const;
 export type Timeframe = typeof TIMEFRAMES[number];
@@ -171,7 +172,6 @@ export function ChartPane({
     isMultiView ? ['volume'] : ['ema13', 'ema34', 'volume']
   ));
   const [hoverOhlc, setHoverOhlc]   = useState<Candle | null>(null);
-  const [tickPrice, setTickPrice]   = useState<number>(0);
 
   // Live stock data
   const currentStockData = useMemo(() => {
@@ -470,8 +470,9 @@ export function ChartPane({
     };
   }, [symbol, timeframe, range, loadChart]);
 
-  // Live real-time tick movement
+  // Live real-time tick movement (only during active market hours)
   useEffect(() => {
+    if (!isMarketOpen()) return;
     if (!candleRef.current || !currentStockData || currentStockData.price <= 0) return;
 
     const livePrice = currentStockData.price;
@@ -491,7 +492,6 @@ export function ChartPane({
     currentBar.low = updatedLow;
     currentBar.close = updatedClose;
     currentBar.volume = updatedVolume;
-    setTickPrice(livePrice);
 
     const isCandleUp = updatedClose >= currentBar.open;
     candleRef.current.applyOptions({
@@ -518,42 +518,6 @@ export function ChartPane({
       // Ignore boundary
     }
   }, [currentStockData.price, currentStockData.volume, activeInds, timeframe]);
-
-  // Micro-tick heartbeat loop
-  useEffect(() => {
-    if (!candleRef.current || !currentStockData || currentStockData.price <= 0) return;
-
-    const interval = setInterval(() => {
-      const currentBar = lastCandleRef.current;
-      if (!currentBar || !candleRef.current) return;
-
-      const maxDelta = Math.max(0.05, currentBar.close * 0.00025);
-      const delta = (Math.random() - 0.49) * maxDelta;
-      const microPrice = +(currentBar.close + delta).toFixed(2);
-
-      currentBar.high = Math.max(currentBar.high, microPrice);
-      currentBar.low = Math.min(currentBar.low, microPrice);
-      currentBar.close = microPrice;
-      setTickPrice(microPrice);
-
-      const isCandleUp = microPrice >= currentBar.open;
-      candleRef.current.applyOptions({
-        priceLineColor: isCandleUp ? '#089981' : '#f23645',
-      });
-
-      try {
-        candleRef.current.update({
-          time: currentBar.time as any,
-          open: currentBar.open,
-          high: currentBar.high,
-          low: currentBar.low,
-          close: currentBar.close,
-        });
-      } catch {}
-    }, 1200);
-
-    return () => clearInterval(interval);
-  }, [symbol]);
 
   // Dedicated separate RSI subpane
   useEffect(() => {
@@ -719,7 +683,7 @@ export function ChartPane({
 
   const currentLiveBar = lastCandleRef.current;
   const activeCandle   = hoverOhlc || currentLiveBar || (candles.length ? candles[candles.length - 1] : null);
-  const displayPrice   = hoverOhlc ? hoverOhlc.close : (tickPrice || currentStockData.price || activeCandle?.close || 0);
+  const displayPrice   = hoverOhlc ? hoverOhlc.close : (currentStockData.price || activeCandle?.close || 0);
 
   // Real % change relative to previous close
   const prevClose = useMemo(() => {

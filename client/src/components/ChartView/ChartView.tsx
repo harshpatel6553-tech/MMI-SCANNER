@@ -13,6 +13,7 @@ import {
   Range,
 } from './ChartPane';
 import { StockLogo } from '../common/StockLogo';
+import { isMarketOpen } from '../../utils/marketHours';
 
 export type LayoutMode = '1' | '2-vert' | '2-horiz' | '4-grid';
 
@@ -197,27 +198,51 @@ export function ChartView({ allStocks: propStocks }: ChartViewProps) {
 
         {/* Live Active Status Indicator */}
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{
-            fontSize: 10,
-            fontWeight: 700,
-            color: '#089981',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 5,
-            padding: '3px 9px',
-            borderRadius: 12,
-            background: 'rgba(8, 153, 129, 0.12)',
-          }}>
+          {isMarketOpen() ? (
             <span style={{
-              width: 6,
-              height: 6,
-              borderRadius: '50%',
-              background: '#089981',
-              boxShadow: '0 0 8px #089981',
-              display: 'inline-block',
-            }} />
-            MULTI-CHART REAL-TIME
-          </span>
+              fontSize: 10,
+              fontWeight: 700,
+              color: '#089981',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 5,
+              padding: '3px 9px',
+              borderRadius: 12,
+              background: 'rgba(8, 153, 129, 0.12)',
+            }}>
+              <span style={{
+                width: 6,
+                height: 6,
+                borderRadius: '50%',
+                background: '#089981',
+                boxShadow: '0 0 8px #089981',
+                display: 'inline-block',
+              }} />
+              LIVE MARKET STREAM
+            </span>
+          ) : (
+            <span style={{
+              fontSize: 10,
+              fontWeight: 700,
+              color: '#8b949e',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 5,
+              padding: '3px 9px',
+              borderRadius: 12,
+              background: 'rgba(139, 148, 158, 0.12)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+            }}>
+              <span style={{
+                width: 6,
+                height: 6,
+                borderRadius: '50%',
+                background: '#8b949e',
+                display: 'inline-block',
+              }} />
+              MARKET CLOSED (EOD SETTLED)
+            </span>
+          )}
         </div>
       </div>
 

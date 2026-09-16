@@ -3,6 +3,7 @@ import { useDashboard } from '../../contexts/DashboardContext';
 import { CommandSearch } from './CommandSearch';
 import type { StockData } from '../../types';
 import { ArrowRight } from 'lucide-react';
+import { isMarketOpen } from '../../utils/marketHours';
 
 interface TopbarProps {
   allStocks: StockData[];
@@ -47,6 +48,12 @@ export function Topbar({ allStocks }: TopbarProps) {
     return () => clearInterval(intv);
   }, []);
 
+  const [marketOpen, setMarketOpen] = useState(isMarketOpen());
+  useEffect(() => {
+    const intv = setInterval(() => setMarketOpen(isMarketOpen()), 10000);
+    return () => clearInterval(intv);
+  }, []);
+
   const headlines = [
     'LUPIN LIMITED enters exclusive license agreement with Visus Therapeutics for YUVEZZITM in Europe',
     'VIPUL ORGANICS commences production at greenfield facility in Sayakha, Gujarat',
@@ -67,7 +74,11 @@ export function Topbar({ allStocks }: TopbarProps) {
       </div>
       <CommandSearch items={searchItems} />
       <div className="topbar-right">
-        <div className="market-pill"><span className="dot-live"></span>Market Open</div>
+        {marketOpen ? (
+          <div className="market-pill"><span className="dot-live"></span>Market Open</div>
+        ) : (
+          <div className="market-pill closed"><span className="dot-closed"></span>Market Closed</div>
+        )}
         <div className="clock">{time}</div>
         <div className="icon-btn">
           <span className="badge"></span>
