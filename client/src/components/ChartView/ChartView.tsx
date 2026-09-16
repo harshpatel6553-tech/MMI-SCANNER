@@ -66,50 +66,6 @@ function calcEMA(data: Candle[], period: number): LineData[] {
   return out;
 }
 
-// Generate fallback synthetic candles when offline or backend unreachable
-function generateFallbackCandles(stock: StockData, count = 120): Candle[] {
-  const candles: Candle[] = [];
-  const now = Math.floor(Date.now() / 1000);
-  const step = 86400; // 1 day
-  let currentPrice = stock.previousClose || stock.price || 1000;
-  const high52 = stock.fiftyTwoWeekHigh || currentPrice * 1.3;
-  const low52 = stock.fiftyTwoWeekLow || currentPrice * 0.7;
-
-  for (let i = count; i >= 1; i--) {
-    const time = now - i * step;
-    const volatility = currentPrice * 0.015;
-    const change = (Math.sin(i * 0.2) + (Math.random() - 0.49)) * volatility;
-    const open = currentPrice;
-    currentPrice = Math.max(low52 * 0.9, Math.min(high52 * 1.1, open + change));
-    const high = Math.max(open, currentPrice) + Math.random() * volatility * 0.5;
-    const low = Math.min(open, currentPrice) - Math.random() * volatility * 0.5;
-    const volume = Math.floor((stock.averageVolume || 500000) * (0.6 + Math.random() * 0.8));
-
-    candles.push({
-      time,
-      open: +open.toFixed(2),
-      high: +high.toFixed(2),
-      low: +low.toFixed(2),
-      close: +currentPrice.toFixed(2),
-      volume,
-    });
-  }
-
-  // Last candle is the live stock price
-  if (stock.price > 0) {
-    candles.push({
-      time: now,
-      open: +(stock.open || stock.price).toFixed(2),
-      high: +(stock.dayHigh || stock.price).toFixed(2),
-      low: +(stock.dayLow || stock.price).toFixed(2),
-      close: +stock.price.toFixed(2),
-      volume: stock.volume || 100000,
-    });
-  }
-
-  return candles;
-}
-
 // ── Main Component ─────────────────────────────────────────────────────────────
 
 export function ChartView({ allStocks: propStocks }: ChartViewProps) {
@@ -146,6 +102,7 @@ export function ChartView({ allStocks: propStocks }: ChartViewProps) {
   const ema200Ref    = useRef<ISeriesApi<'Line'> | null>(null);
 
   const [loading, setLoading] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [candles, setCandles] = useState<Candle[]>([]);
   const [activeInds, setActiveInds] = useState<Set<string>>(new Set(['ema9', 'ema21', 'volume']));
   const [hoverOhlc, setHoverOhlc] = useState<Candle | null>(null);
@@ -208,10 +165,21 @@ export function ChartView({ allStocks: propStocks }: ChartViewProps) {
   // ── Apply Data to Chart ───────────────────────────────────────
   const applyData = useCallback((data: Candle[], inds: Set<string>) => {
     if (!candleRef.current || !data.length) return;
-    const sorted = [...data].sort((a, b) => a.time - b.time);
+
+    // Strict deduplication & sort
+    const sorted = [...data]
+      .map(d => ({ ...d, time: Math.floor(d.time) }))
+      .sort((a, b) => a.time - b.time);
+
+    const deduped: Candle[] = [];
+    for (let i = 0; i < sorted.length; i++) {
+      if (i === 0 || sorted[i].time > deduped[deduped.length - 1].time) {
+        deduped.push(sorted[i]);
+      }
+    }
 
     candleRef.current.setData(
-      sorted.map(d => ({
+      deduped.map(d => ({
         time: d.time as any,
         open: d.open,
         high: d.high,
@@ -222,7 +190,7 @@ export function ChartView({ allStocks: propStocks }: ChartViewProps) {
 
     if (inds.has('volume') && volumeRef.current) {
       volumeRef.current.setData(
-        sorted.map(d => ({
+        deduped.map(d => ({
           time: d.time as any,
           value: d.volume,
           color: d.close >= d.open ? 'rgba(8, 153, 129, 0.45)' : 'rgba(242, 54, 69, 0.45)',
@@ -233,7 +201,7 @@ export function ChartView({ allStocks: propStocks }: ChartViewProps) {
     }
 
     const setEma = (ref: React.MutableRefObject<ISeriesApi<'Line'> | null>, key: string, period: number) => {
-      ref.current?.setData(inds.has(key) ? calcEMA(sorted, period) : []);
+      ref.current?.setData(inds.has(key) ? calcEMA(deduped, period) : []);
     };
     setEma(ema9Ref,   'ema9',   9);
     setEma(ema21Ref,  'ema21',  21);
@@ -241,59 +209,57 @@ export function ChartView({ allStocks: propStocks }: ChartViewProps) {
     setEma(ema200Ref, 'ema200', 200);
 
     chartRef.current?.timeScale().fitContent();
-    setHoverOhlc(sorted[sorted.length - 1]);
+    setHoverOhlc(deduped[deduped.length - 1]);
   }, []);
 
-  // ── Fetch Chart Candles ──────────────────────────────────────
+  // ── Fetch Accurate Real Candles ──────────────────────────────
   const loadChart = useCallback(async (sym: string, timeframe: string, rangeOverride?: string) => {
     setLoading(true);
+    setFetchError(null);
     const cleanSym = sym.replace('.NS', '').toUpperCase();
     const apiBase = getApiBase();
 
-    try {
-      const params = new URLSearchParams({ tf: timeframe });
-      if (rangeOverride) params.set('range', rangeOverride);
+    const endpoints = [
+      // 1. Vercel serverless function endpoint
+      `/api/chart?symbol=${cleanSym}&tf=${timeframe}${rangeOverride ? `&range=${rangeOverride}` : ''}`,
+      // 2. Vite local proxy or Express backend
+      `/api/stocks/chart/${cleanSym}?tf=${timeframe}${rangeOverride ? `&range=${rangeOverride}` : ''}`,
+      // 3. Absolute backend URL
+      `${apiBase}/api/stocks/chart/${cleanSym}?tf=${timeframe}${rangeOverride ? `&range=${rangeOverride}` : ''}`,
+    ];
 
-      // Attempt 1: Fetch via resolved backend API
-      let res = await fetch(`${apiBase}/api/stocks/chart/${cleanSym}?${params}`, {
-        signal: AbortSignal.timeout(5000),
-      }).catch(() => null);
+    let candlesResult: Candle[] | null = null;
 
-      // Attempt 2: Fallback to relative path if attempt 1 was cross-origin or failed
-      if (!res || !res.ok || (res.headers.get('content-type') || '').includes('text/html')) {
-        res = await fetch(`/api/stocks/chart/${cleanSym}?${params}`, {
-          signal: AbortSignal.timeout(4000),
-        }).catch(() => null);
-      }
-
-      if (res && res.ok && !(res.headers.get('content-type') || '').includes('text/html')) {
-        const json = await res.json();
-        if (json.candles && json.candles.length > 0) {
-          setCandles(json.candles);
-          applyData(json.candles, activeInds);
-          setLoading(false);
-          return;
+    for (const url of endpoints) {
+      try {
+        const res = await fetch(url, { signal: AbortSignal.timeout(6000) });
+        const ctype = res.headers.get('content-type') || '';
+        if (res.ok && ctype.includes('application/json')) {
+          const json = await res.json();
+          if (json.candles && json.candles.length > 0) {
+            candlesResult = json.candles;
+            break;
+          }
         }
+      } catch (err) {
+        // Continue to next endpoint
       }
+    }
 
-      throw new Error('No remote candle data');
-    } catch (e) {
-      console.warn('[ChartView] Using high-fidelity synthetic live candles for', cleanSym);
-      // Fallback: Generate real-time responsive synthetic candles so chart is NEVER blank
-      const stockObj = liveStocks.find(s => s.symbol.toUpperCase() === cleanSym) || currentStockData;
-      const fallback = generateFallbackCandles(stockObj, timeframe === '1m' || timeframe === '5m' ? 60 : 150);
-      setCandles(fallback);
-      applyData(fallback, activeInds);
-    } finally {
+    if (candlesResult && candlesResult.length > 0) {
+      setCandles(candlesResult);
+      applyData(candlesResult, activeInds);
+      setLoading(false);
+    } else {
+      setFetchError(`Real-time candlestick data for ${cleanSym} is connecting. Click retry or check server.`);
       setLoading(false);
     }
-  }, [applyData, activeInds, liveStocks, currentStockData]);
+  }, [applyData, activeInds]);
 
   // ── Initialize Lightweight Charts Engine ───────────────────────
   useEffect(() => {
     if (!containerRef.current) return;
 
-    // Clean previous
     if (chartRef.current) {
       chartRef.current.remove();
       chartRef.current = null;
@@ -317,19 +283,23 @@ export function ChartView({ allStocks: propStocks }: ChartViewProps) {
       },
       rightPriceScale: {
         borderColor: '#21262d',
-        scaleMargins: { top: 0.08, bottom: 0.22 },
+        scaleMargins: {
+          top: 0.1,    // 10% headroom at the top
+          bottom: 0.25, // 25% margin at bottom so volume does not collide with candles
+        },
       },
       timeScale: {
         borderColor: '#21262d',
         timeVisible: true,
         secondsVisible: false,
       },
-      handleScroll:  { mouseWheel: true, pressedMouseMove: true },
-      handleScale:   { mouseWheel: true, pinch: true, axisPressedMouseMove: true },
+      handleScroll: { mouseWheel: true, pressedMouseMove: true },
+      handleScale:  { mouseWheel: true, pinch: true, axisPressedMouseMove: true },
       width:  containerRef.current.clientWidth || 800,
       height: containerRef.current.clientHeight || 500,
     });
 
+    // Candlestick series
     candleRef.current = chart.addCandlestickSeries({
       upColor: '#089981',
       downColor: '#f23645',
@@ -339,9 +309,17 @@ export function ChartView({ allStocks: propStocks }: ChartViewProps) {
       wickDownColor: '#f23645',
     });
 
+    // Volume series with dedicated volume price scale margins (bottom 20% only!)
     volumeRef.current = chart.addHistogramSeries({
       priceFormat: { type: 'volume' },
-      priceScaleId: '',
+      priceScaleId: 'vol_scale',
+    });
+
+    chart.priceScale('vol_scale').applyOptions({
+      scaleMargins: {
+        top: 0.8, // 80% empty at the top, volume occupies only bottom 20%
+        bottom: 0,
+      },
     });
 
     const lineOpts = (color: string, width: 1 | 2 = 1) => ({
@@ -392,7 +370,7 @@ export function ChartView({ allStocks: propStocks }: ChartViewProps) {
     };
   }, [currentSymbol, tf]);
 
-  // ── Live Real-Time Tick Updates to Candlestick Series ─────────
+  // ── Real-time live tick update to current bar ─────────────────
   useEffect(() => {
     if (!candleRef.current || !currentStockData || currentStockData.price <= 0 || !candles.length) return;
 
@@ -414,7 +392,7 @@ export function ChartView({ allStocks: propStocks }: ChartViewProps) {
         close: updatedCandle.close,
       });
     } catch {
-      // Ignore update timing mismatch
+      // Ignore timing boundary updates
     }
   }, [currentStockData.price]);
 
@@ -616,7 +594,7 @@ export function ChartView({ allStocks: propStocks }: ChartViewProps) {
               </span>
               <span style={{ fontSize: 10, color: '#089981', display: 'flex', alignItems: 'center', gap: 4 }}>
                 <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#089981', display: 'inline-block' }} />
-                0-DELAY LIVE FEED
+                LIVE ACCURATE NSE DATA
               </span>
             </div>
           </div>
@@ -627,7 +605,19 @@ export function ChartView({ allStocks: propStocks }: ChartViewProps) {
             {loading && (
               <div style={styles.loadingOverlay}>
                 <div style={styles.spinner} />
-                <span style={{ color: '#8b949e', fontSize: 13 }}>Loading real-time market data…</span>
+                <span style={{ color: '#8b949e', fontSize: 13 }}>Loading accurate NSE candlestick data…</span>
+              </div>
+            )}
+            {fetchError && (
+              <div style={styles.errorOverlay}>
+                <span style={{ fontSize: 14, color: '#f23645', fontWeight: 600 }}>⚠️ Connection Error</span>
+                <span style={{ fontSize: 12, color: '#8b949e', maxWidth: 360, textAlign: 'center' }}>{fetchError}</span>
+                <button
+                  onClick={() => loadChart(currentSymbol, tf, range)}
+                  style={styles.retryBtn}
+                >
+                  ↻ Retry Loading Data
+                </button>
               </div>
             )}
           </div>
@@ -990,6 +980,28 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: 'center',
     gap: 12,
     zIndex: 10,
+  },
+  errorOverlay: {
+    position: 'absolute',
+    inset: 0,
+    background: 'rgba(13,17,23,0.92)',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    zIndex: 10,
+  },
+  retryBtn: {
+    background: '#1f6feb',
+    border: 'none',
+    color: '#fff',
+    borderRadius: 6,
+    padding: '8px 16px',
+    fontSize: 12,
+    fontWeight: 600,
+    cursor: 'pointer',
+    marginTop: 6,
   },
   spinner: {
     width: 32,
