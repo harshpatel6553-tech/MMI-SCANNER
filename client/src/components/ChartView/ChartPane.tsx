@@ -200,6 +200,10 @@ export function ChartPane({
     };
   }, [liveStocks, symbol]);
 
+  const loadRequestIdRef = useRef<number>(0);
+  const activeIndsRef = useRef<Set<string>>(activeInds);
+  activeIndsRef.current = activeInds;
+
   // Apply data to series
   const applyData = useCallback((rawCandles: Candle[], inds: Set<string>) => {
     if (!candleRef.current) return;
@@ -264,77 +268,80 @@ export function ChartPane({
     setTimeout(() => {
       chartRef.current?.timeScale().fitContent();
     }, 60);
+    setTimeout(() => {
+      chartRef.current?.timeScale().fitContent();
+    }, 250);
   }, []);
 
-  // Fetch real candles from API
+  // Fetch real candles from API with rock-solid universal fallback
   const loadChart = useCallback(async (sym: string, tfVal: string, rangeVal?: string) => {
+    if (!sym) return;
+    const cleanSym = sym.replace('.NS', '').toUpperCase();
+    const thisReqId = ++loadRequestIdRef.current;
+
     setLoading(true);
     setFetchError(null);
-    const cleanSym = sym.replace('.NS', '').toUpperCase();
-    const apiBase = getApiBase();
+    setHoverOhlc(null);
 
-    // Directly use the working backend endpoint without hanging aliases
-    const endpoints = [
-      `/api/stocks/chart/${cleanSym}?tf=${tfVal}${rangeVal ? `&range=${rangeVal}` : ''}`,
-      `${apiBase}/api/stocks/chart/${cleanSym}?tf=${tfVal}${rangeVal ? `&range=${rangeVal}` : ''}`,
+    const apiBase = getApiBase();
+    const query = `tf=${encodeURIComponent(tfVal)}${rangeVal ? `&range=${encodeURIComponent(rangeVal)}` : ''}`;
+
+    const candidateUrls = [
+      `/api/stocks/chart/${cleanSym}?${query}`,
+      `http://localhost:5000/api/stocks/chart/${cleanSym}?${query}`,
+      `${apiBase}/api/stocks/chart/${cleanSym}?${query}`,
     ];
+    if (typeof window !== 'undefined' && window.location.hostname && window.location.hostname !== 'localhost') {
+      candidateUrls.push(`${window.location.protocol}//${window.location.hostname}:5000/api/stocks/chart/${cleanSym}?${query}`);
+    }
+    const endpoints = Array.from(new Set(candidateUrls));
 
     let candlesResult: Candle[] | null = null;
 
     for (const url of endpoints) {
+      let timer: any = null;
       try {
-        const res = await fetch(url, { signal: AbortSignal.timeout(6000) });
-        const ctype = res.headers.get('content-type') || '';
-        if (res.ok && ctype.includes('application/json')) {
-          const json = await res.json();
-          if (json.candles && json.candles.length > 0) {
-            candlesResult = json.candles;
-            break;
+        const controller = new AbortController();
+        timer = setTimeout(() => controller.abort(), 8000);
+        const res = await fetch(url, { signal: controller.signal });
+        clearTimeout(timer);
+
+        if (res.ok) {
+          const ctype = res.headers.get('content-type') || '';
+          if (ctype.includes('application/json')) {
+            const json = await res.json();
+            if (Array.isArray(json.candles) && json.candles.length > 0) {
+              candlesResult = json.candles;
+              break;
+            }
           }
         }
       } catch {
+        if (timer) clearTimeout(timer);
         // try next endpoint
       }
     }
 
+    // Ignore if a newer request was issued in the meantime
+    if (thisReqId !== loadRequestIdRef.current) return;
+
     if (candlesResult && candlesResult.length > 0) {
-      applyData(candlesResult, activeInds);
+      applyData(candlesResult, activeIndsRef.current);
       setLoading(false);
       setFetchError(null);
+      requestAnimationFrame(() => {
+        chartRef.current?.timeScale().fitContent();
+      });
+      setTimeout(() => chartRef.current?.timeScale().fitContent(), 60);
+      setTimeout(() => chartRef.current?.timeScale().fitContent(), 250);
     } else {
-      // Check if we have live stock data in memory to prevent blocking error screens
-      const live = liveStocks.find(s => s.symbol.toUpperCase() === cleanSym);
-      if (live && live.price > 0) {
-        const now = Math.floor(Date.now() / 1000);
-        const prevPrice = live.previousClose > 0 ? live.previousClose : live.price;
-        const openPrice = live.open > 0 ? live.open : live.price;
-        const fallbackBars: Candle[] = [
-          {
-            time: now - 86400,
-            open: prevPrice,
-            high: Math.max(prevPrice, openPrice),
-            low: Math.min(prevPrice, openPrice),
-            close: prevPrice,
-            volume: 0,
-          },
-          {
-            time: now,
-            open: openPrice,
-            high: Math.max(openPrice, live.dayHigh || live.price),
-            low: Math.min(openPrice, live.dayLow || live.price),
-            close: live.price,
-            volume: live.volume || 0,
-          }
-        ];
-        applyData(fallbackBars, activeInds);
-        setLoading(false);
-        setFetchError(null);
-      } else {
-        setFetchError(`Connecting to live market stream for ${cleanSym}...`);
-        setLoading(false);
+      setLoading(false);
+      // NEVER overwrite candles with fake 2-bar mocks!
+      if (candlesRef.current.length === 0) {
+        setFetchError(`Historical candles temporarily unavailable for ${cleanSym}. Tap to retry.`);
       }
     }
-  }, [applyData, activeInds]);
+  }, [applyData]);
 
   // Initialize main chart
   useEffect(() => {
@@ -461,7 +468,7 @@ export function ChartPane({
       chart.remove();
       chartRef.current = null;
     };
-  }, [symbol, timeframe]);
+  }, [symbol, timeframe, range, loadChart]);
 
   // Live real-time tick movement
   useEffect(() => {
