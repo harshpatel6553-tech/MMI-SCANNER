@@ -396,6 +396,12 @@ export function ChartPane({
       // NEVER overwrite candles with fake 2-bar mocks!
       if (candlesRef.current.length === 0) {
         setFetchError(`Historical candles temporarily unavailable for ${cleanSym}. Tap to retry.`);
+        // Automatically retry once after 3 seconds in case backend was briefly restarting
+        setTimeout(() => {
+          if (loadRequestIdRef.current === thisReqId && candlesRef.current.length === 0) {
+            loadChart(cleanSym, tfVal, rangeVal);
+          }
+        }, 3000);
       }
     }
   }, [applyData]);
@@ -1062,16 +1068,25 @@ export function ChartPane({
             <span style={{ fontSize: 13, color: '#f23645', fontWeight: 600 }}>⚠️ Connection Notice</span>
             <span style={{ fontSize: 11, color: '#8b949e', maxWidth: 280, textAlign: 'center' }}>{fetchError}</span>
             <button
-              onClick={(e) => { e.stopPropagation(); loadChart(symbol, timeframe, range); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setFetchError(null);
+                setLoading(true);
+                loadChart(symbol, timeframe, range);
+              }}
               style={{
                 background: '#1f6feb',
                 border: 'none',
                 color: '#fff',
                 borderRadius: 5,
-                padding: '4px 10px',
+                padding: '6px 14px',
                 fontSize: 11,
                 fontWeight: 600,
                 cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 5,
+                transition: 'all 0.15s ease',
               }}
             >
               ↻ Reconnect
