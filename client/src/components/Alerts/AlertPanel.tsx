@@ -8,15 +8,21 @@ interface AlertPanelProps {
   onClearAll: () => void;
 }
 
+function isIndexSymbol(symbol: string): boolean {
+  return symbol.includes('NIFTY') || symbol === 'BANKNIFTY';
+}
+
 export function AlertPanel({ alerts, onClearAll }: AlertPanelProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [filter, setFilter] = useState<'ALL' | 'HIGH' | 'LOW' | 'NEWS' | 'SPIKE'>('ALL');
+  const [filter, setFilter] = useState<'ALL' | 'INDICES' | 'HIGH' | 'LOW' | 'NEWS' | 'SPIKE'>('ALL');
 
   const [searchQuery, setSearchQuery] = useState('');
 
   const filteredAlerts = useMemo(() => {
     return alerts.filter(a => {
-      if (filter !== 'ALL') {
+      if (filter === 'INDICES') {
+        if (!isIndexSymbol(a.symbol)) return false;
+      } else if (filter !== 'ALL') {
         const typeLabel = a.alertType === 'DAY_HIGH' ? 'HIGH' : a.alertType === 'DAY_LOW' ? 'LOW' : a.alertType === 'NEWS' ? 'NEWS' : 'SPIKE';
         if (typeLabel !== filter) return false;
       }
@@ -31,8 +37,9 @@ export function AlertPanel({ alerts, onClearAll }: AlertPanelProps) {
   }, [alerts, filter, searchQuery]);
 
   const counts = useMemo(() => {
-    const c = { ALL: alerts.length, HIGH: 0, LOW: 0, NEWS: 0, SPIKE: 0 };
+    const c = { ALL: alerts.length, INDICES: 0, HIGH: 0, LOW: 0, NEWS: 0, SPIKE: 0 };
     alerts.forEach(a => {
+      if (isIndexSymbol(a.symbol)) c.INDICES++;
       if (a.alertType === 'DAY_HIGH') c.HIGH++;
       else if (a.alertType === 'DAY_LOW') c.LOW++;
       else if (a.alertType === 'NEWS') c.NEWS++;
@@ -77,6 +84,11 @@ export function AlertPanel({ alerts, onClearAll }: AlertPanelProps) {
               <button className={`filter-chip ${filter === 'ALL' ? 'active' : ''}`} onClick={() => setFilter('ALL')}>
                 ALL {counts.ALL}
               </button>
+              {counts.INDICES > 0 && (
+                <button className={`filter-chip ${filter === 'INDICES' ? 'active' : ''}`} onClick={() => setFilter('INDICES')} style={{ borderColor: filter === 'INDICES' ? '#f59e0b' : undefined }}>
+                  📊 INDICES {counts.INDICES}
+                </button>
+              )}
               {counts.HIGH > 0 && (
                 <button className={`filter-chip ${filter === 'HIGH' ? 'active' : ''}`} onClick={() => setFilter('HIGH')}>
                   HIGH {counts.HIGH}
@@ -154,7 +166,14 @@ export function AlertPanel({ alerts, onClearAll }: AlertPanelProps) {
                         <span className="alert-time">{formatTime(alert.createdAt)}</span>
                       </div>
                       <div className="alert-bottom">
-                        <span className="alert-sym">{alert.symbol}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span className="alert-sym">{alert.symbol}</span>
+                          {isIndexSymbol(alert.symbol) && (
+                            <span style={{ fontSize: '9px', fontWeight: 700, padding: '1px 5px', borderRadius: '4px', background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                              INDEX
+                            </span>
+                          )}
+                        </div>
                         {isNews ? (
                           <span className="alert-news" title={alert.name}>{alert.name}</span>
                         ) : (

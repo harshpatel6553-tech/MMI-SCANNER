@@ -37,6 +37,10 @@ class AlertService {
     return `${hash.substring(0, 8)}-${hash.substring(8, 12)}-4${hash.substring(13, 16)}-a${hash.substring(17, 20)}-${hash.substring(20, 32)}`;
   }
 
+  /** Cooldown in ms before the same symbol can re-alert (5 min for indices, 10 min for stocks) */
+  private readonly INDEX_ALERT_COOLDOWN_MS = 5 * 60 * 1000;   // 5 minutes
+  private readonly STOCK_ALERT_COOLDOWN_MS = 10 * 60 * 1000;  // 10 minutes
+
   checkAndGenerateAlerts(stocks: StockData[]): StockAlert[] {
     const newAlerts: StockAlert[] = [];
     const now = new Date().toISOString();
@@ -44,6 +48,9 @@ class AlertService {
     const currentMs = Date.now();
 
     for (const stock of stocks) {
+      const isIndex = stock.indexName === 'INDEX';
+      const cooldownMs = isIndex ? this.INDEX_ALERT_COOLDOWN_MS : this.STOCK_ALERT_COOLDOWN_MS;
+
       if (!this.previousHighLowState.has(stock.symbol)) {
         this.previousHighLowState.set(stock.symbol, {
           atHigh: stock.atDayHigh,
@@ -55,16 +62,57 @@ class AlertService {
           volumeSpiked: stock.volumeSpike,
           lastAlertTime: 0,
         });
+        // For indices: fire initial alert immediately if already at day high/low
+        if (isIndex) {
+          if (stock.atDayHigh) {
+            const alertId = this.generateDeterministicUUID(`${stock.symbol}_DAY_HIGH_${dayTimestamp}_INIT_${currentMs}`);
+            const alert: StockAlert = {
+              id: alertId,
+              symbol: stock.symbol,
+              name: stock.name,
+              alertType: 'DAY_HIGH',
+              price: stock.price,
+              change: stock.change,
+              changePercent: stock.changePercent,
+              createdAt: now,
+            };
+            newAlerts.push(alert);
+            this.previousHighLowState.get(stock.symbol)!.lastAlertTime = currentMs;
+            logger.info(`🚀 INDEX DAY HIGH ALERT: ${stock.symbol} at ₹${stock.price.toFixed(2)} (day high: ₹${stock.dayHigh.toFixed(2)})`);
+          } else if (stock.atDayLow) {
+            const alertId = this.generateDeterministicUUID(`${stock.symbol}_DAY_LOW_${dayTimestamp}_INIT_${currentMs}`);
+            const alert: StockAlert = {
+              id: alertId,
+              symbol: stock.symbol,
+              name: stock.name,
+              alertType: 'DAY_LOW',
+              price: stock.price,
+              change: stock.change,
+              changePercent: stock.changePercent,
+              createdAt: now,
+            };
+            newAlerts.push(alert);
+            this.previousHighLowState.get(stock.symbol)!.lastAlertTime = currentMs;
+            logger.info(`📉 INDEX DAY LOW ALERT: ${stock.symbol} at ₹${stock.price.toFixed(2)} (day low: ₹${stock.dayLow.toFixed(2)})`);
+          }
+        }
         continue;
       }
 
       const previousState = this.previousHighLowState.get(stock.symbol)!;
+      const timeSinceLastAlert = currentMs - previousState.lastAlertTime;
+      const cooldownExpired = timeSinceLastAlert >= cooldownMs;
 
       let triggeredAlert = false;
 
-      // BULLETPROOF DETECTOR: Trigger alert if it hits a strictly NEW high, OR if it bounces back to a previous high after a dip.
-      // This catches BOTH continuous upward grinding AND pull-back bounces perfectly.
-      const isNewHighValue = stock.atDayHigh && (!previousState.atHigh || stock.price > previousState.maxPriceSeenToday);
+      // DAY HIGH detection:
+      // - For stocks: fire on strict new price max (transition guard)
+      // - For indices: fire once on initial detection, then only after cooldown expires
+      const isNewHighValue = stock.atDayHigh && (
+        isIndex
+          ? (!previousState.atHigh || cooldownExpired)   // index: cooldown-based only
+          : (!previousState.atHigh || stock.price > previousState.maxPriceSeenToday) // stock: new-max
+      );
       
       if (isNewHighValue) {
         const alertId = this.generateDeterministicUUID(`${stock.symbol}_DAY_HIGH_${dayTimestamp}_${currentMs}`);
@@ -80,13 +128,21 @@ class AlertService {
         };
         newAlerts.push(alert);
         triggeredAlert = true;
-        logger.info(
-          `🚀 DAY HIGH ALERT: ${stock.symbol} (${stock.name}) hit day high of ₹${stock.price.toFixed(2)}`
-        );
+        if (isIndex) {
+          logger.info(`🚀 INDEX DAY HIGH ALERT: ${stock.symbol} at ₹${stock.price.toFixed(2)} (day high: ₹${stock.dayHigh.toFixed(2)})`);
+        } else {
+          logger.info(`🚀 DAY HIGH ALERT: ${stock.symbol} (${stock.name}) hit day high of ₹${stock.price.toFixed(2)}`);
+        }
       }
 
-      // BULLETPROOF DETECTOR: Trigger if at a strictly NEW low, OR if it bounces back to a previous low
-      const isNewLowValue = stock.atDayLow && (!previousState.atLow || stock.price < previousState.minPriceSeenToday);
+      // DAY LOW detection:
+      // - For stocks: fire on strict new price min (transition guard)
+      // - For indices: fire once on initial detection, then only after cooldown expires
+      const isNewLowValue = stock.atDayLow && (
+        isIndex
+          ? (!previousState.atLow || cooldownExpired)    // index: cooldown-based only
+          : (!previousState.atLow || stock.price < previousState.minPriceSeenToday) // stock: new-min
+      );
       
       if (isNewLowValue && !triggeredAlert) {
         const alertId = this.generateDeterministicUUID(`${stock.symbol}_DAY_LOW_${dayTimestamp}_${currentMs}`);
@@ -102,13 +158,15 @@ class AlertService {
         };
         newAlerts.push(alert);
         triggeredAlert = true;
-        logger.info(
-          `🚀 DAY LOW ALERT: ${stock.symbol} (${stock.name}) broke down to new low of ₹${stock.price.toFixed(2)}`
-        );
+        if (isIndex) {
+          logger.info(`📉 INDEX DAY LOW ALERT: ${stock.symbol} at ₹${stock.price.toFixed(2)} (day low: ₹${stock.dayLow.toFixed(2)})`);
+        } else {
+          logger.info(`🚀 DAY LOW ALERT: ${stock.symbol} (${stock.name}) broke down to new low of ₹${stock.price.toFixed(2)}`);
+        }
       }
 
-      // Detect VOLUME_SPIKE transition
-      if (stock.volumeSpike === true && previousState.volumeSpiked === false && !triggeredAlert) {
+      // Detect VOLUME_SPIKE transition (stocks only — indices have no meaningful volume)
+      if (!isIndex && stock.volumeSpike === true && previousState.volumeSpiked === false && !triggeredAlert) {
         const alertId = this.generateDeterministicUUID(`${stock.symbol}_VOLUME_SPIKE_${dayTimestamp}_${currentMs}`);
         const alert: StockAlert = {
           id: alertId,

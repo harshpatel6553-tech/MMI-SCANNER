@@ -312,8 +312,11 @@ class StockService {
         const dayLow: number = meta.regularMarketDayLow ?? price;
         const prevClose: number = meta.previousClose ?? meta.chartPreviousClose ?? price;
         
-        const atDayHigh = dayHigh > 0 && price > 0 && price >= dayHigh;
-        const atDayLow = dayLow > 0 && price > 0 && price <= dayLow;
+        // For indices, use a 0.15% proximity tolerance since they rarely touch the exact tick high/low.
+        // A stock at 0.15% from its day high/low is effectively "at" that level for alerting purposes.
+        const INDEX_PROXIMITY_PCT = 0.0015; // 0.15%
+        const atDayHigh = dayHigh > 0 && price > 0 && price >= dayHigh * (1 - INDEX_PROXIMITY_PCT);
+        const atDayLow  = dayLow  > 0 && price > 0 && price <= dayLow  * (1 + INDEX_PROXIMITY_PCT);
 
         const change = price - prevClose;
         const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;

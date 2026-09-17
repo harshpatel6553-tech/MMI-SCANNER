@@ -36,9 +36,14 @@ function getIcon(alertType: StockAlert['alertType']): string {
   return '⚡';
 }
 
-function getToastTitle(alertType: StockAlert['alertType']): string {
-  if (alertType === 'DAY_HIGH') return 'Day High Hit';
-  if (alertType === 'DAY_LOW') return 'Day Low Hit';
+function isIndexSymbol(symbol: string): boolean {
+  return symbol.includes('NIFTY') || symbol === 'BANKNIFTY';
+}
+
+function getToastTitle(alertType: StockAlert['alertType'], symbol?: string): string {
+  const isIdx = symbol ? isIndexSymbol(symbol) : false;
+  if (alertType === 'DAY_HIGH') return isIdx ? 'Index Day High' : 'Day High Hit';
+  if (alertType === 'DAY_LOW') return isIdx ? 'Index Day Low' : 'Day Low Hit';
   if (alertType === 'NEWS') return 'News Alert';
   return 'Volume Spike';
 }
@@ -64,9 +69,16 @@ export function AlertToast({ toasts, onDismiss }: AlertToastProps) {
                 
                 <div className="flex-1 flex flex-col gap-1">
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-sm tracking-wide">
-                      {getToastTitle(toast.alertType)}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-bold text-sm tracking-wide">
+                        {getToastTitle(toast.alertType, toast.symbol)}
+                      </span>
+                      {isIndexSymbol(toast.symbol) && (
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 uppercase tracking-wider">
+                          INDEX
+                        </span>
+                      )}
+                    </div>
                     <span className="text-[10px] font-medium opacity-60">
                       {formatTime(toast.createdAt)}
                     </span>
