@@ -1,0 +1,291 @@
+/* Pine Script Studio Styles */
+
+.pine-studio-drawer {
+  width: 100%;
+  height: 320px;
+  background: #0d0f14;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  z-index: 50;
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.5);
+  font-family: 'Outfit', sans-serif;
+  overflow: hidden;
+}
+
+.pine-studio-header {
+  height: 40px;
+  min-height: 40px;
+  background: #11131a;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  gap: 10px;
+}
+
+.pine-studio-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pine-tab-btn {
+  background: transparent;
+  border: none;
+  color: #8b949e;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.pine-tab-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.pine-tab-btn.active {
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.12);
+  border-bottom: 2px solid #10b981;
+  border-radius: 4px 4px 0 0;
+}
+
+.pine-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pine-template-select {
+  background: #161a23;
+  color: #d1d5db;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 11px;
+  outline: none;
+  cursor: pointer;
+  max-width: 220px;
+}
+
+.pine-btn-primary {
+  background: #10b981;
+  color: #000000;
+  font-weight: 700;
+  font-size: 11px;
+  padding: 5px 12px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: opacity 0.15s;
+}
+
+.pine-btn-primary:hover {
+  opacity: 0.9;
+}
+
+.pine-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pine-btn-secondary {
+  background: rgba(255, 255, 255, 0.06);
+  color: #c9d1d9;
+  font-weight: 600;
+  font-size: 11px;
+  padding: 5px 10px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.pine-btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+.pine-close-btn {
+  background: transparent;
+  border: none;
+  color: #6e7681;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pine-close-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.pine-body {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* Editor Tab */
+.pine-editor-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  background: #090b0e;
+}
+
+.pine-editor-textarea {
+  flex: 1;
+  width: 100%;
+  background: transparent;
+  color: #e6edf3;
+  font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  padding: 12px 16px;
+  border: none;
+  outline: none;
+  resize: none;
+  white-space: pre;
+  tab-size: 4;
+}
+
+.pine-error-banner {
+  background: rgba(239, 68, 68, 0.15);
+  border-top: 1px solid #ef4444;
+  color: #fca5a5;
+  font-size: 11px;
+  font-family: monospace;
+  padding: 6px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Strategy Tester Tab */
+.pine-tester-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  padding: 10px 14px;
+  gap: 10px;
+}
+
+.pine-scorecards-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+}
+
+.pine-card {
+  background: #131720;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 6px;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pine-card-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #8b949e;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.pine-card-value {
+  font-family: 'Space Grotesk', monospace;
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.pine-card-value.green {
+  color: #10b981;
+}
+
+.pine-card-value.red {
+  color: #ef4444;
+}
+
+.pine-trades-table-wrap {
+  flex: 1;
+  overflow: auto;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  background: #0d1017;
+}
+
+.pine-trades-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  text-align: left;
+}
+
+.pine-trades-table th {
+  position: sticky;
+  top: 0;
+  background: #161b22;
+  color: #8b949e;
+  font-weight: 600;
+  padding: 6px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.pine-trades-table td {
+  padding: 5px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  color: #c9d1d9;
+  font-family: 'Space Grotesk', monospace;
+}
+
+.pine-trades-table tr:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* Console Logs Tab */
+.pine-console-container {
+  flex: 1;
+  padding: 12px 16px;
+  overflow-y: auto;
+  background: #090b0e;
+  font-family: monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  color: #8b949e;
+}
+
+.pine-log-entry {
+  padding: 2px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+}
+
+.pine-log-entry.error {
+  color: #ef4444;
+}

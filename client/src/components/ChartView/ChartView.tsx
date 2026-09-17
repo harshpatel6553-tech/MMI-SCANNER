@@ -11,7 +11,10 @@ import {
   ChartSlot,
   Timeframe,
   Range,
+  Candle,
 } from './ChartPane';
+import { PineStudio } from './PineStudio';
+import type { PineExecutionResult } from '../../utils/pineRunner';
 import { StockLogo } from '../common/StockLogo';
 import { isMarketOpen } from '../../utils/marketHours';
 
@@ -48,6 +51,11 @@ export function ChartView({ allStocks: propStocks }: ChartViewProps) {
   const [showSearchDrop, setShowSearchDrop] = useState(false);
   const [watchSearch, setWatchSearch]   = useState('');
   const [activeTool, setActiveTool]     = useState<string>('crosshair');
+
+  // Pine Script Studio & Strategy State
+  const [isPineStudioOpen, setIsPineStudioOpen] = useState(false);
+  const [activeCandles, setActiveCandles]       = useState<Candle[]>([]);
+  const [pineResult, setPineResult]             = useState<PineExecutionResult | null>(null);
 
   // Sync external chartSymbol into active slot
   useEffect(() => {
@@ -194,6 +202,36 @@ export function ChartView({ allStocks: propStocks }: ChartViewProps) {
           >
             [ 4 ⊞ ]
           </button>
+
+          {/* Pine Script Studio Toggle Button */}
+          <button
+            title="Pine Script Studio (Indicators & Strategies)"
+            style={{
+              ...styles.layoutBtn,
+              ...(isPineStudioOpen ? styles.layoutBtnActive : {}),
+              display: 'flex',
+              alignItems: 'center',
+              gap: 5,
+              padding: '4px 10px',
+              marginLeft: 8,
+              color: isPineStudioOpen ? '#10b981' : '#c9d1d9',
+              borderColor: isPineStudioOpen ? '#10b981' : undefined,
+              background: isPineStudioOpen ? 'rgba(16, 185, 129, 0.12)' : undefined,
+            }}
+            onClick={() => setIsPineStudioOpen(prev => !prev)}
+          >
+            <span>🌲</span>
+            <span style={{ fontSize: 11, fontWeight: 700 }}>Pine Script</span>
+            {pineResult && (pineResult.plots.length > 0 || pineResult.markers.length > 0) && (
+              <span style={{
+                width: 6,
+                height: 6,
+                borderRadius: '50%',
+                background: '#10b981',
+                boxShadow: '0 0 6px #10b981',
+              }} />
+            )}
+          </button>
         </div>
 
         {/* Live Active Status Indicator */}
@@ -276,97 +314,119 @@ export function ChartView({ allStocks: propStocks }: ChartViewProps) {
 
         {/* Multi-Chart Grid Viewport */}
         <div style={styles.chartWrapper}>
-          {/* Layout: Single Chart */}
-          {layout === '1' && (
-            <div style={{ flex: 1, width: '100%', height: '100%', minHeight: 0 }}>
-              <ChartPane
-                slot={slots[activeSlotIdx] || slots[0]}
-                isActive={true}
-                isMultiView={false}
-                onFocus={() => setActiveSlotIdx(activeSlotIdx)}
-                onUpdateSlot={up => handleUpdateSlot(activeSlotIdx, up)}
-                liveStocks={liveStocks}
-              />
-            </div>
-          )}
-
-          {/* Layout: 2 Charts Split Vertically (Side by Side) */}
-          {layout === '2-vert' && (
-            <div style={{
-              flex: 1,
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: 4,
-              padding: 4,
-              height: '100%',
-              minHeight: 0,
-              boxSizing: 'border-box',
-            }}>
-              {[0, 1].map(idx => (
+          {/* Charts Area */}
+          <div style={{ flex: 1, display: 'flex', minHeight: 0, overflow: 'hidden' }}>
+            {/* Layout: Single Chart */}
+            {layout === '1' && (
+              <div style={{ flex: 1, width: '100%', height: '100%', minHeight: 0 }}>
                 <ChartPane
-                  key={slots[idx].id}
-                  slot={slots[idx]}
-                  isActive={activeSlotIdx === idx}
-                  isMultiView={true}
-                  onFocus={() => setActiveSlotIdx(idx)}
-                  onUpdateSlot={up => handleUpdateSlot(idx, up)}
+                  slot={slots[activeSlotIdx] || slots[0]}
+                  isActive={true}
+                  isMultiView={false}
+                  onFocus={() => setActiveSlotIdx(activeSlotIdx)}
+                  onUpdateSlot={up => handleUpdateSlot(activeSlotIdx, up)}
                   liveStocks={liveStocks}
+                  pineResult={pineResult}
+                  onCandlesReady={setActiveCandles}
                 />
-              ))}
-            </div>
-          )}
+              </div>
+            )}
 
-          {/* Layout: 2 Charts Split Horizontally (Stacked) */}
-          {layout === '2-horiz' && (
-            <div style={{
-              flex: 1,
-              display: 'grid',
-              gridTemplateRows: '1fr 1fr',
-              gap: 4,
-              padding: 4,
-              height: '100%',
-              minHeight: 0,
-              boxSizing: 'border-box',
-            }}>
-              {[0, 1].map(idx => (
-                <ChartPane
-                  key={slots[idx].id}
-                  slot={slots[idx]}
-                  isActive={activeSlotIdx === idx}
-                  isMultiView={true}
-                  onFocus={() => setActiveSlotIdx(idx)}
-                  onUpdateSlot={up => handleUpdateSlot(idx, up)}
-                  liveStocks={liveStocks}
-                />
-              ))}
-            </div>
-          )}
+            {/* Layout: 2 Charts Split Vertically (Side by Side) */}
+            {layout === '2-vert' && (
+              <div style={{
+                flex: 1,
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: 4,
+                padding: 4,
+                height: '100%',
+                minHeight: 0,
+                boxSizing: 'border-box',
+              }}>
+                {[0, 1].map(idx => (
+                  <ChartPane
+                    key={slots[idx].id}
+                    slot={slots[idx]}
+                    isActive={activeSlotIdx === idx}
+                    isMultiView={true}
+                    onFocus={() => setActiveSlotIdx(idx)}
+                    onUpdateSlot={up => handleUpdateSlot(idx, up)}
+                    liveStocks={liveStocks}
+                    pineResult={activeSlotIdx === idx ? pineResult : null}
+                    onCandlesReady={activeSlotIdx === idx ? setActiveCandles : undefined}
+                  />
+                ))}
+              </div>
+            )}
 
-          {/* Layout: 4 Charts 2x2 Grid */}
-          {layout === '4-grid' && (
-            <div style={{
-              flex: 1,
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gridTemplateRows: '1fr 1fr',
-              gap: 4,
-              padding: 4,
-              height: '100%',
-              minHeight: 0,
-              boxSizing: 'border-box',
-            }}>
-              {[0, 1, 2, 3].map(idx => (
-                <ChartPane
-                  key={slots[idx].id}
-                  slot={slots[idx]}
-                  isActive={activeSlotIdx === idx}
-                  isMultiView={true}
-                  onFocus={() => setActiveSlotIdx(idx)}
-                  onUpdateSlot={up => handleUpdateSlot(idx, up)}
-                  liveStocks={liveStocks}
-                />
-              ))}
-            </div>
+            {/* Layout: 2 Charts Split Horizontally (Stacked) */}
+            {layout === '2-horiz' && (
+              <div style={{
+                flex: 1,
+                display: 'grid',
+                gridTemplateRows: '1fr 1fr',
+                gap: 4,
+                padding: 4,
+                height: '100%',
+                minHeight: 0,
+                boxSizing: 'border-box',
+              }}>
+                {[0, 1].map(idx => (
+                  <ChartPane
+                    key={slots[idx].id}
+                    slot={slots[idx]}
+                    isActive={activeSlotIdx === idx}
+                    isMultiView={true}
+                    onFocus={() => setActiveSlotIdx(idx)}
+                    onUpdateSlot={up => handleUpdateSlot(idx, up)}
+                    liveStocks={liveStocks}
+                    pineResult={activeSlotIdx === idx ? pineResult : null}
+                    onCandlesReady={activeSlotIdx === idx ? setActiveCandles : undefined}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Layout: 4 Charts 2x2 Grid */}
+            {layout === '4-grid' && (
+              <div style={{
+                flex: 1,
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gridTemplateRows: '1fr 1fr',
+                gap: 4,
+                padding: 4,
+                height: '100%',
+                minHeight: 0,
+                boxSizing: 'border-box',
+              }}>
+                {[0, 1, 2, 3].map(idx => (
+                  <ChartPane
+                    key={slots[idx].id}
+                    slot={slots[idx]}
+                    isActive={activeSlotIdx === idx}
+                    isMultiView={true}
+                    onFocus={() => setActiveSlotIdx(idx)}
+                    onUpdateSlot={up => handleUpdateSlot(idx, up)}
+                    liveStocks={liveStocks}
+                    pineResult={activeSlotIdx === idx ? pineResult : null}
+                    onCandlesReady={activeSlotIdx === idx ? setActiveCandles : undefined}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Pine Script Studio Drawer */}
+          {isPineStudioOpen && (
+            <PineStudio
+              candles={activeCandles}
+              activeSymbol={slots[activeSlotIdx]?.symbol || 'RELIANCE'}
+              activeTimeframe={slots[activeSlotIdx]?.timeframe || '1D'}
+              onApplyResult={setPineResult}
+              onClose={() => setIsPineStudioOpen(false)}
+            />
           )}
         </div>
 

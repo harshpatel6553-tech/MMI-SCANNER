@@ -127,6 +127,8 @@ export function calcRSI(data: Candle[], period = 14): LineData[] {
   return out;
 }
 
+import type { PineExecutionResult } from '../../utils/pineRunner';
+
 // ── Props ─────────────────────────────────────────────────────────────────────
 
 interface ChartPaneProps {
@@ -137,6 +139,8 @@ interface ChartPaneProps {
   onUpdateSlot: (updated: Partial<ChartSlot>) => void;
   liveStocks: StockData[];
   onOpenSearch?: () => void;
+  pineResult?: PineExecutionResult | null;
+  onCandlesReady?: (candles: Candle[]) => void;
 }
 
 export function ChartPane({
@@ -146,6 +150,9 @@ export function ChartPane({
   onFocus,
   onUpdateSlot,
   liveStocks,
+  onOpenSearch,
+  pineResult,
+  onCandlesReady,
 }: ChartPaneProps) {
   const { symbol, timeframe, range } = slot;
 
@@ -162,6 +169,7 @@ export function ChartPane({
   const rsiChartRef     = useRef<IChartApi | null>(null);
   const rsiSeriesRef    = useRef<ISeriesApi<'Line'> | null>(null);
   const rsiMapRef       = useRef<Map<number, number>>(new Map());
+  const pineSeriesRef   = useRef<Map<string, ISeriesApi<'Line'>>>(new Map());
   const lastCandleRef   = useRef<Candle | null>(null);
   const candlesRef      = useRef<Candle[]>([]);
 
@@ -261,6 +269,10 @@ export function ChartPane({
       }
     }
 
+    if (onCandlesReady) {
+      onCandlesReady(deduped);
+    }
+
     chartRef.current?.timeScale().fitContent();
     requestAnimationFrame(() => {
       chartRef.current?.timeScale().fitContent();
@@ -271,7 +283,52 @@ export function ChartPane({
     setTimeout(() => {
       chartRef.current?.timeScale().fitContent();
     }, 250);
-  }, []);
+  }, [onCandlesReady]);
+
+  // Synchronize dynamic Pine Script plots and signals/markers
+  useEffect(() => {
+    if (!chartRef.current || !candleRef.current) return;
+
+    // 1. Remove previous Pine plot line series
+    pineSeriesRef.current.forEach((series) => {
+      try {
+        chartRef.current?.removeSeries(series);
+      } catch {
+        // ignore
+      }
+    });
+    pineSeriesRef.current.clear();
+
+    // 2. Add new Pine plot series
+    if (pineResult?.plots && pineResult.plots.length > 0) {
+      for (const plot of pineResult.plots) {
+        try {
+          const line = chartRef.current.addLineSeries({
+            color: plot.color,
+            lineWidth: (plot.lineWidth || 2) as any,
+            priceLineVisible: false,
+            lastValueVisible: true,
+            title: plot.title,
+          });
+          line.setData(plot.data);
+          pineSeriesRef.current.set(plot.id, line);
+        } catch (e) {
+          console.error('Failed to add Pine plot series:', e);
+        }
+      }
+    }
+
+    // 3. Set markers (Buy/Sell arrows) on candles
+    if (pineResult?.markers && pineResult.markers.length > 0) {
+      try {
+        candleRef.current.setMarkers(pineResult.markers);
+      } catch (e) {
+        console.error('Failed to set Pine markers on candles:', e);
+      }
+    } else {
+      candleRef.current.setMarkers([]);
+    }
+  }, [pineResult]);
 
   // Fetch real candles from API with rock-solid universal fallback
   const loadChart = useCallback(async (sym: string, tfVal: string, rangeVal?: string) => {
