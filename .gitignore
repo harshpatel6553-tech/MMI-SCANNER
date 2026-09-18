@@ -36,3 +36,7 @@ logs/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Submodules / Repos
+server/twikit_repo/
+*.tsbuildinfo
