@@ -7,10 +7,11 @@ import { isMarketOpen } from '../../utils/marketHours';
 
 interface TopbarProps {
   allStocks: StockData[];
+  alertCount?: number;
 }
 
-export function Topbar({ allStocks }: TopbarProps) {
-  const { searchQuery, setSearchQuery, setSelectedStock, activeTab, setChartSymbol } = useDashboard();
+export function Topbar({ allStocks, alertCount }: TopbarProps) {
+  const { searchQuery, setSearchQuery, setSelectedStock, activeTab, setChartSymbol, isAlertPanelOpen, setIsAlertPanelOpen } = useDashboard();
   const [time, setTime] = useState('');
 
   const searchItems = useMemo(() => {
@@ -80,8 +81,33 @@ export function Topbar({ allStocks }: TopbarProps) {
           <div className="market-pill closed"><span className="dot-closed"></span>Market Closed</div>
         )}
         <div className="clock">{time}</div>
-        <div className="icon-btn">
-          <span className="badge"></span>
+        <div 
+          className="icon-btn"
+          onClick={() => setIsAlertPanelOpen(!isAlertPanelOpen)}
+          title="Toggle Live Alerts"
+          style={{ cursor: 'pointer', position: 'relative' }}
+        >
+          {alertCount !== undefined && alertCount > 0 && (
+            <span style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              fontSize: '10px', 
+              minWidth: '16px', 
+              height: '16px', 
+              padding: '0 4px', 
+              background: '#ef4444', 
+              color: '#fff', 
+              borderRadius: '8px', 
+              position: 'absolute', 
+              top: '-4px', 
+              right: '-4px', 
+              fontWeight: 'bold',
+              boxShadow: '0 0 8px rgba(239, 68, 68, 0.6)'
+            }}>
+              {alertCount > 99 ? '99+' : alertCount}
+            </span>
+          )}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg>
         </div>
       </div>

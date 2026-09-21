@@ -34,6 +34,8 @@ interface DashboardContextType {
   setSelectedStock: (symbol: string | null) => void;
   chartSymbol: string;
   setChartSymbol: (symbol: string) => void;
+  isAlertPanelOpen: boolean;
+  setIsAlertPanelOpen: (open: boolean) => void;
 }
 
 const DashboardContext = createContext<DashboardContextType | undefined>(undefined);
@@ -49,6 +51,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStock, setSelectedStock] = useState<string | null>(null);
   const [chartSymbol, setChartSymbol] = useState<string>('RELIANCE');
+  const [isAlertPanelOpen, setIsAlertPanelOpen] = useState(false);
 
   useEffect(() => {
     localStorage.setItem('mmi-dashboard-prefs', JSON.stringify(preferences));
@@ -61,7 +64,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   const resetPreferences = () => setPreferences(DEFAULT_PREFERENCES);
 
   return (
-    <DashboardContext.Provider value={{ preferences, toggleWidget, resetPreferences, isCustomizing, setIsCustomizing, activeTab, setActiveTab, searchQuery, setSearchQuery, selectedStock, setSelectedStock, chartSymbol, setChartSymbol }}>
+    <DashboardContext.Provider value={{ preferences, toggleWidget, resetPreferences, isCustomizing, setIsCustomizing, activeTab, setActiveTab, searchQuery, setSearchQuery, selectedStock, setSelectedStock, chartSymbol, setChartSymbol, isAlertPanelOpen, setIsAlertPanelOpen }}>
       {children}
     </DashboardContext.Provider>
   );

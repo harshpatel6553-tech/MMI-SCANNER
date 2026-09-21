@@ -47,7 +47,7 @@ function AppContent() {
     <div className="app">
       <Sidebar />
       <div className="main">
-        <Topbar allStocks={allStocks} />
+        <Topbar allStocks={allStocks} alertCount={alertHistory.length} />
 
         <div className="content" style={activeTab === 'Charts' ? { padding: 0, overflow: 'hidden', height: '100%' } : {}}>
           {activeTab !== 'Charts' && (

@@ -1,6 +1,7 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import type { StockAlert } from '../../types';
 import { formatPrice, formatTime } from '../../utils/formatters';
+import { useDashboard } from '../../contexts/DashboardContext';
 import './Alerts.css';
 
 interface AlertPanelProps {
@@ -13,22 +14,22 @@ function isIndexSymbol(symbol: string): boolean {
 }
 
 export function AlertPanel({ alerts, onClearAll }: AlertPanelProps) {
-  const [isOpen, setIsOpen] = useState(false);
+  const { isAlertPanelOpen, setIsAlertPanelOpen } = useDashboard();
   const [filter, setFilter] = useState<'ALL' | 'INDICES' | 'HIGH' | 'LOW' | 'NEWS' | 'SPIKE'>('ALL');
-
   const [searchQuery, setSearchQuery] = useState('');
 
   const filteredAlerts = useMemo(() => {
     return alerts.filter(a => {
+      const isIdx = isIndexSymbol(a.symbol) || a.alertType === 'INDEX_MILESTONE';
       if (filter === 'INDICES') {
-        if (!isIndexSymbol(a.symbol)) return false;
+        if (!isIdx) return false;
       } else if (filter !== 'ALL') {
         const typeLabel = a.alertType === 'DAY_HIGH' ? 'HIGH' : a.alertType === 'DAY_LOW' ? 'LOW' : a.alertType === 'NEWS' ? 'NEWS' : 'SPIKE';
         if (typeLabel !== filter) return false;
       }
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
-        if (!a.symbol.toLowerCase().includes(q) && !a.name.toLowerCase().includes(q)) {
+        if (!a.symbol.toLowerCase().includes(q) && !a.name.toLowerCase().includes(q) && !(a.details && a.details.toLowerCase().includes(q))) {
           return false;
         }
       }
@@ -39,7 +40,7 @@ export function AlertPanel({ alerts, onClearAll }: AlertPanelProps) {
   const counts = useMemo(() => {
     const c = { ALL: alerts.length, INDICES: 0, HIGH: 0, LOW: 0, NEWS: 0, SPIKE: 0 };
     alerts.forEach(a => {
-      if (isIndexSymbol(a.symbol)) c.INDICES++;
+      if (isIndexSymbol(a.symbol) || a.alertType === 'INDEX_MILESTONE') c.INDICES++;
       if (a.alertType === 'DAY_HIGH') c.HIGH++;
       else if (a.alertType === 'DAY_LOW') c.LOW++;
       else if (a.alertType === 'NEWS') c.NEWS++;
@@ -50,15 +51,15 @@ export function AlertPanel({ alerts, onClearAll }: AlertPanelProps) {
 
   return (
     <>
-      <button className="alert-panel-toggle" onClick={() => setIsOpen(true)}>
+      <button className="alert-panel-toggle" onClick={() => setIsAlertPanelOpen(true)}>
         <span className="toggle-icon">🔔</span>
         <span className="toggle-text">ALERTS</span>
         {alerts.length > 0 && <span className="alert-panel-badge">{alerts.length}</span>}
       </button>
 
-      {isOpen && (
+      {isAlertPanelOpen && (
         <>
-          <div className="alert-panel-overlay" onClick={() => setIsOpen(false)} />
+          <div className="alert-panel-overlay" onClick={() => setIsAlertPanelOpen(false)} />
           <div className="alert-panel">
             
             <div className="drawer-header">
@@ -70,7 +71,7 @@ export function AlertPanel({ alerts, onClearAll }: AlertPanelProps) {
                 {alerts.length > 0 && (
                   <button className="clear-all" onClick={onClearAll}>Clear All</button>
                 )}
-                <button className="close-btn" onClick={() => setIsOpen(false)}>
+                <button className="close-btn" onClick={() => setIsAlertPanelOpen(false)}>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
                 </button>
               </div>
@@ -84,11 +85,17 @@ export function AlertPanel({ alerts, onClearAll }: AlertPanelProps) {
               <button className={`filter-chip ${filter === 'ALL' ? 'active' : ''}`} onClick={() => setFilter('ALL')}>
                 ALL {counts.ALL}
               </button>
-              {counts.INDICES > 0 && (
-                <button className={`filter-chip ${filter === 'INDICES' ? 'active' : ''}`} onClick={() => setFilter('INDICES')} style={{ borderColor: filter === 'INDICES' ? '#f59e0b' : undefined }}>
-                  📊 INDICES {counts.INDICES}
-                </button>
-              )}
+              <button 
+                className={`filter-chip ${filter === 'INDICES' ? 'active' : ''}`} 
+                onClick={() => setFilter('INDICES')} 
+                style={{ 
+                  borderColor: '#f59e0b', 
+                  color: filter === 'INDICES' ? '#f59e0b' : 'var(--ink-muted)',
+                  fontWeight: 700 
+                }}
+              >
+                📊 INDICES {counts.INDICES}
+              </button>
               {counts.HIGH > 0 && (
                 <button className={`filter-chip ${filter === 'HIGH' ? 'active' : ''}`} onClick={() => setFilter('HIGH')}>
                   HIGH {counts.HIGH}
@@ -119,7 +126,7 @@ export function AlertPanel({ alerts, onClearAll }: AlertPanelProps) {
                 </svg>
                 <input 
                   type="text" 
-                  placeholder="Search stocks..." 
+                  placeholder="Search stocks & indices..." 
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   style={{
@@ -156,8 +163,10 @@ export function AlertPanel({ alerts, onClearAll }: AlertPanelProps) {
                   const isHigh = alert.alertType === 'DAY_HIGH';
                   const isLow = alert.alertType === 'DAY_LOW';
                   const isNews = alert.alertType === 'NEWS';
-                  const typeClass = isHigh ? 'high' : isLow ? 'low' : isNews ? 'news' : 'spike';
-                  const typeLabel = isHigh ? 'HIGH' : isLow ? 'LOW' : isNews ? 'NEWS' : 'SPIKE';
+                  const isMilestone = alert.alertType === 'INDEX_MILESTONE';
+                  const isIdx = isIndexSymbol(alert.symbol) || isMilestone;
+                  const typeClass = isMilestone ? 'milestone' : isHigh ? 'high' : isLow ? 'low' : isNews ? 'news' : 'spike';
+                  const typeLabel = isMilestone ? 'MILESTONE' : isHigh ? 'HIGH' : isLow ? 'LOW' : isNews ? 'NEWS' : 'SPIKE';
 
                   return (
                     <div key={alert.id} className={`alert-card ${typeClass}`}>
@@ -166,11 +175,18 @@ export function AlertPanel({ alerts, onClearAll }: AlertPanelProps) {
                         <span className="alert-time">{formatTime(alert.createdAt)}</span>
                       </div>
                       <div className="alert-bottom">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <span className="alert-sym">{alert.symbol}</span>
-                          {isIndexSymbol(alert.symbol) && (
-                            <span style={{ fontSize: '9px', fontWeight: 700, padding: '1px 5px', borderRadius: '4px', background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                              INDEX
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span className="alert-sym">{alert.symbol}</span>
+                            {isIdx && (
+                              <span style={{ fontSize: '9px', fontWeight: 700, padding: '1px 5px', borderRadius: '4px', background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                INDEX
+                              </span>
+                            )}
+                          </div>
+                          {alert.details && (
+                            <span style={{ fontSize: '11px', color: '#f59e0b', opacity: 0.9 }}>
+                              {alert.details}
                             </span>
                           )}
                         </div>

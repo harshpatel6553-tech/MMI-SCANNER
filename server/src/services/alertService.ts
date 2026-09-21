@@ -13,7 +13,7 @@ import type { StockData, StockAlert } from '../types/index.js';
 import { supabase, isSupabaseConfigured } from '../config/supabase.js';
 import logger from '../utils/logger.js';
 
-/** Internal state tracking for high/low transitions */
+/** Internal state tracking for high/low transitions and milestones */
 interface HighLowState {
   atHigh: boolean;
   atLow: boolean;
@@ -23,6 +23,9 @@ interface HighLowState {
   minPriceSeenToday: number;
   volumeSpiked: boolean;
   lastAlertTime: number;
+  lastPrice: number;
+  crossedLevels: Set<number>;
+  crossedPercentMilestones: Set<number>;
 }
 
 class AlertService {
@@ -37,9 +40,27 @@ class AlertService {
     return `${hash.substring(0, 8)}-${hash.substring(8, 12)}-4${hash.substring(13, 16)}-a${hash.substring(17, 20)}-${hash.substring(20, 32)}`;
   }
 
-  /** Cooldown in ms before the same symbol can re-alert (5 min for indices, 10 min for stocks) */
-  private readonly INDEX_ALERT_COOLDOWN_MS = 5 * 60 * 1000;   // 5 minutes
-  private readonly STOCK_ALERT_COOLDOWN_MS = 10 * 60 * 1000;  // 10 minutes
+  /** Cooldown in ms before the same symbol can re-alert (90 sec for indices, 5 min for stocks) */
+  private readonly INDEX_ALERT_COOLDOWN_MS = 90 * 1000;       // 90 seconds
+  private readonly STOCK_ALERT_COOLDOWN_MS = 5 * 60 * 1000;   // 5 minutes
+
+  /** Helper to determine the round-number milestone interval for an index */
+  private getIndexLevelStep(symbol: string): number {
+    switch (symbol) {
+      case 'NIFTY 50':
+        return 50; // Every 50 points (e.g. 23,450, 23,500)
+      case 'BANKNIFTY':
+        return 250; // Every 250 points (e.g. 56,250, 56,500)
+      case 'NIFTY REALTY':
+        return 10; // Around 850 (e.g. 850, 860)
+      case 'NIFTY PSE':
+      case 'NIFTY INFRA':
+      case 'NIFTY PSU BANK':
+        return 50;
+      default:
+        return 100;
+    }
+  }
 
   checkAndGenerateAlerts(stocks: StockData[]): StockAlert[] {
     const newAlerts: StockAlert[] = [];
@@ -52,7 +73,25 @@ class AlertService {
       const cooldownMs = isIndex ? this.INDEX_ALERT_COOLDOWN_MS : this.STOCK_ALERT_COOLDOWN_MS;
 
       if (!this.previousHighLowState.has(stock.symbol)) {
-        this.previousHighLowState.set(stock.symbol, {
+        const crossedLevels = new Set<number>();
+        const crossedPercentMilestones = new Set<number>();
+
+        // Pre-record current round level
+        if (isIndex) {
+          const step = this.getIndexLevelStep(stock.symbol);
+          const currentLevel = Math.floor(stock.price / step) * step;
+          crossedLevels.add(currentLevel);
+
+          // Pre-record current percentage milestones
+          const pctMilestones = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, -0.5, -1.0, -1.5, -2.0, -2.5, -3.0];
+          for (const m of pctMilestones) {
+            if ((m > 0 && stock.changePercent >= m) || (m < 0 && stock.changePercent <= m)) {
+              crossedPercentMilestones.add(m);
+            }
+          }
+        }
+
+        const state: HighLowState = {
           atHigh: stock.atDayHigh,
           atLow: stock.atDayLow,
           highValue: stock.dayHigh,
@@ -61,8 +100,13 @@ class AlertService {
           minPriceSeenToday: stock.price,
           volumeSpiked: stock.volumeSpike,
           lastAlertTime: 0,
-        });
-        // For indices: fire initial alert immediately if already at day high/low
+          lastPrice: stock.price,
+          crossedLevels,
+          crossedPercentMilestones,
+        };
+        this.previousHighLowState.set(stock.symbol, state);
+
+        // For indices: fire initial alert immediately if already at day high/low or major % milestone
         if (isIndex) {
           if (stock.atDayHigh) {
             const alertId = this.generateDeterministicUUID(`${stock.symbol}_DAY_HIGH_${dayTimestamp}_INIT_${currentMs}`);
@@ -74,10 +118,11 @@ class AlertService {
               price: stock.price,
               change: stock.change,
               changePercent: stock.changePercent,
+              details: `Trading in Day High Resistance Zone (Day High: ₹${stock.dayHigh.toFixed(2)})`,
               createdAt: now,
             };
             newAlerts.push(alert);
-            this.previousHighLowState.get(stock.symbol)!.lastAlertTime = currentMs;
+            state.lastAlertTime = currentMs;
             logger.info(`🚀 INDEX DAY HIGH ALERT: ${stock.symbol} at ₹${stock.price.toFixed(2)} (day high: ₹${stock.dayHigh.toFixed(2)})`);
           } else if (stock.atDayLow) {
             const alertId = this.generateDeterministicUUID(`${stock.symbol}_DAY_LOW_${dayTimestamp}_INIT_${currentMs}`);
@@ -89,11 +134,33 @@ class AlertService {
               price: stock.price,
               change: stock.change,
               changePercent: stock.changePercent,
+              details: `Trading in Day Low Support Zone (Day Low: ₹${stock.dayLow.toFixed(2)})`,
               createdAt: now,
             };
             newAlerts.push(alert);
-            this.previousHighLowState.get(stock.symbol)!.lastAlertTime = currentMs;
+            state.lastAlertTime = currentMs;
             logger.info(`📉 INDEX DAY LOW ALERT: ${stock.symbol} at ₹${stock.price.toFixed(2)} (day low: ₹${stock.dayLow.toFixed(2)})`);
+          } else if (Math.abs(stock.changePercent) >= 0.5) {
+            // Milestone alert for initial active indices
+            const highestMilestone = Array.from(crossedPercentMilestones).sort((a, b) => Math.abs(b) - Math.abs(a))[0];
+            if (highestMilestone !== undefined) {
+              const sign = highestMilestone > 0 ? '+' : '';
+              const alertId = this.generateDeterministicUUID(`${stock.symbol}_MILESTONE_${highestMilestone}_${dayTimestamp}_INIT_${currentMs}`);
+              const alert: StockAlert = {
+                id: alertId,
+                symbol: stock.symbol,
+                name: stock.name,
+                alertType: 'INDEX_MILESTONE',
+                price: stock.price,
+                change: stock.change,
+                changePercent: stock.changePercent,
+                details: `Trending strongly: ${sign}${highestMilestone.toFixed(1)}% session move`,
+                createdAt: now,
+              };
+              newAlerts.push(alert);
+              state.lastAlertTime = currentMs;
+              logger.info(`🎯 INDEX MILESTONE ALERT: ${stock.symbol} at ₹${stock.price.toFixed(2)} (${sign}${stock.changePercent.toFixed(2)}%)`);
+            }
           }
         }
         continue;
@@ -105,16 +172,19 @@ class AlertService {
 
       let triggeredAlert = false;
 
-      // DAY HIGH detection:
-      // - For stocks: fire on strict new price max (transition guard)
-      // - For indices: fire once on initial detection, then only after cooldown expires
+      // ── 1. DAY HIGH DETECTION ─────────────────────────────────────
+      // Fires on:
+      // - Transition into Day High zone (!previousState.atHigh)
+      // - New intraday highest price seen today (breakout tick!)
+      // - Cooldown expired while still in Day High zone
       const isNewHighValue = stock.atDayHigh && (
         isIndex
-          ? (!previousState.atHigh || cooldownExpired)   // index: cooldown-based only
-          : (!previousState.atHigh || stock.price > previousState.maxPriceSeenToday) // stock: new-max
+          ? (!previousState.atHigh || stock.price > previousState.maxPriceSeenToday || cooldownExpired)
+          : (!previousState.atHigh || stock.price > previousState.maxPriceSeenToday)
       );
       
       if (isNewHighValue) {
+        const isBreakout = stock.price > previousState.maxPriceSeenToday;
         const alertId = this.generateDeterministicUUID(`${stock.symbol}_DAY_HIGH_${dayTimestamp}_${currentMs}`);
         const alert: StockAlert = {
           id: alertId,
@@ -124,6 +194,9 @@ class AlertService {
           price: stock.price,
           change: stock.change,
           changePercent: stock.changePercent,
+          details: isIndex
+            ? (isBreakout ? `New Intraday Peak Breakout @ ₹${stock.price.toFixed(2)}` : `Holding Day High Zone (Peak: ₹${stock.dayHigh.toFixed(2)})`)
+            : undefined,
           createdAt: now,
         };
         newAlerts.push(alert);
@@ -135,16 +208,15 @@ class AlertService {
         }
       }
 
-      // DAY LOW detection:
-      // - For stocks: fire on strict new price min (transition guard)
-      // - For indices: fire once on initial detection, then only after cooldown expires
+      // ── 2. DAY LOW DETECTION ──────────────────────────────────────
       const isNewLowValue = stock.atDayLow && (
         isIndex
-          ? (!previousState.atLow || cooldownExpired)    // index: cooldown-based only
-          : (!previousState.atLow || stock.price < previousState.minPriceSeenToday) // stock: new-min
+          ? (!previousState.atLow || stock.price < previousState.minPriceSeenToday || cooldownExpired)
+          : (!previousState.atLow || stock.price < previousState.minPriceSeenToday)
       );
       
       if (isNewLowValue && !triggeredAlert) {
+        const isBreakdown = stock.price < previousState.minPriceSeenToday;
         const alertId = this.generateDeterministicUUID(`${stock.symbol}_DAY_LOW_${dayTimestamp}_${currentMs}`);
         const alert: StockAlert = {
           id: alertId,
@@ -154,6 +226,9 @@ class AlertService {
           price: stock.price,
           change: stock.change,
           changePercent: stock.changePercent,
+          details: isIndex
+            ? (isBreakdown ? `New Intraday Low Breakdown @ ₹${stock.price.toFixed(2)}` : `Trading at Day Low Support (Low: ₹${stock.dayLow.toFixed(2)})`)
+            : undefined,
           createdAt: now,
         };
         newAlerts.push(alert);
@@ -165,7 +240,64 @@ class AlertService {
         }
       }
 
-      // Detect VOLUME_SPIKE transition (stocks only — indices have no meaningful volume)
+      // ── 3. INDEX ROUND NUMBER & PERCENTAGE MILESTONES ─────────────
+      if (isIndex && !triggeredAlert) {
+        const step = this.getIndexLevelStep(stock.symbol);
+        const prevLevel = Math.floor(previousState.lastPrice / step) * step;
+        const currentLevel = Math.floor(stock.price / step) * step;
+
+        // Check if price crossed a round level
+        if (prevLevel !== currentLevel && !previousState.crossedLevels.has(currentLevel)) {
+          previousState.crossedLevels.add(currentLevel);
+          const direction = stock.price > previousState.lastPrice ? '▲' : '▼';
+          const alertId = this.generateDeterministicUUID(`${stock.symbol}_LEVEL_${currentLevel}_${dayTimestamp}_${currentMs}`);
+          const alert: StockAlert = {
+            id: alertId,
+            symbol: stock.symbol,
+            name: stock.name,
+            alertType: 'INDEX_MILESTONE',
+            price: stock.price,
+            change: stock.change,
+            changePercent: stock.changePercent,
+            details: `Crossed ${currentLevel.toLocaleString('en-IN')} level ${direction}`,
+            createdAt: now,
+          };
+          newAlerts.push(alert);
+          triggeredAlert = true;
+          logger.info(`🎯 INDEX LEVEL ALERT: ${stock.symbol} crossed ${currentLevel} ${direction} at ₹${stock.price.toFixed(2)}`);
+        }
+
+        // Check if price crossed percentage thresholds (±0.5%, ±1.0%, ±1.5%, ±2.0%, etc.)
+        if (!triggeredAlert) {
+          const pctMilestones = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, -0.5, -1.0, -1.5, -2.0, -2.5, -3.0];
+          for (const m of pctMilestones) {
+            const hasPassed = (m > 0 && stock.changePercent >= m) || (m < 0 && stock.changePercent <= m);
+            if (hasPassed && !previousState.crossedPercentMilestones.has(m)) {
+              previousState.crossedPercentMilestones.add(m);
+              const sign = m > 0 ? '+' : '';
+              const icon = m > 0 ? '🚀' : '📉';
+              const alertId = this.generateDeterministicUUID(`${stock.symbol}_PCT_${m}_${dayTimestamp}_${currentMs}`);
+              const alert: StockAlert = {
+                id: alertId,
+                symbol: stock.symbol,
+                name: stock.name,
+                alertType: 'INDEX_MILESTONE',
+                price: stock.price,
+                change: stock.change,
+                changePercent: stock.changePercent,
+                details: `Crossed ${sign}${m.toFixed(1)}% session move (${stock.changePercent >= 0 ? '+' : ''}${stock.changePercent.toFixed(2)}%)`,
+                createdAt: now,
+              };
+              newAlerts.push(alert);
+              triggeredAlert = true;
+              logger.info(`${icon} INDEX PERCENT ALERT: ${stock.symbol} crossed ${sign}${m.toFixed(1)}% at ₹${stock.price.toFixed(2)}`);
+              break; // One milestone per cycle
+            }
+          }
+        }
+      }
+
+      // ── 4. VOLUME SPIKE DETECTION (stocks only) ───────────────────
       if (!isIndex && stock.volumeSpike === true && previousState.volumeSpiked === false && !triggeredAlert) {
         const alertId = this.generateDeterministicUUID(`${stock.symbol}_VOLUME_SPIKE_${dayTimestamp}_${currentMs}`);
         const alert: StockAlert = {
@@ -195,12 +327,15 @@ class AlertService {
         minPriceSeenToday: Math.min(previousState.minPriceSeenToday, stock.price),
         volumeSpiked: stock.volumeSpike,
         lastAlertTime: triggeredAlert ? currentMs : previousState.lastAlertTime,
+        lastPrice: stock.price,
+        crossedLevels: previousState.crossedLevels,
+        crossedPercentMilestones: previousState.crossedPercentMilestones,
       });
     }
 
     // Keep in-memory history
     if (newAlerts.length > 0) {
-      this.inMemoryAlerts = [...newAlerts, ...this.inMemoryAlerts].slice(0, 200);
+      this.inMemoryAlerts = [...newAlerts, ...this.inMemoryAlerts].slice(0, 300);
       this.saveAlerts(newAlerts);
     }
 

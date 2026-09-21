@@ -6,11 +6,24 @@ interface Toast extends StockAlert {
   dismissAt: number;
 }
 
+import { playAlertChime } from '../utils/alertSound';
+
+function isIndexSymbol(symbol: string): boolean {
+  return symbol.includes('NIFTY') || symbol === 'BANKNIFTY';
+}
+
 export function useAlerts() {
   const { socket } = useSocketContext();
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [alertHistory, setAlertHistory] = useState<StockAlert[]>([]);
   const timersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+
+  // Request browser desktop notification permission on mount
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().catch(() => {});
+    }
+  }, []);
 
   // Fetch initial alert history from REST API on mount
   useEffect(() => {
@@ -37,7 +50,38 @@ export function useAlerts() {
     if (!socket) return;
 
     const handleAlert = (alert: StockAlert) => {
-      const toast: Toast = { ...alert, dismissAt: Date.now() + 5000 };
+      const isIdx = isIndexSymbol(alert.symbol) || alert.alertType === 'INDEX_MILESTONE';
+      const durationMs = isIdx ? 8000 : 5000;
+      const toast: Toast = { ...alert, dismissAt: Date.now() + durationMs };
+
+      // Play synthesized audio chime
+      if (isIdx) {
+        playAlertChime('index');
+      } else if (alert.alertType === 'DAY_HIGH') {
+        playAlertChime('high');
+      } else if (alert.alertType === 'DAY_LOW') {
+        playAlertChime('low');
+      } else if (alert.alertType === 'VOLUME_SPIKE') {
+        playAlertChime('spike');
+      }
+
+      // Show native desktop notification if permitted
+      if ('Notification' in window && Notification.permission === 'granted') {
+        try {
+          const title = alert.alertType === 'INDEX_MILESTONE'
+            ? `🎯 INDEX MILESTONE: ${alert.symbol}`
+            : isIdx
+            ? `📊 INDEX ALERT: ${alert.symbol}`
+            : `⚡ ALERT: ${alert.symbol}`;
+          const body = alert.details 
+            ? `${alert.symbol} — ${alert.details} @ ₹${alert.price.toLocaleString('en-IN')}`
+            : `${alert.symbol} ${alert.alertType === 'DAY_HIGH' ? 'reached Day High' : 'reached Day Low'} at ₹${alert.price.toLocaleString('en-IN')}`;
+
+          new Notification(title, { body, silent: true });
+        } catch {
+          // Ignore desktop notification error
+        }
+      }
 
       setToasts(prev => {
         const index = prev.findIndex(t => t.id === toast.id);
@@ -46,25 +90,24 @@ export function useAlerts() {
           next[index] = toast;
           return next;
         }
-        return [toast, ...prev].slice(0, 5);
+        return [toast, ...prev].slice(0, 6);
       });
 
       setAlertHistory(prev => {
         const index = prev.findIndex(a => a.id === alert.id);
         if (index >= 0) {
-          // If it already exists, replace it and move it to the top so the user sees the updated price
           const next = [...prev];
           next.splice(index, 1);
           return [alert, ...next];
         }
-        return [alert, ...prev].slice(0, 200);
+        return [alert, ...prev].slice(0, 300);
       });
 
-      // Auto-dismiss after 5 seconds
+      // Auto-dismiss after duration
       const timer = setTimeout(() => {
         setToasts(prev => prev.filter(t => t.id !== alert.id));
         timersRef.current.delete(alert.id);
-      }, 5000);
+      }, durationMs);
       timersRef.current.set(alert.id, timer);
     };
 

@@ -13,6 +13,9 @@ interface AlertToastProps {
 }
 
 function getToastStyle(alertType: StockAlert['alertType']) {
+  if (alertType === 'INDEX_MILESTONE') {
+    return 'rounded-md border-l-[10px] border-amber-500 bg-amber-500/10 text-amber-400 dark:border-amber-400 dark:bg-amber-400/10 dark:text-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.2)]';
+  }
   // Day High pattern requested by user
   if (alertType === 'DAY_HIGH') {
     return 'rounded-md border-l-[10px] border-green-600 bg-green-600/10 text-green-600 dark:border-green-400 dark:bg-green-400/10 dark:text-green-400';
@@ -30,6 +33,7 @@ function getToastStyle(alertType: StockAlert['alertType']) {
 }
 
 function getIcon(alertType: StockAlert['alertType']): string {
+  if (alertType === 'INDEX_MILESTONE') return '🎯';
   if (alertType === 'DAY_HIGH') return '🚀';
   if (alertType === 'DAY_LOW') return '📉';
   if (alertType === 'NEWS') return '📰';
@@ -42,6 +46,7 @@ function isIndexSymbol(symbol: string): boolean {
 
 function getToastTitle(alertType: StockAlert['alertType'], symbol?: string): string {
   const isIdx = symbol ? isIndexSymbol(symbol) : false;
+  if (alertType === 'INDEX_MILESTONE') return 'Index Milestone';
   if (alertType === 'DAY_HIGH') return isIdx ? 'Index Day High' : 'Day High Hit';
   if (alertType === 'DAY_LOW') return isIdx ? 'Index Day Low' : 'Day Low Hit';
   if (alertType === 'NEWS') return 'News Alert';
@@ -92,7 +97,16 @@ export function AlertToast({ toasts, onDismiss }: AlertToastProps) {
                   ) : (
                       <div className="text-sm opacity-90 leading-snug mt-0.5">
                       <strong>{toast.symbol}</strong>{' '}
-                      {toast.alertType === 'VOLUME_SPIKE' ? (
+                      {toast.details ? (
+                        <>
+                          <span className="text-amber-300 font-medium">{toast.details}</span> @ <strong className="tabular-nums">{formatPrice(toast.price)}</strong>
+                          {toast.change !== undefined && toast.changePercent !== undefined && (
+                            <span className={`ml-2 text-xs font-medium tracking-tight ${toast.changePercent >= 0 ? 'text-[#10b981]' : 'text-[#ef4444]'}`}>
+                              {toast.change >= 0 ? '+' : '−'}{Math.abs(toast.change).toFixed(1)} {toast.changePercent >= 0 ? '+' : '−'}{Math.abs(toast.changePercent).toFixed(2)}%
+                            </span>
+                          )}
+                        </>
+                      ) : toast.alertType === 'VOLUME_SPIKE' ? (
                         <>
                           is experiencing unusual volume at <strong className="tabular-nums">{formatPrice(toast.price)}</strong>
                           {toast.change !== undefined && toast.changePercent !== undefined && (
