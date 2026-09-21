@@ -6,8 +6,6 @@ interface Toast extends StockAlert {
   dismissAt: number;
 }
 
-import { playAlertChime } from '../utils/alertSound';
-
 function isIndexSymbol(symbol: string): boolean {
   return symbol.includes('NIFTY') || symbol === 'BANKNIFTY';
 }
@@ -54,16 +52,7 @@ export function useAlerts() {
       const durationMs = isIdx ? 8000 : 5000;
       const toast: Toast = { ...alert, dismissAt: Date.now() + durationMs };
 
-      // Play synthesized audio chime
-      if (isIdx) {
-        playAlertChime('index');
-      } else if (alert.alertType === 'DAY_HIGH') {
-        playAlertChime('high');
-      } else if (alert.alertType === 'DAY_LOW') {
-        playAlertChime('low');
-      } else if (alert.alertType === 'VOLUME_SPIKE') {
-        playAlertChime('spike');
-      }
+
 
       // Show native desktop notification if permitted
       if ('Notification' in window && Notification.permission === 'granted') {
