@@ -306,7 +306,7 @@ router.get(
                 <td style="color: #10b981;">₹${s.dayHigh.toFixed(2)}</td>
                 <td style="color: #ef4444;">₹${s.dayLow.toFixed(2)}</td>
                 <td style="color: #666; font-size: 12px;">Peak High: ₹${s.highestPriceAgentHasSeenToday.toFixed(2)}<br>Peak Low: ₹${s.lowestPriceAgentHasSeenToday.toFixed(2)}</td>
-                <td style="color: #777;">${s.lastAlertTime > 0 ? new Date(s.lastAlertTime).toLocaleTimeString('en-IN') : 'None yet today'}</td>
+                <td style="color: #777;">—</td>
               </tr>
             `).join('')}
           </tbody>

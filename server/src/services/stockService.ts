@@ -261,7 +261,7 @@ class StockService {
 
   async fetchIndices(): Promise<StockData[]> {
     const indices = [
-      { yahooSymbol: '^NSEI', displaySymbol: 'NIFTY 50', name: 'NIFTY 50' },
+      { yahooSymbol: '^NSEI',    displaySymbol: 'NIFTY 50',  name: 'NIFTY 50'  },
       { yahooSymbol: '^NSEBANK', displaySymbol: 'BANKNIFTY', name: 'Bank NIFTY' },
     ];
 
@@ -269,7 +269,8 @@ class StockService {
 
     try {
       const symbolsStr = indices.map(i => i.yahooSymbol).join(',');
-      const url = `https://query1.finance.yahoo.com/v7/finance/spark?symbols=${encodeURIComponent(symbolsStr)}&range=1d&interval=1h`;
+      // Same fetch style as stocks: 1m interval + cache buster for real-time ticks
+      const url = `https://query1.finance.yahoo.com/v7/finance/spark?symbols=${encodeURIComponent(symbolsStr)}&range=1d&interval=1m&cb=${Date.now()}`;
       const res = await fetch(url, {
         headers: {
           'User-Agent': USER_AGENT,
@@ -293,14 +294,12 @@ class StockService {
         if (price === 0) continue;
 
         const dayHigh: number = meta.regularMarketDayHigh ?? price;
-        const dayLow: number = meta.regularMarketDayLow ?? price;
+        const dayLow: number  = meta.regularMarketDayLow  ?? price;
         const prevClose: number = meta.previousClose ?? meta.chartPreviousClose ?? price;
-        
-        // For indices, use a tight 0.1% proximity tolerance to avoid false high/low alerts.
-        // At NIFTY 50 ~24,500 this is only ±24 pts — index must be genuinely near the high/low.
-        const INDEX_PROXIMITY_PCT = 0.001; // 0.1%
-        const atDayHigh = dayHigh > 0 && price > 0 && price >= dayHigh * (1 - INDEX_PROXIMITY_PCT);
-        const atDayLow  = dayLow  > 0 && price > 0 && price <= dayLow  * (1 + INDEX_PROXIMITY_PCT);
+
+        // Same logic as individual stocks — exact match only
+        const atDayHigh = dayHigh > 0 && price > 0 && price >= dayHigh;
+        const atDayLow  = dayLow  > 0 && price > 0 && price <= dayLow;
 
         const change = price - prevClose;
         const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
@@ -331,8 +330,6 @@ class StockService {
 
         results.push(indexData);
         this.stockCache.set(idx.displaySymbol, indexData);
-
-
       }
     } catch (err: any) {
       logger.error(`Failed to fetch indices: ${err.message}`);
