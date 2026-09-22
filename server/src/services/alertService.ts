@@ -51,12 +51,6 @@ class AlertService {
         return 50; // Every 50 points (e.g. 23,450, 23,500)
       case 'BANKNIFTY':
         return 250; // Every 250 points (e.g. 56,250, 56,500)
-      case 'NIFTY REALTY':
-        return 10; // Around 850 (e.g. 850, 860)
-      case 'NIFTY PSE':
-      case 'NIFTY INFRA':
-      case 'NIFTY PSU BANK':
-        return 50;
       default:
         return 100;
     }
