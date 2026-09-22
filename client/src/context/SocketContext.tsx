@@ -25,19 +25,11 @@ export function SocketProvider({ children }: { children: ReactNode }) {
       reconnectionAttempts: Infinity,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
+      transports: ['websocket', 'polling'],
     });
 
     newSocket.on('connect', () => {
       setIsConnected(true);
-
-      // Identify the user to the server for online tracking
-      if (user?.email) {
-        newSocket.emit('auth:identify', {
-          email: user.email,
-          isAdmin: profile?.is_admin || false,
-          avatar: localStorage.getItem('mmi-user-avatar') || undefined,
-        });
-      }
     });
 
     newSocket.on('disconnect', () => setIsConnected(false));
@@ -52,7 +44,18 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     return () => {
       newSocket.close();
     };
-  }, [user?.email, profile?.is_admin]);
+  }, []);
+
+  // Separate effect: identify the user whenever auth resolves or changes without tearing down the socket
+  useEffect(() => {
+    if (socket && isConnected && user?.email) {
+      socket.emit('auth:identify', {
+        email: user.email,
+        isAdmin: profile?.is_admin || false,
+        avatar: localStorage.getItem('mmi-user-avatar') || undefined,
+      });
+    }
+  }, [socket, isConnected, user?.email, profile?.is_admin]);
 
   return (
     <SocketContext.Provider value={{ socket, isConnected }}>
