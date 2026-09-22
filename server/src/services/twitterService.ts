@@ -5,7 +5,7 @@ const RAPIDAPI_HOST = 'twitter-x-api8.p.rapidapi.com';
 
 class TwitterService {
   private get RAPIDAPI_KEY(): string {
-    return configService.getKey('RAPIDAPI_KEY') || '';
+    return configService.getKey('RAPIDAPI_KEY') || configService.getKey('TWITTERAPI_KEY') || process.env.RAPIDAPI_KEY || process.env.TWITTERAPI_KEY || '';
   }
   private tweetCache = new Map<string, { data: any; timestamp: number }>();
   private idCache = new Map<string, string>([
