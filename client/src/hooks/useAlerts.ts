@@ -29,7 +29,7 @@ export function useAlerts() {
       try {
         const socketUrl = import.meta.env.VITE_SOCKET_URL || '';
         const baseUrl = socketUrl.endsWith('/') ? socketUrl.slice(0, -1) : socketUrl;
-        const res = await fetch(`${baseUrl}/api/stocks/alerts?limit=100`);
+        const res = await fetch(`${baseUrl}/api/stocks/alerts?limit=300`);
         if (!res.ok) {
           throw new Error(`HTTP ${res.status}`);
         }
@@ -89,7 +89,7 @@ export function useAlerts() {
           next.splice(index, 1);
           return [alert, ...next];
         }
-        return [alert, ...prev].slice(0, 300);
+        return [alert, ...prev].slice(0, 500);
       });
 
       // Auto-dismiss after duration
