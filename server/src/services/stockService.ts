@@ -312,9 +312,9 @@ class StockService {
         const dayLow: number = meta.regularMarketDayLow ?? price;
         const prevClose: number = meta.previousClose ?? meta.chartPreviousClose ?? price;
         
-        // For indices, use a 0.35% proximity tolerance since large index baskets fluctuate in a zone near highs/lows.
-        // A value within 0.35% is effectively in the Day High / Day Low breakout zone.
-        const INDEX_PROXIMITY_PCT = 0.0035; // 0.35%
+        // For indices, use a tight 0.1% proximity tolerance to avoid false high/low alerts.
+        // At NIFTY 50 ~24,500 this is only ±24 pts — index must be genuinely near the high/low.
+        const INDEX_PROXIMITY_PCT = 0.001; // 0.1%
         const atDayHigh = dayHigh > 0 && price > 0 && price >= dayHigh * (1 - INDEX_PROXIMITY_PCT);
         const atDayLow  = dayLow  > 0 && price > 0 && price <= dayLow  * (1 + INDEX_PROXIMITY_PCT);
 

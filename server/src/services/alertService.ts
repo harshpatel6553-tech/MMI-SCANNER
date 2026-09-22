@@ -173,14 +173,11 @@ class AlertService {
       let triggeredAlert = false;
 
       // ── 1. DAY HIGH DETECTION ─────────────────────────────────────
-      // Fires on:
-      // - Transition into Day High zone (!previousState.atHigh)
-      // - New intraday highest price seen today (breakout tick!)
-      // - Cooldown expired while still in Day High zone
+      // For indices: ONLY fires when price reaches a genuine new intraday peak (price > maxPriceSeenToday)
+      //   or on initial zone entry (!previousState.atHigh). Never fires just because cooldown expired.
+      // For stocks: same — transition or new intraday high.
       const isNewHighValue = stock.atDayHigh && (
-        isIndex
-          ? (!previousState.atHigh || stock.price > previousState.maxPriceSeenToday || cooldownExpired)
-          : (!previousState.atHigh || stock.price > previousState.maxPriceSeenToday)
+        !previousState.atHigh || stock.price > previousState.maxPriceSeenToday
       );
       
       if (isNewHighValue) {
@@ -195,7 +192,7 @@ class AlertService {
           change: stock.change,
           changePercent: stock.changePercent,
           details: isIndex
-            ? (isBreakout ? `New Intraday Peak Breakout @ ₹${stock.price.toFixed(2)}` : `Holding Day High Zone (Peak: ₹${stock.dayHigh.toFixed(2)})`)
+            ? (isBreakout ? `New Intraday Peak Breakout @ ₹${stock.price.toFixed(2)}` : `Reached Day High Zone (High: ₹${stock.dayHigh.toFixed(2)})`)
             : undefined,
           createdAt: now,
         };
@@ -209,10 +206,10 @@ class AlertService {
       }
 
       // ── 2. DAY LOW DETECTION ──────────────────────────────────────
+      // For indices: ONLY fires when price reaches a genuine new intraday low (price < minPriceSeenToday)
+      //   or on initial zone entry (!previousState.atLow). Never fires just because cooldown expired.
       const isNewLowValue = stock.atDayLow && (
-        isIndex
-          ? (!previousState.atLow || stock.price < previousState.minPriceSeenToday || cooldownExpired)
-          : (!previousState.atLow || stock.price < previousState.minPriceSeenToday)
+        !previousState.atLow || stock.price < previousState.minPriceSeenToday
       );
       
       if (isNewLowValue && !triggeredAlert) {
