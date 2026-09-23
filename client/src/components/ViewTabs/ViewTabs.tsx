@@ -1,17 +1,6 @@
 import { useRef, useEffect, useState } from 'react';
+import { CyberIcon, CyberIconName } from '../common/CyberIcon';
 import './ViewTabs.css';
-
-import { 
-  Table2, 
-  LayoutGrid, 
-  PieChart, 
-  TrendingUp, 
-  Star, 
-  Newspaper, 
-  LineChart, 
-  Gamepad2,
-  Eye
-} from 'lucide-react';
 
 interface ViewTabsProps {
   activeTab: 'table' | 'heatmap' | 'sectors' | 'watchlist' | 'news' | 'technical' | 'results' | 'paper' | 'promoter';
@@ -19,17 +8,17 @@ interface ViewTabsProps {
   watchlistCount?: number;
 }
 
-const tabs = [
-  { key: 'table', label: 'Table', Icon: Table2 },
-  { key: 'heatmap', label: 'Heatmap', Icon: LayoutGrid },
-  { key: 'sectors', label: 'Sectors', Icon: PieChart },
-  { key: 'technical', label: 'Technical', Icon: TrendingUp },
-  { key: 'watchlist', label: 'Watchlist', Icon: Star },
-  { key: 'news', label: 'Live News', Icon: Newspaper },
-  { key: 'results', label: 'Results', Icon: LineChart },
-  { key: 'paper', label: 'Paper Trading', Icon: Gamepad2 },
-  { key: 'promoter', label: 'Promoter Watch', Icon: Eye }
-] as const;
+const tabs: { key: ViewTabsProps['activeTab']; label: string; icon: CyberIconName }[] = [
+  { key: 'table', label: 'Table', icon: 'table' },
+  { key: 'heatmap', label: 'Heatmap', icon: 'heatmap' },
+  { key: 'sectors', label: 'Sectors', icon: 'sectors' },
+  { key: 'technical', label: 'Technical', icon: 'technical' },
+  { key: 'watchlist', label: 'Watchlist', icon: 'watchlist' },
+  { key: 'news', label: 'Live News', icon: 'livenews' },
+  { key: 'results', label: 'Results', icon: 'results' },
+  { key: 'paper', label: 'Paper Trading', icon: 'papertrading' },
+  { key: 'promoter', label: 'Promoter Watch', icon: 'promoter' }
+];
 
 export function ViewTabs({ activeTab, onTabChange, watchlistCount = 0 }: ViewTabsProps) {
   const tabsRef = useRef<HTMLDivElement>(null);
@@ -57,7 +46,7 @@ export function ViewTabs({ activeTab, onTabChange, watchlistCount = 0 }: ViewTab
             className={`view-tab ${activeTab === tab.key ? 'active' : ''}`}
             onClick={() => onTabChange(tab.key as any)}
           >
-            <tab.Icon size={16} strokeWidth={2.5} />
+            <CyberIcon name={tab.icon} size={16} active={activeTab === tab.key} />
             <span>{tab.label}</span>
             {tab.key === 'watchlist' && watchlistCount > 0 && (
               <span className="watchlist-count-badge">{watchlistCount}</span>

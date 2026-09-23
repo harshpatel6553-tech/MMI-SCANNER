@@ -1,18 +1,42 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useDashboard } from '../../contexts/DashboardContext';
 import { CommandSearch } from './CommandSearch';
+import { HeaderIndices } from './HeaderIndices';
+import { useIndices } from '../../hooks/useIndices';
 import type { StockData } from '../../types';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Volume2, VolumeX, Bell } from 'lucide-react';
 import { isMarketOpen } from '../../utils/marketHours';
+import { audioAlerts } from '../../utils/audioAlerts';
+import { CyberIcon } from '../common/CyberIcon';
 
 interface TopbarProps {
   allStocks: StockData[];
   alertCount?: number;
 }
 
+function getMarketCountdown(isOpen: boolean): string {
+  const now = new Date();
+  const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+  const ist = new Date(utc + 3600000 * 5.5);
+  const curMins = ist.getHours() * 60 + ist.getMinutes();
+  
+  if (isOpen) {
+    const closeMins = 15 * 60 + 30; // 15:30 IST
+    const diff = closeMins - curMins;
+    if (diff <= 0) return 'CLOSING NOW';
+    const hrs = Math.floor(diff / 60);
+    const mins = diff % 60;
+    return hrs > 0 ? `CLOSES IN ${hrs}H ${mins}M` : `CLOSES IN ${mins}M`;
+  } else {
+    return 'OPENS AT 09:15 AM';
+  }
+}
+
 export function Topbar({ allStocks, alertCount }: TopbarProps) {
   const { searchQuery, setSearchQuery, setSelectedStock, activeTab, setChartSymbol, isAlertPanelOpen, setIsAlertPanelOpen } = useDashboard();
+  const { nifty50, bankNifty } = useIndices(allStocks);
   const [time, setTime] = useState('');
+  const [isMuted, setIsMuted] = useState(audioAlerts.getIsMuted());
 
   const searchItems = useMemo(() => {
     const items = allStocks.map(stock => ({
@@ -21,6 +45,7 @@ export function Topbar({ allStocks, alertCount }: TopbarProps) {
       section: (stock.sector || 'Stocks') as any,
       icon: <ArrowRight size={16} />,
       action: () => {
+        audioAlerts.playHapticClick();
         if (activeTab === 'Charts') {
           setChartSymbol(stock.symbol);
         } else {
@@ -33,7 +58,10 @@ export function Topbar({ allStocks, alertCount }: TopbarProps) {
       title: 'Clear Search Filter',
       section: 'Actions' as any,
       icon: <ArrowRight size={16} />,
-      action: () => setSearchQuery(''),
+      action: () => {
+        audioAlerts.playHapticClick();
+        setSearchQuery('');
+      },
     });
     return items;
   }, [allStocks, setSearchQuery, setSelectedStock, activeTab, setChartSymbol]);
@@ -42,7 +70,7 @@ export function Topbar({ allStocks, alertCount }: TopbarProps) {
     const pad = (n: number) => n.toString().padStart(2, '0');
     const tick = () => {
       const d = new Date();
-      setTime(""+pad(d.getHours())+":"+pad(d.getMinutes())+":"+pad(d.getSeconds())+" IST");
+      setTime(`${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())} IST`);
     };
     tick();
     const intv = setInterval(tick, 1000);
@@ -55,36 +83,83 @@ export function Topbar({ allStocks, alertCount }: TopbarProps) {
     return () => clearInterval(intv);
   }, []);
 
-  const headlines = [
-    'LUPIN LIMITED enters exclusive license agreement with Visus Therapeutics for YUVEZZITM in Europe',
-    'VIPUL ORGANICS commences production at greenfield facility in Sayakha, Gujarat',
-    'DEV INFORMATION TECH secures \u20B95.15 Cr order from NICSI for IFMS 3.0',
-    'L&T wins large contract valued between \u20B925B–50B',
-    'UNICOMMERCE & Urban Co expand partnership to UAE & Saudi Arabia'
-  ];
+  // Compute live tape sentiment
+  const advancers = allStocks.filter(s => s.change >= 0).length;
+  const total = allStocks.length || 1;
+  const bullPct = Math.round((advancers / total) * 100);
+
+  const handleSoundToggle = () => {
+    const muted = audioAlerts.toggleMute();
+    setIsMuted(muted);
+    if (!muted) {
+      audioAlerts.playBreakoutChime();
+    }
+  };
 
   return (
     <header className="topbar">
-      <div className="ticker-wrap">
-        <span className="ticker-tag">Breaking</span>
-        <div className="ticker-track" id="tickerTrack">
-          {[...headlines, ...headlines].map((h, i) => (
-            <span key={i} className="ticker-item"><span className="sep">●</span>{h}</span>
-          ))}
-        </div>
-      </div>
+      {/* Live NIFTY 50 & BANK NIFTY Indices Telemetry (Replaces Breaking News) */}
+      <HeaderIndices nifty50={nifty50} bankNifty={bankNifty} />
+
+      {/* Global Command Search */}
       <CommandSearch items={searchItems} />
+
+      {/* Right Controls & Telemetry */}
       <div className="topbar-right">
+        {/* Dynamic Tape Sentiment Pill */}
+        <div 
+          className="market-pill beast-sentiment-pill" 
+          title={`${advancers} advancers vs ${total - advancers} decliners`}
+          style={{
+            background: bullPct >= 50 ? 'rgba(16, 185, 129, 0.12)' : 'rgba(244, 63, 94, 0.12)',
+            borderColor: bullPct >= 50 ? 'rgba(16, 185, 129, 0.3)' : 'rgba(244, 63, 94, 0.3)',
+            color: bullPct >= 50 ? 'var(--up)' : 'var(--down)',
+          }}
+        >
+          <CyberIcon name={bullPct >= 50 ? 'bull' : 'bear'} size={18} />
+          <span className="tabular-nums" style={{ fontWeight: 800 }}>{bullPct}% {bullPct >= 50 ? 'BULL' : 'BEAR'}</span>
+        </div>
+
+        {/* Live Market Status Pill */}
         {marketOpen ? (
-          <div className="market-pill"><span className="dot-live"></span>Market Open</div>
+          <div className="market-pill">
+            <span className="dot-live"></span>
+            <span>LIVE · {getMarketCountdown(true)}</span>
+          </div>
         ) : (
-          <div className="market-pill closed"><span className="dot-closed"></span>Market Closed</div>
+          <div className="market-pill closed">
+            <span className="dot-closed"></span>
+            <span>CLOSED · {getMarketCountdown(false)}</span>
+          </div>
         )}
-        <div className="clock">{time}</div>
+
+        {/* Digital Precision Clock */}
+        <div className="clock tabular-nums">{time}</div>
+
+        {/* Audio Alerts Synthesizer Toggle */}
+        <div 
+          className={`icon-btn ${!isMuted ? 'active-audio' : ''}`}
+          onClick={handleSoundToggle}
+          title={isMuted ? "Sound Alerts Muted — Click to Enable" : "Sound Alerts Active — Click to Mute"}
+          style={{ cursor: 'pointer', position: 'relative' }}
+        >
+          {isMuted ? (
+            <VolumeX size={16} color="var(--text-3)" />
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Volume2 size={16} color="var(--up)" />
+            </div>
+          )}
+        </div>
+
+        {/* Live Alerts Drawer Button */}
         <div 
           className="icon-btn"
-          onClick={() => setIsAlertPanelOpen(!isAlertPanelOpen)}
-          title="Toggle Live Alerts"
+          onClick={() => {
+            audioAlerts.playHapticClick();
+            setIsAlertPanelOpen(!isAlertPanelOpen);
+          }}
+          title="Toggle Radar Alerts Drawer"
           style={{ cursor: 'pointer', position: 'relative' }}
         >
           {alertCount !== undefined && alertCount > 0 && (
@@ -93,22 +168,22 @@ export function Topbar({ allStocks, alertCount }: TopbarProps) {
               alignItems: 'center', 
               justifyContent: 'center', 
               fontSize: '10px', 
-              minWidth: '16px', 
-              height: '16px', 
+              minWidth: '17px', 
+              height: '17px', 
               padding: '0 4px', 
-              background: '#ef4444', 
+              background: 'var(--down)', 
               color: '#fff', 
-              borderRadius: '8px', 
+              borderRadius: '9999px', 
               position: 'absolute', 
               top: '-4px', 
               right: '-4px', 
-              fontWeight: 'bold',
-              boxShadow: '0 0 8px rgba(239, 68, 68, 0.6)'
+              fontWeight: '800',
+              boxShadow: '0 0 10px rgba(244, 63, 94, 0.7)'
             }}>
               {alertCount > 99 ? '99+' : alertCount}
             </span>
           )}
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg>
+          <Bell size={16} />
         </div>
       </div>
     </header>

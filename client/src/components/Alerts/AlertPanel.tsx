@@ -1,7 +1,11 @@
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import type { StockAlert } from '../../types';
 import { formatPrice, formatTime } from '../../utils/formatters';
 import { useDashboard } from '../../contexts/DashboardContext';
+import { audioAlerts } from '../../utils/audioAlerts';
+import { Volume2, VolumeX, Copy, Check, ExternalLink, Zap, Trash2, X, Bell } from 'lucide-react';
+import { CyberIcon, CyberIconName } from '../common/CyberIcon';
+import { StockLogo } from '../common/StockLogo';
 import './Alerts.css';
 
 interface AlertPanelProps {
@@ -10,26 +14,64 @@ interface AlertPanelProps {
 }
 
 function isIndexSymbol(symbol: string): boolean {
-  return symbol.includes('NIFTY') || symbol === 'BANKNIFTY';
+  const s = (symbol || '').toUpperCase();
+  return s.includes('NIFTY') || s.includes('BANKNIFTY') || s.includes('SENSEX') || s.includes('INDIA VIX');
 }
 
 export function AlertPanel({ alerts, onClearAll }: AlertPanelProps) {
-  const { isAlertPanelOpen, setIsAlertPanelOpen } = useDashboard();
+  const { isAlertPanelOpen, setIsAlertPanelOpen, setActiveTab, setChartSymbol, setSelectedStock } = useDashboard();
   const [filter, setFilter] = useState<'ALL' | 'INDICES' | 'HIGH' | 'LOW' | 'NEWS' | 'SPIKE'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isMuted, setIsMuted] = useState(audioAlerts.getIsMuted());
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
+  const toggleSound = () => {
+    const muted = audioAlerts.toggleMute();
+    setIsMuted(muted);
+    if (!muted) {
+      audioAlerts.playBreakoutChime();
+    }
+  };
+
+  const handleCopy = (sym: string, id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(sym);
+    setCopiedId(id);
+    audioAlerts.playHapticClick();
+    setTimeout(() => setCopiedId(null), 1500);
+  };
+
+  const handleCardClick = (sym: string) => {
+    audioAlerts.playHapticClick();
+    setChartSymbol(sym);
+    setSelectedStock(sym);
+    setActiveTab('Charts');
+    setIsAlertPanelOpen(false);
+  };
+
+  // Robust, unambiguous filtering
   const filteredAlerts = useMemo(() => {
     return alerts.filter(a => {
       const isIdx = isIndexSymbol(a.symbol) || a.alertType === 'INDEX_MILESTONE';
+
       if (filter === 'INDICES') {
         if (!isIdx) return false;
-      } else if (filter !== 'ALL') {
-        const typeLabel = a.alertType === 'DAY_HIGH' ? 'HIGH' : a.alertType === 'DAY_LOW' ? 'LOW' : a.alertType === 'NEWS' ? 'NEWS' : 'SPIKE';
-        if (typeLabel !== filter) return false;
+      } else if (filter === 'HIGH') {
+        if (a.alertType !== 'DAY_HIGH') return false;
+      } else if (filter === 'LOW') {
+        if (a.alertType !== 'DAY_LOW') return false;
+      } else if (filter === 'SPIKE') {
+        if (a.alertType !== 'VOLUME_SPIKE') return false;
+      } else if (filter === 'NEWS') {
+        if (a.alertType !== 'NEWS') return false;
       }
+
       if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        if (!a.symbol.toLowerCase().includes(q) && !a.name.toLowerCase().includes(q) && !(a.details && a.details.toLowerCase().includes(q))) {
+        const q = searchQuery.trim().toLowerCase();
+        const sym = (a.symbol || '').toLowerCase();
+        const name = (a.name || '').toLowerCase();
+        const details = (a.details || '').toLowerCase();
+        if (!sym.includes(q) && !name.includes(q) && !details.includes(q)) {
           return false;
         }
       }
@@ -37,126 +79,191 @@ export function AlertPanel({ alerts, onClearAll }: AlertPanelProps) {
     });
   }, [alerts, filter, searchQuery]);
 
+  // Precise category counts with zero fallthrough errors
   const counts = useMemo(() => {
     const c = { ALL: alerts.length, INDICES: 0, HIGH: 0, LOW: 0, NEWS: 0, SPIKE: 0 };
     alerts.forEach(a => {
-      if (isIndexSymbol(a.symbol) || a.alertType === 'INDEX_MILESTONE') c.INDICES++;
+      if (isIndexSymbol(a.symbol) || a.alertType === 'INDEX_MILESTONE') {
+        c.INDICES++;
+      }
       if (a.alertType === 'DAY_HIGH') c.HIGH++;
       else if (a.alertType === 'DAY_LOW') c.LOW++;
+      else if (a.alertType === 'VOLUME_SPIKE') c.SPIKE++;
       else if (a.alertType === 'NEWS') c.NEWS++;
-      else c.SPIKE++;
     });
     return c;
   }, [alerts]);
 
   return (
     <>
-      <button className="alert-panel-toggle" onClick={() => setIsAlertPanelOpen(true)}>
-        <span className="toggle-icon">🔔</span>
-        <span className="toggle-text">ALERTS</span>
-        {alerts.length > 0 && <span className="alert-panel-badge">{alerts.length}</span>}
-      </button>
+      {!isAlertPanelOpen && (
+        <button 
+          className="alert-panel-toggle" 
+          onClick={() => {
+            audioAlerts.playHapticClick();
+            setIsAlertPanelOpen(true);
+          }}
+          title="Open Live Market Radar Alerts"
+        >
+          <span className="toggle-icon"><Bell size={14} /></span>
+          <span className="toggle-text">RADAR ALERTS</span>
+          {alerts.length > 0 && (
+            <span className="alert-panel-badge">{alerts.length > 99 ? '99+' : alerts.length}</span>
+          )}
+        </button>
+      )}
 
       {isAlertPanelOpen && (
         <>
+          {/* Transparent, unblurred overlay for click-outside dismissal */}
           <div className="alert-panel-overlay" onClick={() => setIsAlertPanelOpen(false)} />
+          
+          {/* Crisp, solid-surface Alert Radar Drawer */}
           <div className="alert-panel">
             
+            {/* Header */}
             <div className="drawer-header">
               <div className="drawer-title">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
-                <h1 className="display">Live Alerts</h1>
+                <div className="radar-ping" style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--up)' }} />
+                <h1 className="display" style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-0.02em' }}>
+                  Live Market Radar
+                </h1>
+                <span className="badge-scanning">518 TICKERS</span>
               </div>
+
               <div className="drawer-actions">
+                {/* Sound Chime Toggle */}
+                <button 
+                  className={`icon-action-btn ${!isMuted ? 'active-sound' : ''}`}
+                  onClick={toggleSound}
+                  title={isMuted ? "Enable Sound Alerts" : "Mute Sound Alerts"}
+                >
+                  {isMuted ? <VolumeX size={15} /> : <Volume2 size={15} />}
+                </button>
+
                 {alerts.length > 0 && (
-                  <button className="clear-all" onClick={onClearAll}>Clear All</button>
+                  <button 
+                    className="clear-all" 
+                    onClick={() => {
+                      audioAlerts.playHapticClick();
+                      onClearAll();
+                    }}
+                    title="Clear All Alerts"
+                  >
+                    <Trash2 size={13} />
+                    <span>Clear</span>
+                  </button>
                 )}
-                <button className="close-btn" onClick={() => setIsAlertPanelOpen(false)}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+
+                <button 
+                  className="close-btn" 
+                  onClick={() => setIsAlertPanelOpen(false)}
+                  title="Close Alert Radar"
+                >
+                  <X size={15} />
                 </button>
               </div>
             </div>
 
-            <div className="sub-row">
-              <div className="section-lbl"><span className="live-dot"></span>Today's Alerts</div>
+            {/* Radar Telemetry Sub-bar */}
+            <div className="radar-telemetry-bar">
+              <div className="telemetry-item">
+                <span className="telemetry-dot live"></span>
+                <span>FEED: <b>100MS REAL-TIME</b></span>
+              </div>
+              <div className="telemetry-item">
+                <span>AUDIO: <b style={{ color: isMuted ? 'var(--text-3)' : 'var(--up)' }}>{isMuted ? 'MUTED' : 'CRYSTAL 880HZ'}</b></span>
+              </div>
             </div>
 
+            {/* Permanent, rock-solid Filter Pills */}
             <div className="filter-row">
-              <button className={`filter-chip ${filter === 'ALL' ? 'active' : ''}`} onClick={() => setFilter('ALL')}>
-                ALL {counts.ALL}
-              </button>
               <button 
-                className={`filter-chip ${filter === 'INDICES' ? 'active' : ''}`} 
-                onClick={() => setFilter('INDICES')} 
-                style={{ 
-                  borderColor: '#f59e0b', 
-                  color: filter === 'INDICES' ? '#f59e0b' : 'var(--ink-muted)',
-                  fontWeight: 700 
-                }}
+                className={`filter-chip ${filter === 'ALL' ? 'active' : ''}`} 
+                onClick={() => { audioAlerts.playHapticClick(); setFilter('ALL'); }}
               >
-                📊 INDICES {counts.INDICES}
+                <CyberIcon name="overview" size={13} active={filter === 'ALL'} />
+                <span>ALL</span>
+                <span className="chip-cnt">{counts.ALL}</span>
               </button>
-              {counts.HIGH > 0 && (
-                <button className={`filter-chip ${filter === 'HIGH' ? 'active' : ''}`} onClick={() => setFilter('HIGH')}>
-                  HIGH {counts.HIGH}
-                </button>
-              )}
-              {counts.LOW > 0 && (
-                <button className={`filter-chip ${filter === 'LOW' ? 'active' : ''}`} onClick={() => setFilter('LOW')}>
-                  LOW {counts.LOW}
-                </button>
-              )}
-              {counts.SPIKE > 0 && (
-                <button className={`filter-chip ${filter === 'SPIKE' ? 'active' : ''}`} onClick={() => setFilter('SPIKE')}>
-                  SPIKES {counts.SPIKE}
-                </button>
-              )}
-              {counts.NEWS > 0 && (
-                <button className={`filter-chip ${filter === 'NEWS' ? 'active' : ''}`} onClick={() => setFilter('NEWS')}>
-                  NEWS {counts.NEWS}
-                </button>
-              )}
+              
+              <button 
+                className={`filter-chip indices-chip ${filter === 'INDICES' ? 'active' : ''}`} 
+                onClick={() => { audioAlerts.playHapticClick(); setFilter('INDICES'); }}
+              >
+                <CyberIcon name="sectors" size={13} active={filter === 'INDICES'} />
+                <span>INDICES</span>
+                <span className="chip-cnt">{counts.INDICES}</span>
+              </button>
+              
+              <button 
+                className={`filter-chip high-chip ${filter === 'HIGH' ? 'active' : ''}`} 
+                onClick={() => { audioAlerts.playHapticClick(); setFilter('HIGH'); }}
+              >
+                <CyberIcon name="pulse_up" size={13} active={filter === 'HIGH'} />
+                <span>HIGHS</span>
+                <span className="chip-cnt">{counts.HIGH}</span>
+              </button>
+              
+              <button 
+                className={`filter-chip low-chip ${filter === 'LOW' ? 'active' : ''}`} 
+                onClick={() => { audioAlerts.playHapticClick(); setFilter('LOW'); }}
+              >
+                <CyberIcon name="pulse_down" size={13} active={filter === 'LOW'} />
+                <span>LOWS</span>
+                <span className="chip-cnt">{counts.LOW}</span>
+              </button>
+              
+              <button 
+                className={`filter-chip spike-chip ${filter === 'SPIKE' ? 'active' : ''}`} 
+                onClick={() => { audioAlerts.playHapticClick(); setFilter('SPIKE'); }}
+              >
+                <CyberIcon name="spike" size={13} active={filter === 'SPIKE'} />
+                <span>SPIKES</span>
+                <span className="chip-cnt">{counts.SPIKE}</span>
+              </button>
+              
+              <button 
+                className={`filter-chip news-chip ${filter === 'NEWS' ? 'active' : ''}`} 
+                onClick={() => { audioAlerts.playHapticClick(); setFilter('NEWS'); }}
+              >
+                <CyberIcon name="livenews" size={13} active={filter === 'NEWS'} />
+                <span>NEWS</span>
+                <span className="chip-cnt">{counts.NEWS}</span>
+              </button>
             </div>
             
-            <div style={{ padding: '0 20px 12px 20px' }}>
-              <div style={{ position: 'relative' }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', opacity: 0.5 }}>
-                  <circle cx="11" cy="11" r="8"></circle>
-                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                </svg>
-                <input 
-                  type="text" 
-                  placeholder="Search stocks & indices..." 
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  style={{
-                    width: '100%',
-                    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
-                    borderRadius: '8px',
-                    padding: '8px 12px 8px 32px',
-                    color: 'var(--ink)',
-                    fontSize: '13px',
-                    outline: 'none',
-                    transition: 'all 0.2s ease'
-                  }}
-                  onFocus={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--accent)';
-                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
-                  }}
-                  onBlur={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
-                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.03)';
-                  }}
-                />
-              </div>
+            {/* Search Box with Clear Button */}
+            <div className="alert-search-wrap">
+              <CyberIcon name="overview" size={13} />
+              <input 
+                type="text" 
+                placeholder="Filter by symbol, company or details..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="alert-search-input"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', padding: '0 4px' }}
+                  onClick={() => setSearchQuery('')}
+                  title="Clear search"
+                >
+                  <X size={13} />
+                </button>
+              )}
             </div>
 
+            {/* Alert List */}
             <div className="alert-list">
               {filteredAlerts.length === 0 ? (
-                <div style={{margin: 'auto', textAlign: 'center', color: 'var(--ink-muted)'}}>
-                  <div style={{fontSize: 24, marginBottom: 8, opacity: 0.5}}>🔕</div>
-                  <div style={{fontSize: 13, fontWeight: 600}}>No active alerts</div>
+                <div className="empty-alerts-state">
+                  <div className="empty-radar-disc">
+                    <Zap size={28} className="empty-icon" />
+                  </div>
+                  <div className="empty-title">Radar Scanning Clean</div>
+                  <div className="empty-sub">No alerts match the "{filter}" filter. Live tape is broadcasting actively.</div>
                 </div>
               ) : (
                 filteredAlerts.map(alert => {
@@ -165,43 +272,77 @@ export function AlertPanel({ alerts, onClearAll }: AlertPanelProps) {
                   const isNews = alert.alertType === 'NEWS';
                   const isMilestone = alert.alertType === 'INDEX_MILESTONE';
                   const isIdx = isIndexSymbol(alert.symbol) || isMilestone;
+                  
                   const typeClass = isMilestone ? 'milestone' : isHigh ? 'high' : isLow ? 'low' : isNews ? 'news' : 'spike';
-                  const typeLabel = isMilestone ? 'MILESTONE' : isHigh ? 'HIGH' : isLow ? 'LOW' : isNews ? 'NEWS' : 'SPIKE';
+                  const typeIcon: CyberIconName = isMilestone ? 'overview' : isHigh ? 'pulse_up' : isLow ? 'pulse_down' : isNews ? 'livenews' : 'spike';
+                  const typeText = isMilestone ? 'INDEX PEAK' : isHigh ? 'DAY HIGH' : isLow ? 'DAY LOW' : isNews ? 'NEWS ALPHA' : 'VOL SPIKE';
 
                   return (
-                    <div key={alert.id} className={`alert-card ${typeClass}`}>
+                    <div 
+                      key={alert.id} 
+                      className={`alert-card ${typeClass}`}
+                      onClick={() => handleCardClick(alert.symbol)}
+                      title="Click to open interactive chart"
+                    >
                       <div className="alert-top">
-                        <span className={`alert-badge ${typeClass}`}>{typeLabel}</span>
-                        <span className="alert-time">{formatTime(alert.createdAt)}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                          <StockLogo symbol={alert.symbol} name={alert.name} size={20} />
+                          <span className={`alert-badge ${typeClass}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                            <CyberIcon name={typeIcon} size={12} active={true} />
+                            <span>{typeText}</span>
+                          </span>
+                          {isIdx && (
+                            <span className="index-pill">NSE INDEX</span>
+                          )}
+                        </div>
+
+                        <div className="alert-card-meta">
+                          <span className="alert-time tabular-nums">{formatTime(alert.createdAt)}</span>
+                          
+                          {/* Quick Copy Ticker Button */}
+                          <button 
+                            className="btn-quick-copy"
+                            onClick={(e) => handleCopy(alert.symbol, alert.id, e)}
+                            title="Copy symbol to clipboard"
+                          >
+                            {copiedId === alert.id ? <Check size={12} color="#10b981" /> : <Copy size={12} />}
+                          </button>
+                        </div>
                       </div>
+
                       <div className="alert-bottom">
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <div className="alert-ticker-block">
+                          <div className="alert-sym-row">
                             <span className="alert-sym">{alert.symbol}</span>
-                            {isIdx && (
-                              <span style={{ fontSize: '9px', fontWeight: 700, padding: '1px 5px', borderRadius: '4px', background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                INDEX
-                              </span>
-                            )}
+                            <span className="alert-co-name">{alert.name}</span>
                           </div>
+
                           {alert.details && (
-                            <span style={{ fontSize: '11px', color: '#f59e0b', opacity: 0.9 }}>
+                            <span className="alert-details-sub">
                               {alert.details}
                             </span>
                           )}
                         </div>
+
                         {isNews ? (
                           <span className="alert-news" title={alert.name}>{alert.name}</span>
                         ) : (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span className={`alert-price ${typeClass}`}>{formatPrice(alert.price)}</span>
+                          <div className="alert-numbers-block">
+                            <span className={`alert-price tabular-nums ${typeClass}`}>
+                              {formatPrice(alert.price)}
+                            </span>
+                            
                             {alert.change !== undefined && alert.changePercent !== undefined && (
-                              <span className={`text-[13px] font-medium tracking-tight ${alert.changePercent >= 0 ? 'text-[#10b981]' : 'text-[#ef4444]'}`}>
-                                {alert.change >= 0 ? '+' : '−'}{Math.abs(alert.change).toFixed(1)} {alert.changePercent >= 0 ? '+' : '−'}{Math.abs(alert.changePercent).toFixed(2)}%
+                              <span className={`chg-badge tabular-nums ${alert.changePercent >= 0 ? 'up' : 'down'}`}>
+                                {alert.change >= 0 ? '+' : '−'}{Math.abs(alert.change).toFixed(1)} ({alert.changePercent >= 0 ? '+' : '−'}{Math.abs(alert.changePercent).toFixed(2)}%)
                               </span>
                             )}
                           </div>
                         )}
+                      </div>
+
+                      <div className="card-hover-action">
+                        <span>OPEN CHART <ExternalLink size={11} /></span>
                       </div>
                     </div>
                   );
@@ -210,10 +351,10 @@ export function AlertPanel({ alerts, onClearAll }: AlertPanelProps) {
             </div>
 
             <div className="drawer-footer">
-              <button className="footer-link">
-                View Full Alert History
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-              </button>
+              <div className="footer-status-pill">
+                <span className="telemetry-dot live"></span>
+                <span>SYNCHRONIZED WITH NSE TAPE</span>
+              </div>
             </div>
 
           </div>

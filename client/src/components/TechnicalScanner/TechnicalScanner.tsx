@@ -34,45 +34,33 @@ export function TechnicalScanner() {
   }, [allStocks, activeTab]);
 
   return (
-    <div style={{display: 'flex', flexDirection: 'column', gap: '20px', height: '100%'}}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '18px', width: '100%', minWidth: 0, paddingBottom: '40px' }}>
       
       {/* Tabs */}
-      <div style={{display: 'flex', gap: '12px'}}>
+      <div className="tabs" style={{ marginBottom: 0 }}>
         <div 
           onClick={() => setActiveTab('MACD')}
-          style={{
-            background: activeTab === 'MACD' ? 'var(--amber-dim)' : 'var(--bg-surface-2)',
-            color: activeTab === 'MACD' ? 'var(--amber)' : 'var(--text-2)',
-            border: `1px solid ${activeTab === 'MACD' ? 'var(--amber-soft)' : 'var(--border-soft)'}`,
-            padding: '12px 20px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
-            fontWeight: 600, fontSize: '13px', transition: 'all 0.2s'
-          }}
+          className={`tab ${activeTab === 'MACD' ? 'active' : ''}`}
+          style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
         >
-          <Activity size={18} /> MACD Weekly Buy
+          <Activity size={16} /> MACD Weekly Buy
+          {activeTab === 'MACD' && <span className="badge-pill up" style={{ fontSize: 10, padding: '1px 6px' }}>{filteredStocks.length}</span>}
         </div>
         <div 
           onClick={() => setActiveTab('RSI')}
-          style={{
-            background: activeTab === 'RSI' ? 'var(--amber-dim)' : 'var(--bg-surface-2)',
-            color: activeTab === 'RSI' ? 'var(--amber)' : 'var(--text-2)',
-            border: `1px solid ${activeTab === 'RSI' ? 'var(--amber-soft)' : 'var(--border-soft)'}`,
-            padding: '12px 20px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
-            fontWeight: 600, fontSize: '13px', transition: 'all 0.2s'
-          }}
+          className={`tab ${activeTab === 'RSI' ? 'active' : ''}`}
+          style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
         >
-          <TrendingUp size={18} /> RSI (14)
+          <TrendingUp size={16} /> RSI (14) Momentum
+          {activeTab === 'RSI' && <span className="badge-pill cyan" style={{ fontSize: 10, padding: '1px 6px' }}>{filteredStocks.length}</span>}
         </div>
         <div 
           onClick={() => setActiveTab('EMACROSS')}
-          style={{
-            background: activeTab === 'EMACROSS' ? 'var(--amber-dim)' : 'var(--bg-surface-2)',
-            color: activeTab === 'EMACROSS' ? 'var(--amber)' : 'var(--text-2)',
-            border: `1px solid ${activeTab === 'EMACROSS' ? 'var(--amber-soft)' : 'var(--border-soft)'}`,
-            padding: '12px 20px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
-            fontWeight: 600, fontSize: '13px', transition: 'all 0.2s'
-          }}
+          className={`tab ${activeTab === 'EMACROSS' ? 'active' : ''}`}
+          style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
         >
-          <ArrowLeftRight size={18} /> EMA Cross (13, 34)
+          <ArrowLeftRight size={16} /> EMA Bullish Cross (13, 34)
+          {activeTab === 'EMACROSS' && <span className="badge-pill up" style={{ fontSize: 10, padding: '1px 6px' }}>{filteredStocks.length}</span>}
         </div>
       </div>
 

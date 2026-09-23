@@ -29,7 +29,7 @@
 
 .sector-card:hover {
   box-shadow: 0 0 20px var(--accent-glow), var(--shadow-md);
-  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.18);
 }
 
 .sector-card.expanded {

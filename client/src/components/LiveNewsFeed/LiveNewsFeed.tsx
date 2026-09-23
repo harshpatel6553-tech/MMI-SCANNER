@@ -96,30 +96,6 @@ export function LiveNewsFeed({ onStockClick }: LiveNewsFeedProps) {
 
   return (
     <div className="live-news-page">
-      <div className="tape-wrap">
-        <div className="tape mono" id="tape">
-          <span><b>NIFTY50</b> <span className={nifty50.changePercent >= 0 ? "up" : "down"}>{nifty50.changePercent >= 0 ? '+' : ''}{nifty50.changePercent.toFixed(2)}%</span></span>
-          <span><b>BANKNIFTY</b> <span className={bankNifty.changePercent >= 0 ? "up" : "down"}>{bankNifty.changePercent >= 0 ? '+' : ''}{bankNifty.changePercent.toFixed(2)}%</span></span>
-          <span><b>SEBI ORDER FLAGS FII MANIPULATION</b></span>
-          <span><b>POWERGRID WINS MASSIVE ORDER</b></span>
-          <span><b>RISHABH INSTRUMENTS: PROMOTERS EYE STAKE SALE, BLOCK DEAL</b></span>
-          {/* Duplicate for infinite scroll loop */}
-          <span><b>NIFTY50</b> <span className={nifty50.changePercent >= 0 ? "up" : "down"}>{nifty50.changePercent >= 0 ? '+' : ''}{nifty50.changePercent.toFixed(2)}%</span></span>
-          <span><b>BANKNIFTY</b> <span className={bankNifty.changePercent >= 0 ? "up" : "down"}>{bankNifty.changePercent >= 0 ? '+' : ''}{bankNifty.changePercent.toFixed(2)}%</span></span>
-          <span><b>SEBI ORDER FLAGS FII MANIPULATION</b></span>
-          <span><b>POWERGRID WINS MASSIVE ORDER</b></span>
-          <span><b>RISHABH INSTRUMENTS: PROMOTERS EYE STAKE SALE, BLOCK DEAL</b></span>
-        </div>
-      </div>
-
-      <header className="live-news-header">
-        <div className="eyebrow"><span className="dot"></span> LIVENEWS · {todayStr}</div>
-        <h1 className="display">LiveNews</h1>
-        <div className="subline mono">
-          <b className="up">{advancers}▲</b> advancers vs <b className="down">{decliners}▼</b> decliners across {total} tracked stocks — here's what's moving.
-        </div>
-      </header>
-
       <div className="toolbar">
         {(['ALL', 'BULLISH', 'BEARISH', 'BLOCK DEAL'] as const).map(tab => (
           <button 

@@ -1,6 +1,9 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import type { StockAlert } from '../../types';
 import { formatPrice, formatTime } from '../../utils/formatters';
+import { useDashboard } from '../../contexts/DashboardContext';
+import { audioAlerts } from '../../utils/audioAlerts';
+import { X, ExternalLink } from 'lucide-react';
 import './Alerts.css';
 
 interface Toast extends StockAlert {
@@ -12,137 +15,152 @@ interface AlertToastProps {
   onDismiss: (id: string) => void;
 }
 
-function getToastStyle(alertType: StockAlert['alertType']) {
+function getToastGlowClass(alertType: StockAlert['alertType']) {
   if (alertType === 'INDEX_MILESTONE') {
-    return 'rounded-md border-l-[10px] border-amber-500 bg-amber-500/10 text-amber-400 dark:border-amber-400 dark:bg-amber-400/10 dark:text-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.2)]';
+    return 'border-amber-500/40 shadow-[0_10px_30px_rgba(245,158,11,0.25)]';
   }
-  // Day High pattern requested by user
   if (alertType === 'DAY_HIGH') {
-    return 'rounded-md border-l-[10px] border-green-600 bg-green-600/10 text-green-600 dark:border-green-400 dark:bg-green-400/10 dark:text-green-400';
+    return 'border-emerald-500/40 shadow-[0_10px_30px_rgba(16,185,129,0.25)]';
   }
-  // Day Low pattern requested by user
   if (alertType === 'DAY_LOW') {
-    // using red/destructive colors to match the "destructive" intent
-    return 'rounded-none border-0 border-l-[10px] border-red-600 bg-red-600/10 text-red-600 dark:border-red-500 dark:bg-red-500/10 dark:text-red-500';
+    return 'border-rose-500/40 shadow-[0_10px_30px_rgba(244,63,94,0.25)]';
   }
-  // News and Volume Spike matching the same beautiful pattern
   if (alertType === 'NEWS') {
-    return 'rounded-md border-l-[10px] border-blue-600 bg-blue-600/10 text-blue-600 dark:border-blue-400 dark:bg-blue-400/10 dark:text-blue-400';
+    return 'border-cyan-500/40 shadow-[0_10px_30px_rgba(6,182,212,0.25)]';
   }
-  return 'rounded-md border-l-[10px] border-purple-600 bg-purple-600/10 text-purple-600 dark:border-purple-400 dark:bg-purple-400/10 dark:text-purple-400';
+  return 'border-purple-500/40 shadow-[0_10px_30px_rgba(168,85,247,0.25)]';
 }
 
-function getIcon(alertType: StockAlert['alertType']): string {
-  if (alertType === 'INDEX_MILESTONE') return '🎯';
-  if (alertType === 'DAY_HIGH') return '🚀';
-  if (alertType === 'DAY_LOW') return '📉';
-  if (alertType === 'NEWS') return '📰';
-  return '⚡';
+import { CyberIcon } from '../common/CyberIcon';
+
+function getIcon(alertType: StockAlert['alertType']): React.ReactNode {
+  if (alertType === 'INDEX_MILESTONE') return <CyberIcon name="overview" size={18} active={true} />;
+  if (alertType === 'DAY_HIGH') return <CyberIcon name="pulse_up" size={18} active={true} />;
+  if (alertType === 'DAY_LOW') return <CyberIcon name="pulse_down" size={18} active={true} />;
+  if (alertType === 'NEWS') return <CyberIcon name="livenews" size={18} active={true} />;
+  return <CyberIcon name="spike" size={18} active={true} />;
 }
 
 function isIndexSymbol(symbol: string): boolean {
   return symbol.includes('NIFTY') || symbol === 'BANKNIFTY';
 }
 
-function getToastTitle(alertType: StockAlert['alertType'], symbol?: string): string {
-  const isIdx = symbol ? isIndexSymbol(symbol) : false;
-  if (alertType === 'INDEX_MILESTONE') return 'Index Milestone';
-  if (alertType === 'DAY_HIGH') return isIdx ? 'Index Day High' : 'Day High Hit';
-  if (alertType === 'DAY_LOW') return isIdx ? 'Index Day Low' : 'Day Low Hit';
-  if (alertType === 'NEWS') return 'News Alert';
-  return 'Volume Spike';
+function getToastLabel(alertType: StockAlert['alertType']): string {
+  if (alertType === 'INDEX_MILESTONE') return 'ALL-TIME PEAK';
+  if (alertType === 'DAY_HIGH') return 'NEW DAY HIGH';
+  if (alertType === 'DAY_LOW') return 'NEW DAY LOW';
+  if (alertType === 'NEWS') return 'BREAKING ALPHA';
+  return 'VOLUME TSUNAMI';
 }
 
 export function AlertToast({ toasts, onDismiss }: AlertToastProps) {
+  const { setActiveTab, setChartSymbol, setSelectedStock } = useDashboard();
+
+  const handleToastClick = (symbol: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    audioAlerts.playHapticClick();
+    setChartSymbol(symbol);
+    setSelectedStock(symbol);
+    setActiveTab('Charts');
+  };
+
   return (
-    <div className="fixed top-[80px] right-[20px] z-[9999] flex flex-col gap-3 pointer-events-none w-[320px]">
+    <div className="fixed top-[74px] right-[20px] z-[9999] flex flex-col gap-2.5 pointer-events-none w-[340px] max-w-[90vw]">
       <AnimatePresence>
-        {toasts.map(toast => {
+        {toasts.slice(0, 3).map(toast => {
+          const isHigh = toast.alertType === 'DAY_HIGH';
+          const isLow = toast.alertType === 'DAY_LOW';
+          const isIdx = isIndexSymbol(toast.symbol);
+          const icon = getIcon(toast.alertType);
+          const label = getToastLabel(toast.alertType);
+
           return (
             <motion.div
               key={toast.id}
-              initial={{ opacity: 0, x: 50, scale: 0.95 }}
+              initial={{ opacity: 0, x: 60, scale: 0.92 }}
               animate={{ opacity: 1, x: 0, scale: 1 }}
-              exit={{ opacity: 0, x: 100, scale: 0.9 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-              className={`relative z-0 overflow-hidden pointer-events-auto p-4 shadow-2xl backdrop-blur-xl before:absolute before:inset-0 before:bg-[#0b0b0d] before:bg-opacity-95 before:-z-10 ${getToastStyle(toast.alertType)}`}
+              exit={{ opacity: 0, x: 80, scale: 0.9 }}
+              transition={{ type: 'spring', stiffness: 450, damping: 28 }}
+              onClick={(e) => handleToastClick(toast.symbol, e)}
+              className={`relative z-0 overflow-hidden pointer-events-auto p-3.5 rounded-xl border bg-[#0b0e14]/95 backdrop-blur-2xl cursor-pointer group ${getToastGlowClass(toast.alertType)}`}
             >
-              <div className="flex gap-3">
-                <div className="flex-shrink-0 text-xl leading-none">
-                  {getIcon(toast.alertType)}
-                </div>
-                
-                <div className="flex-1 flex flex-col gap-1">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-bold text-sm tracking-wide">
-                        {getToastTitle(toast.alertType, toast.symbol)}
-                      </span>
-                      {isIndexSymbol(toast.symbol) && (
-                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 uppercase tracking-wider">
-                          INDEX
-                        </span>
-                      )}
-                    </div>
-                    <span className="text-[10px] font-medium opacity-60">
-                      {formatTime(toast.createdAt)}
+              {/* Top Row */}
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-base leading-none">{icon}</span>
+                  <span className={`text-[10px] font-extrabold tracking-wider px-2 py-0.5 rounded ${
+                    isHigh ? 'bg-emerald-500/20 text-emerald-400' :
+                    isLow ? 'bg-rose-500/20 text-rose-400' :
+                    toast.alertType === 'INDEX_MILESTONE' ? 'bg-amber-500/20 text-amber-400' :
+                    'bg-purple-500/20 text-purple-400'
+                  }`}>
+                    {label}
+                  </span>
+                  {isIdx && (
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400">
+                      INDEX
                     </span>
-                  </div>
-                  
-                  {toast.alertType === 'NEWS' ? (
-                    <div className="flex flex-col mt-1">
-                      <strong className="text-sm">{toast.symbol}</strong>
-                      <span className="text-xs opacity-90 leading-snug mt-0.5">{toast.name}</span>
-                    </div>
-                  ) : (
-                      <div className="text-sm opacity-90 leading-snug mt-0.5">
-                      <strong>{toast.symbol}</strong>{' '}
-                      {toast.details ? (
-                        <>
-                          <span className="text-amber-300 font-medium">{toast.details}</span> @ <strong className="tabular-nums">{formatPrice(toast.price)}</strong>
-                          {toast.change !== undefined && toast.changePercent !== undefined && (
-                            <span className={`ml-2 text-xs font-medium tracking-tight ${toast.changePercent >= 0 ? 'text-[#10b981]' : 'text-[#ef4444]'}`}>
-                              {toast.change >= 0 ? '+' : '−'}{Math.abs(toast.change).toFixed(1)} {toast.changePercent >= 0 ? '+' : '−'}{Math.abs(toast.changePercent).toFixed(2)}%
-                            </span>
-                          )}
-                        </>
-                      ) : toast.alertType === 'VOLUME_SPIKE' ? (
-                        <>
-                          is experiencing unusual volume at <strong className="tabular-nums">{formatPrice(toast.price)}</strong>
-                          {toast.change !== undefined && toast.changePercent !== undefined && (
-                            <span className={`ml-2 text-xs font-medium tracking-tight ${toast.changePercent >= 0 ? 'text-[#10b981]' : 'text-[#ef4444]'}`}>
-                              {toast.change >= 0 ? '+' : '−'}{Math.abs(toast.change).toFixed(1)} {toast.changePercent >= 0 ? '+' : '−'}{Math.abs(toast.changePercent).toFixed(2)}%
-                            </span>
-                          )}
-                        </>
-                      ) : (
-                        <>
-                          reached {toast.alertType === 'DAY_HIGH' ? 'day high' : 'day low'} at <strong className="tabular-nums">{formatPrice(toast.price)}</strong>
-                          {toast.change !== undefined && toast.changePercent !== undefined && (
-                            <span className={`ml-2 text-xs font-medium tracking-tight ${toast.changePercent >= 0 ? 'text-[#10b981]' : 'text-[#ef4444]'}`}>
-                              {toast.change >= 0 ? '+' : '−'}{Math.abs(toast.change).toFixed(1)} {toast.changePercent >= 0 ? '+' : '−'}{Math.abs(toast.changePercent).toFixed(2)}%
-                            </span>
-                          )}
-                        </>
-                      )}
-                    </div>
                   )}
                 </div>
 
-                <button 
-                  onClick={() => onDismiss(toast.id)}
-                  className="flex-shrink-0 opacity-50 hover:opacity-100 transition-opacity self-start -mt-1 -mr-1 p-1"
-                >
-                  ✕
-                </button>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-medium text-slate-400 tabular-nums">
+                    {formatTime(toast.createdAt)}
+                  </span>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDismiss(toast.id);
+                    }}
+                    className="text-slate-400 hover:text-white p-0.5 rounded transition-colors"
+                  >
+                    <X size={13} />
+                  </button>
+                </div>
               </div>
-              
-              {/* Animated Progress Bar at bottom */}
+
+              {/* Symbol & Price Details */}
+              <div className="flex items-baseline justify-between gap-2">
+                <div className="flex flex-col min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-extrabold text-sm text-white tracking-tight">{toast.symbol}</span>
+                    <span className="text-[11px] text-slate-400 truncate max-w-[130px]">{toast.name}</span>
+                  </div>
+                  {toast.details && (
+                    <span className="text-[10.5px] font-medium text-amber-400 mt-0.5">{toast.details}</span>
+                  )}
+                </div>
+
+                <div className="flex flex-col items-end flex-shrink-0">
+                  <span className={`font-extrabold text-sm tabular-nums ${
+                    isHigh ? 'text-emerald-400' : isLow ? 'text-rose-400' : 'text-amber-400'
+                  }`}>
+                    {formatPrice(toast.price)}
+                  </span>
+                  {toast.changePercent !== undefined && (
+                    <span className={`text-[10.5px] font-bold tabular-nums ${
+                      toast.changePercent >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                    }`}>
+                      {toast.changePercent >= 0 ? '+' : '−'}{Math.abs(toast.changePercent).toFixed(2)}%
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Hover Cue */}
+              <div className="mt-1.5 pt-1.5 border-t border-white/5 flex items-center justify-between text-[9.5px] text-slate-400 group-hover:text-emerald-400 transition-colors">
+                <span>CLICK TO VIEW LIVE CHART</span>
+                <ExternalLink size={10} />
+              </div>
+
+              {/* Progress Bar */}
               <motion.div 
                 initial={{ width: '100%' }}
                 animate={{ width: '0%' }}
                 transition={{ duration: 5, ease: "linear" }}
-                className="absolute bottom-0 left-0 h-[3px] bg-current opacity-30"
+                className={`absolute bottom-0 left-0 h-[2.5px] ${
+                  isHigh ? 'bg-emerald-400' : isLow ? 'bg-rose-400' : 'bg-amber-400'
+                } opacity-50`}
               />
             </motion.div>
           );

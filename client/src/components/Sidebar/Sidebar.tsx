@@ -2,71 +2,160 @@ import React from 'react';
 import { useDashboard } from '../../contexts/DashboardContext';
 import { useWatchlist } from '../../hooks/useWatchlist';
 import { ProfileDropdown } from '../Topbar/ProfileDropdown';
+import { audioAlerts } from '../../utils/audioAlerts';
+import { CyberIcon } from '../common/CyberIcon';
 
 export function Sidebar() {
   const { activeTab, setActiveTab } = useDashboard();
   const { count } = useWatchlist();
 
+  const handleTabChange = (tab: string) => {
+    audioAlerts.playHapticClick();
+    setActiveTab(tab as any);
+  };
+
   return (
     <aside className="sidebar">
-      <div className="brand">
-        <div className="brand-mark">M</div>
+      {/* Brand Header */}
+      <div className="brand" onClick={() => handleTabChange('Overview')} style={{ cursor: 'pointer' }}>
+        <div className="brand-mark" style={{
+          background: 'linear-gradient(135deg, #00f59b 0%, #00d4ff 100%)',
+          boxShadow: '0 0 20px rgba(0, 245, 155, 0.45)',
+          color: '#020b08',
+          fontWeight: 900
+        }}>
+          M
+        </div>
         <div>
-          <div className="brand-name">Market Minds</div>
-          <div className="brand-sub">Investment Scanner</div>
+          <div className="brand-name" style={{ letterSpacing: '-0.025em', fontWeight: 800 }}>Market Minds</div>
+          <div className="brand-sub" style={{ color: 'var(--up)', fontWeight: 600 }}>TERMINAL EDITION</div>
         </div>
       </div>
 
+      {/* Nav List */}
       <div className="nav-scroll">
         <div className="nav-group">
-          <div className="nav-label">Markets</div>
-          <div className={`nav-item ${activeTab === 'Overview' ? 'active' : ''}`} onClick={() => setActiveTab('Overview')}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+          <div className="nav-label">Core Markets</div>
+          
+          <div 
+            className={`nav-item ${activeTab === 'Overview' ? 'active' : ''}`} 
+            onClick={() => handleTabChange('Overview')}
+          >
+            <CyberIcon name="overview" size={20} active={activeTab === 'Overview'} />
             <span>Overview</span>
           </div>
-          <div className={`nav-item ${activeTab === 'Table' ? 'active' : ''}`} onClick={() => setActiveTab('Table')}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 3h18v18H3z"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>
-            <span>Table</span><span className="nav-badge">503</span>
+
+          <div 
+            className={`nav-item ${activeTab === 'Table' ? 'active' : ''}`} 
+            onClick={() => handleTabChange('Table')}
+          >
+            <CyberIcon name="table" size={20} active={activeTab === 'Table'} />
+            <span>Market Table</span>
+            <span className="nav-badge">503</span>
           </div>
-          <div className={`nav-item ${activeTab === 'Heatmap' ? 'active' : ''}`} onClick={() => setActiveTab('Heatmap')}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="10" rx="1"/></svg>
+
+          <div 
+            className={`nav-item ${activeTab === 'Heatmap' ? 'active' : ''}`} 
+            onClick={() => handleTabChange('Heatmap')}
+          >
+            <CyberIcon name="heatmap" size={20} active={activeTab === 'Heatmap'} />
             <span>Heatmap</span>
           </div>
-          <div className={`nav-item ${activeTab === 'Sectors' ? 'active' : ''}`} onClick={() => setActiveTab('Sectors')}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="9"/><path d="M12 3v9l6 3"/></svg>
-            <span>Sectors</span>
+
+          <div 
+            className={`nav-item ${activeTab === 'Sectors' ? 'active' : ''}`} 
+            onClick={() => handleTabChange('Sectors')}
+          >
+            <CyberIcon name="sectors" size={20} active={activeTab === 'Sectors'} />
+            <span>Sector Pulse</span>
           </div>
-          <div className={`nav-item ${activeTab === 'Charts' ? 'active' : ''}`} onClick={() => setActiveTab('Charts')}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="4" width="4" height="12" rx="1"/><rect x="9" y="8" width="4" height="8" rx="1"/><rect x="16" y="2" width="4" height="18" rx="1"/><path d="M2 20h20"/></svg>
-            <span>Charts</span>
-            <span className="nav-badge" style={{ background: 'rgba(31,111,235,0.2)', color: '#58a6ff' }}>NEW</span>
+
+          <div 
+            className={`nav-item ${activeTab === 'Charts' ? 'active' : ''}`} 
+            onClick={() => handleTabChange('Charts')}
+          >
+            <CyberIcon name="charts" size={20} active={activeTab === 'Charts'} />
+            <span>Pro Charts</span>
+            <span className="nav-badge" style={{ background: 'rgba(16,185,129,0.2)', color: '#34d399', fontWeight: 800 }}>PRO</span>
           </div>
         </div>
 
         <div className="nav-group">
-          <div className="nav-label">Signals</div>
-          <div className={`nav-item ${activeTab === 'Technical' ? 'active' : ''}`} onClick={() => setActiveTab('Technical')}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg><span>Technical</span><span className="nav-badge">13</span></div>
-          <div className={`nav-item ${activeTab === 'Watchlist' ? 'active' : ''}`} onClick={() => setActiveTab('Watchlist')}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.7 7L12 17.3 5.7 20.9l1.7-7L2 9.2l7.1-.6z"/></svg><span>Watchlist</span><span className="nav-badge">{count}</span></div>
+          <div className="nav-label">Algorithmic Signals</div>
+          
+          <div 
+            className={`nav-item ${activeTab === 'Technical' ? 'active' : ''}`} 
+            onClick={() => handleTabChange('Technical')}
+          >
+            <CyberIcon name="technical" size={20} active={activeTab === 'Technical'} />
+            <span>Technical Screener</span>
+            <span className="nav-badge" style={{ background: 'rgba(245,158,11,0.2)', color: '#f59e0b' }}>13</span>
+          </div>
+
+          <div 
+            className={`nav-item ${activeTab === 'Watchlist' ? 'active' : ''}`} 
+            onClick={() => handleTabChange('Watchlist')}
+          >
+            <CyberIcon name="watchlist" size={20} active={activeTab === 'Watchlist'} />
+            <span>My Watchlist</span>
+            {count > 0 && <span className="nav-badge">{count}</span>}
+          </div>
         </div>
 
         <div className="nav-group">
-          <div className="nav-label">Research</div>
-          <div className={`nav-item ${activeTab === 'LiveNews' ? 'active' : ''}`} onClick={() => setActiveTab('LiveNews')}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 22h16a2 2 0 002-2V4a2 2 0 00-2-2H8l-4 4v14a2 2 0 002 2z"/><path d="M14 2v4a2 2 0 002 2h4M8 13h8M8 17h8M8 9h2"/></svg><span>Live News</span></div>
-          <div className={`nav-item ${activeTab === 'Results' ? 'active' : ''}`} onClick={() => setActiveTab('Results')}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg><span>Results</span></div>
-          <div className={`nav-item ${activeTab === 'Promoter' ? 'active' : ''}`} onClick={() => setActiveTab('Promoter')}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg><span>Promoter Watch</span></div>
+          <div className="nav-label">Intelligence</div>
+          
+          <div 
+            className={`nav-item ${activeTab === 'LiveNews' ? 'active' : ''}`} 
+            onClick={() => handleTabChange('LiveNews')}
+          >
+            <CyberIcon name="livenews" size={20} active={activeTab === 'LiveNews'} />
+            <span>Live News Alpha</span>
+          </div>
+
+          <div 
+            className={`nav-item ${activeTab === 'Results' ? 'active' : ''}`} 
+            onClick={() => handleTabChange('Results')}
+          >
+            <CyberIcon name="results" size={20} active={activeTab === 'Results'} />
+            <span>Quarterly Results</span>
+          </div>
+
+          <div 
+            className={`nav-item ${activeTab === 'Promoter' ? 'active' : ''}`} 
+            onClick={() => handleTabChange('Promoter')}
+          >
+            <CyberIcon name="promoter" size={20} active={activeTab === 'Promoter'} />
+            <span>Promoter Watch</span>
+          </div>
         </div>
 
         <div className="nav-group">
-          <div className="nav-label">Tools</div>
-          <div className={`nav-item ${activeTab === 'PaperTrading' ? 'active' : ''}`} onClick={() => setActiveTab('PaperTrading')}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg><span>Paper Trading</span></div>
+          <div className="nav-label">Simulations</div>
+          
+          <div 
+            className={`nav-item ${activeTab === 'PaperTrading' ? 'active' : ''}`} 
+            onClick={() => handleTabChange('PaperTrading')}
+          >
+            <CyberIcon name="papertrading" size={20} active={activeTab === 'PaperTrading'} />
+            <span>Paper Trading</span>
+          </div>
         </div>
 
         <div className="nav-group">
-          <div className="nav-label">Account</div>
-          <div className={`nav-item ${activeTab === 'Admin' ? 'active' : ''}`} onClick={() => setActiveTab('Admin')}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 000 20 14.5 14.5 0 000-20z"/><path d="M2 12h20"/></svg><span>Admin Panel</span></div>
+          <div className="nav-label">Terminal System</div>
+          
+          <div 
+            className={`nav-item ${activeTab === 'Admin' ? 'active' : ''}`} 
+            onClick={() => handleTabChange('Admin')}
+          >
+            <CyberIcon name="admin" size={20} active={activeTab === 'Admin'} />
+            <span>Admin Console</span>
+          </div>
         </div>
       </div>
 
+      {/* Footer User Profile */}
       <div className="sidebar-foot" style={{ display: 'flex', justifyContent: 'center', paddingBottom: '16px' }}>
         <ProfileDropdown />
       </div>

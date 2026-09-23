@@ -77,16 +77,8 @@ export const PromoterWatch: React.FC = () => {
   const barWidth = (bw - 2*bpad) / barVals.length;
 
   return (
-    <div className="promoter-page" style={{paddingTop: '0', marginTop: '-24px'}}>
-      <div className="page" style={{paddingTop: '0'}}>
-
-        <div className="page-title-row">
-          <div>
-            <h2 className="display">NSE Bulk Deals</h2>
-            <div className="sub">INSTITUTIONAL &amp; PROMOTER WATCH · REAL-TIME</div>
-          </div>
-        </div>
-
+    <div className="promoter-page">
+      <div className="page">
         <div className="stat-grid">
           <div className="stat-card">
             <div className="label">Total Buy Value</div>
@@ -99,7 +91,7 @@ export const PromoterWatch: React.FC = () => {
           <div className="stat-card">
             <div className="label">Net Flow</div>
             <div className={`value ${netFlow >= 0 ? 'up' : 'down'}`}>
-              {netFlow >= 0 ? '+' : 'âˆ’'}{formatCurrency(Math.abs(netFlow))}
+              {netFlow >= 0 ? '+' : '-'}{formatCurrency(Math.abs(netFlow))}
             </div>
           </div>
           <div className="stat-card">

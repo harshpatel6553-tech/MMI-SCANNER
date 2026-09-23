@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import type { FilterOptions } from '../../types';
+import { AnimatedEmoji } from '../common/AnimatedEmoji';
 import './FilterPanel.css';
 
 interface FilterPanelProps {
@@ -103,22 +104,22 @@ export function FilterPanel({ filters, onChange, stats }: FilterPanelProps) {
       {/* Stats row */}
       <div className="stats-row">
         <div className="stat-item">
-          <span className="stat-icon">📊</span>
+          <AnimatedEmoji name="overview" size={16} />
           <span className="stat-label">Total:</span>
           <span className="stat-value text-accent">{stats.total}</span>
         </div>
         <div className="stat-item">
-          <span className="stat-icon">📈</span>
+          <AnimatedEmoji name="charts" size={16} />
           <span className="stat-label">Gainers:</span>
           <span className="stat-value positive">{stats.gainers}</span>
         </div>
         <div className="stat-item">
-          <span className="stat-icon">📉</span>
+          <AnimatedEmoji name="chart_down" size={16} />
           <span className="stat-label">Losers:</span>
           <span className="stat-value negative">{stats.losers}</span>
         </div>
         <div className="stat-item">
-          <span className="stat-icon">➖</span>
+          <AnimatedEmoji name="scale" size={16} />
           <span className="stat-label">Unchanged:</span>
           <span className="stat-value text-muted">{stats.unchanged}</span>
         </div>

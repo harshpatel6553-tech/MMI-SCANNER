@@ -151,103 +151,106 @@ export function AdminDashboard() {
     });
   };
 
-  const getBadgeStyle = (status: string) => {
-    switch(status) {
-      case 'Lifetime': return 'border-none bg-purple-600/10 text-purple-600';
+  const getBadgeClass = (status: string) => {
+    switch (status) {
+      case 'Lifetime': return 'badge-pill purple';
       case 'Monthly': 
       case 'Yearly': 
-      case '3 Years': return 'border-none bg-blue-600/10 text-blue-600';
-      case 'Trialing': return 'border-none bg-green-600/10 text-green-600';
-      case 'Expired': return 'border-none bg-red-600/10 text-red-600';
-      default: return 'border-none bg-gray-600/10 text-gray-600';
+      case '3 Years': return 'badge-pill cyan';
+      case 'Trialing': return 'badge-pill up';
+      case 'Expired': return 'badge-pill down';
+      default: return 'badge-pill neutral';
     }
   };
 
   if (!profile?.is_admin) {
     return (
       <div className="admin-container">
-        <div className="glass-card" style={{ padding: '2rem', textAlign: 'center' }}>
-          <h2>Access Denied</h2>
-          <button className="signout-btn" onClick={() => navigate('/')}>Go Back</button>
+        <div className="admin-live-card" style={{ padding: '3rem', textAlign: 'center' }}>
+          <h2 style={{ fontFamily: 'var(--font-display)', marginBottom: 16 }}>Access Denied</h2>
+          <p style={{ color: 'var(--text-2)', marginBottom: 20 }}>Your account does not have administrative privileges.</p>
+          <button className="beast-btn" onClick={() => navigate('/')}>← Return to Scanner</button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="admin-container pb-20">
-      <div className="admin-header">
-        <h2>Admin Dashboard</h2>
-        <div className="admin-actions">
-          <button className="signout-btn" onClick={() => navigate('/')}>Back to Scanner</button>
-          <button className="signout-btn" onClick={signOut}>Sign Out</button>
-        </div>
+    <div className="admin-container">
+      {/* Top Action Bar */}
+      <div className="admin-toolbar">
+        <button className="beast-btn" onClick={() => navigate('/')}>
+          ← Back to Scanner
+        </button>
+        <button className="beast-btn danger" onClick={signOut}>
+          Sign Out
+        </button>
       </div>
 
-      <div className="admin-card glass-card mb-8">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="flex items-center gap-2 m-0 text-lg font-semibold">
-            <span className="inline-block w-2.5 h-2.5 rounded-full bg-green-400 shadow-[0_0_8px_#4ade80] animate-pulse"></span>
-            Live Users � {onlineUsers.length} Online
-          </h3>
+      {/* Live Online Users Card */}
+      <div className="admin-live-card">
+        <div className="admin-live-head">
+          <div className="admin-live-title">
+            <span className="telemetry-dot live" />
+            <span>Live Concurrent Users · <span style={{ color: 'var(--up)' }}>{onlineUsers.length} Online</span></span>
+          </div>
           <button 
-            className="px-4 py-1.5 rounded-md text-sm font-medium border transition-colors bg-red-500/15 border-red-500/40 text-red-500 hover:bg-red-500/20"
+            className="beast-btn danger sm"
             onClick={handleForceRefresh}
+            style={{ display: 'flex', alignItems: 'center', gap: 6 }}
           >
-            ? Force Refresh All Users
+            <span>↻</span> Force Refresh All Sessions
           </button>
         </div>
+
         {onlineUsers.length === 0 ? (
-          <p className="text-gray-400 py-4">No users currently online</p>
+          <p style={{ color: 'var(--text-3)', fontSize: 13, marginTop: 14, marginBottom: 0 }}>No active user sessions detected.</p>
         ) : (
-          <div className="flex flex-wrap gap-2 mt-4">
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 16 }}>
             {onlineUsers.map((u, i) => (
-              <div key={i} className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg bg-green-400/10 border border-green-400/20 text-sm text-green-400 shadow-[0_0_15px_rgba(74,222,128,0.05)] transition-all hover:bg-green-400/20">
+              <div key={i} className="admin-user-pill">
                 {u.avatar ? (
-                  <img src={u.avatar} alt="Avatar" className="w-5 h-5 rounded-full ring-1 ring-green-400/50 object-cover" />
+                  <img src={u.avatar} alt="Avatar" style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'cover' }} />
                 ) : (
-                  <div className="w-5 h-5 rounded-full bg-green-400/20 flex items-center justify-center text-[10px] font-bold text-green-400 ring-1 ring-green-400/50">
+                  <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--up-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, color: 'var(--up)' }}>
                     {u.email.substring(0, 2).toUpperCase()}
                   </div>
                 )}
-                <span className="text-gray-200 font-medium">{u.email}</span>
-                <span className="text-xs text-green-400/70">since {new Date(u.connectedAt).toLocaleTimeString()}</span>
+                <span style={{ color: 'var(--text-1)', fontWeight: 600 }}>{u.email}</span>
+                <span style={{ fontSize: 10, color: 'var(--text-3)' }}>since {new Date(u.connectedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
               </div>
             ))}
           </div>
         )}
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-white/10 shadow-sm mb-12" style={{ background: '#0b0b0d' }}>
-        <div className="grid gap-4 border-b border-dashed border-white/10 px-4 py-5 md:grid-cols-2 lg:grid-cols-4">
-          
-          <div className="space-y-2">
-            <label htmlFor="email-filter" className="text-sm font-medium text-gray-300">Email Address</label>
-            <div className="relative">
+      {/* Users Management Table Card */}
+      <div className="admin-table-card">
+        <div className="admin-filter-bar">
+          <div className="admin-field">
+            <label htmlFor="email-filter" className="admin-label">Search Email</label>
+            <div className="admin-input-wrap">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
               <input
                 id="email-filter"
-                className="flex h-10 w-full rounded-md border border-white/10 bg-transparent px-3 py-2 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-sky-500 pl-9"
+                className="admin-input"
                 value={filters.email}
                 onChange={(e) => updateFilter('email', e.target.value)}
-                placeholder="Search user email"
+                placeholder="Search user email address..."
                 type="text"
               />
-              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-              </div>
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label htmlFor="status-filter" className="text-sm font-medium text-gray-300">Subscription Status</label>
+          <div className="admin-field">
+            <label htmlFor="status-filter" className="admin-label">Subscription Tier</label>
             <select
               id="status-filter"
-              className="flex h-10 w-full rounded-md border border-white/10 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-sky-500 appearance-none"
-              style={{ backgroundColor: '#131316', color: '#fff' }}
+              className="admin-select"
               value={filters.status}
               onChange={(e) => updateFilter('status', e.target.value)}
             >
-              <option value="all">All Statuses</option>
+              <option value="all">All Subscription Tiers</option>
               <option value="trialing">Trialing</option>
               <option value="monthly">Monthly</option>
               <option value="yearly">Yearly</option>
@@ -255,40 +258,39 @@ export function AdminDashboard() {
               <option value="expired">Expired</option>
             </select>
           </div>
-          
-          <div className="space-y-2 flex flex-col justify-end lg:col-span-2">
-             {selectedIdSet.size > 0 && (
-                <div className="flex gap-4 items-center justify-end">
-                   <span className="text-sm text-gray-400">{selectedIdSet.size} selected</span>
-                   <button 
-                     onClick={handleBulkRevoke}
-                     className="h-10 px-4 rounded-md bg-red-500/10 text-red-500 border border-red-500/20 text-sm hover:bg-red-500/20"
-                   >
-                     Bulk Revoke
-                   </button>
-                </div>
-             )}
+
+          <div className="admin-field" style={{ justifyContent: 'flex-end', display: 'flex' }}>
+            {selectedIdSet.size > 0 && (
+              <div style={{ display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'flex-end' }}>
+                <span style={{ fontSize: 12, color: 'var(--text-2)', fontFamily: 'var(--font-mono)' }}>{selectedIdSet.size} selected</span>
+                <button 
+                  onClick={handleBulkRevoke}
+                  className="beast-btn danger sm"
+                >
+                  Bulk Revoke
+                </button>
+              </div>
+            )}
           </div>
-          
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm whitespace-nowrap [&_td]:align-middle">
+        <div style={{ overflowX: 'auto' }}>
+          <table className="admin-table">
             <thead>
-              <tr className="border-b border-dashed border-white/10 hover:bg-white/5">
-                <th className="h-12 w-12 px-4 font-medium text-gray-400">
+              <tr>
+                <th style={{ width: 44, textAlign: 'center' }}>
                   <input 
                     type="checkbox" 
                     checked={allSelected} 
                     ref={input => { if (input) input.indeterminate = someSelected; }}
                     onChange={(e) => toggleAll(e.target.checked)}
-                    className="rounded border-white/20 bg-transparent accent-sky-500" 
+                    style={{ cursor: 'pointer', accentColor: 'var(--cyan)' }}
                   />
                 </th>
-                <th className="h-12 px-4 text-[11px] font-medium uppercase tracking-[0.14em] text-gray-500">User Email</th>
-                <th className="h-12 px-4 text-[11px] font-medium uppercase tracking-[0.14em] text-gray-500">Signed Up</th>
-                <th className="h-12 px-4 text-[11px] font-medium uppercase tracking-[0.14em] text-gray-500">Status</th>
-                <th className="h-12 px-4 text-[11px] font-medium uppercase tracking-[0.14em] text-gray-500 text-right">Actions</th>
+                <th>User Account</th>
+                <th>Registered</th>
+                <th>Access Status</th>
+                <th style={{ textAlign: 'right' }}>Manage Access</th>
               </tr>
             </thead>
             <tbody>
@@ -297,75 +299,92 @@ export function AdminDashboard() {
                   const isSelected = selectedIdSet.has(item.id);
                   const date = new Date(item.trial_start_date).toLocaleDateString();
 
+                  // Robust expiry formatting (prevents "Exp: Invalid Date")
+                  let expLabel: string | null = null;
+                  if (item.computedStatus === 'Trialing' && item.trial_start_date) {
+                    const expTime = new Date(item.trial_start_date).getTime() + 14 * 24 * 60 * 60 * 1000;
+                    expLabel = `Exp: ${new Date(expTime).toLocaleDateString()} (${item.trialDaysLeft}d)`;
+                  } else if (item.subscription_status && item.subscription_status.includes(':')) {
+                    const rawDate = item.subscription_status.split(':')[1];
+                    if (rawDate) {
+                      const parsed = new Date(rawDate);
+                      if (!isNaN(parsed.getTime())) {
+                        expLabel = `Exp: ${parsed.toLocaleDateString()}`;
+                      }
+                    }
+                  }
+
                   return (
                     <tr 
                       key={item.id} 
-                      className={`border-b border-white/5 transition-colors hover:bg-white/5 ${isSelected ? 'bg-sky-500/10' : ''}`}
+                      className={isSelected ? 'is-selected' : ''}
                     >
-                      <td className="py-3 px-4">
+                      <td style={{ textAlign: 'center' }}>
                         <input 
                           type="checkbox" 
                           checked={isSelected} 
                           onChange={(e) => toggleRow(item.id, e.target.checked)}
-                          className="rounded border-white/20 bg-transparent accent-sky-500" 
+                          style={{ cursor: 'pointer', accentColor: 'var(--cyan)' }}
                         />
                       </td>
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-3">
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                           {(() => {
                             const onlineData = onlineUsers.find(u => u.email === item.email);
                             const avatarUrl = onlineData?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(item.email)}`;
                             const isOnline = !!onlineData;
                             return (
-                              <div className="relative shrink-0">
-                                <img src={avatarUrl} alt="Avatar" className="w-9 h-9 rounded-full bg-white/5 object-cover ring-1 ring-white/10 shadow-sm" />
-                                {isOnline && <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-400 rounded-full ring-2 ring-[#0b0b0d]"></div>}
+                              <div style={{ position: 'relative', flexShrink: 0 }}>
+                                <img src={avatarUrl} alt="Avatar" style={{ width: 34, height: 34, borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--border)' }} />
+                                {isOnline && (
+                                  <div style={{ position: 'absolute', bottom: 0, right: 0, width: 9, height: 9, background: 'var(--up)', borderRadius: '50%', boxShadow: '0 0 6px var(--up)' }} />
+                                )}
                               </div>
                             );
                           })()}
                           <div>
-                            <div className="font-medium text-gray-200">{item.email}</div>
-                            <div className="text-xs text-gray-500">{item.id.substring(0,8)}...</div>
+                            <div className="user-email-text">{item.email}</div>
+                            <div className="user-id-text">{item.id.substring(0, 12)}...</div>
                           </div>
                         </div>
                       </td>
-                      <td className="py-3 px-4 text-gray-400">{date}</td>
-                      <td className="py-3 px-4">
-                        <div className="flex flex-col gap-1 items-start">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getBadgeStyle(item.computedStatus)}`}>
+                      <td>
+                        <span className="user-date-text">{date}</span>
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
+                          <span className={getBadgeClass(item.computedStatus)}>
                             {item.computedStatus}
                           </span>
-                          
-                          {(item.computedStatus === 'Monthly' || item.computedStatus === 'Yearly' || item.computedStatus === '3 Years') && item.subscription_status && (
-                            <span className="text-[10px] text-gray-500">
-                              Exp: {new Date(item.subscription_status.split(':')[1]).toLocaleDateString()}
-                            </span>
-                          )}
-                          
-                          {item.computedStatus === 'Trialing' && (
-                            <span className="text-[10px] text-sky-400">
-                              Exp: {new Date(new Date(item.trial_start_date).getTime() + 14 * 24 * 60 * 60 * 1000).toLocaleDateString()} ({item.trialDaysLeft} days)
+                          {expLabel && (
+                            <span style={{ fontSize: 10, color: 'var(--text-3)', fontFamily: 'var(--font-mono)' }}>
+                              {expLabel}
                             </span>
                           )}
                         </div>
                       </td>
-                      <td className="py-3 px-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
+                      <td style={{ textAlign: 'right' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
                           <button 
                             onClick={() => handleGrantAccess(item.id, 'monthly')}
-                            className="px-2 py-1 text-xs rounded bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-colors border border-blue-500/20"
+                            className="beast-btn sm"
+                            style={{ borderColor: 'rgba(0, 212, 255, 0.3)', color: 'var(--cyan)' }}
+                            title="Grant 1 Month Access"
                           >
                             + 1M
                           </button>
                           <button 
                             onClick={() => handleGrantAccess(item.id, 'yearly')}
-                            className="px-2 py-1 text-xs rounded bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 transition-colors border border-purple-500/20"
+                            className="beast-btn sm"
+                            style={{ borderColor: 'rgba(168, 85, 247, 0.3)', color: 'var(--purple)' }}
+                            title="Grant 1 Year Access"
                           >
                             + 1Y
                           </button>
                           <button 
                             onClick={() => handleRevoke(item.id)}
-                            className="px-2 py-1 text-xs rounded bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors border border-red-500/20"
+                            className="beast-btn danger sm"
+                            title="Revoke User Access"
                           >
                             Revoke
                           </button>
@@ -376,8 +395,8 @@ export function AdminDashboard() {
                 })
               ) : (
                 <tr>
-                  <td colSpan={5} className="py-12 text-center text-gray-500">
-                    No users found matching your filters.
+                  <td colSpan={5} style={{ padding: '40px', textAlign: 'center', color: 'var(--text-3)' }}>
+                    No users found matching your search criteria.
                   </td>
                 </tr>
               )}

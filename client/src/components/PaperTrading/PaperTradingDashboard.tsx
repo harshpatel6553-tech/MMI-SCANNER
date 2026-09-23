@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useStocks } from '../../hooks/useStocks';
 import './PaperTradingDashboard.css';
@@ -111,7 +111,7 @@ export function PaperTradingDashboard() {
   const areaPath = `M ${coords[0][0]},${ch - cpad} L ${linePath.replace('L ', '')} L ${coords[coords.length - 1][0]},${ch - cpad} Z`;
 
   return (
-    <div className="paper-page" style={{paddingTop: '0', marginTop: '-24px'}}>
+    <div className="paper-page">
       
       {tradeStock && (
         <TradeModal 
@@ -121,7 +121,7 @@ export function PaperTradingDashboard() {
         />
       )}
 
-      <div className="page" style={{paddingTop: '0'}}>
+      <div className="page">
         
         <div className="stat-grid">
           <div className="stat-card">

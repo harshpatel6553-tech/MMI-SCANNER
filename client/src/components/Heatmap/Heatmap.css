@@ -1,215 +1,693 @@
-/* ============================================
-   HEATMAP — Flat Sorted Grid
-   ============================================ */
+/* ============================================================
+   CYBER HEATMAP — Professional Bloomberg/TradingView Finviz Bento
+   Dark Obsidian Glass, Multi-stop Luminescence, Sector Clustering
+   ============================================================ */
 
 .heatmap-container {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 8px;
+  padding: 16px 20px 40px;
   display: flex;
   flex-direction: column;
+  gap: 16px;
   background: transparent;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-/* ---- Grid ---- */
-.heatmap-grid {
+/* ---- Controls Bar ---- */
+.heatmap-controls-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: rgba(10, 14, 23, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-soft, rgba(255, 255, 255, 0.08));
+  border-radius: var(--radius-md, 12px);
+  padding: 12px 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.heatmap-controls-left {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.heatmap-controls-right {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Segmented Tab Groups */
+.heatmap-tab-group {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(4, 6, 12, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 3px;
+  gap: 2px;
+}
+
+.heatmap-tab-btn {
+  background: transparent;
+  border: none;
+  padding: 6px 12px;
+  font-family: var(--font-body, system-ui);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-2, #8b949e);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+  user-select: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.heatmap-tab-btn:hover {
+  color: var(--text-1, #ffffff);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.heatmap-tab-btn.active {
+  color: #020b08;
+  background: linear-gradient(135deg, #00f59b 0%, #00d4ff 100%);
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(0, 245, 155, 0.35);
+}
+
+/* Secondary Toggle (Sector / Style) */
+.heatmap-sub-toggle {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 3px;
+  gap: 2px;
+}
+
+.heatmap-sub-btn {
+  background: transparent;
+  border: none;
+  padding: 5px 10px;
+  font-family: var(--font-body, system-ui);
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.heatmap-sub-btn:hover {
+  color: #f1f5f9;
+}
+
+.heatmap-sub-btn.active {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+/* Search Box */
+.heatmap-search-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(4, 6, 12, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 5px 10px;
+  min-width: 170px;
+}
+
+.heatmap-search-box input {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #f1f5f9;
+  font-family: var(--font-body, system-ui);
+  font-size: 12px;
+  width: 100%;
+}
+
+.heatmap-search-box input::placeholder {
+  color: #64748b;
+}
+
+/* ---- Telemetry Metric Strip ---- */
+.heatmap-telemetry-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 18px;
+  background: rgba(6, 10, 18, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-sm, 8px);
+  font-family: var(--font-mono, monospace);
+  font-size: 11.5px;
+}
+
+.heatmap-stat-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.heatmap-stat-label {
+  color: #64748b;
+  text-transform: uppercase;
+  font-size: 10.5px;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+.heatmap-stat-val {
+  font-weight: 700;
+}
+
+.heatmap-stat-val.up { color: var(--up, #00f59b); text-shadow: 0 0 8px rgba(0, 245, 155, 0.4); }
+.heatmap-stat-val.down { color: var(--down, #f43f5e); text-shadow: 0 0 8px rgba(244, 63, 94, 0.4); }
+
+.heatmap-breadth-bar {
+  flex: 1;
+  min-width: 140px;
+  max-width: 280px;
+  height: 6px;
+  background: rgba(244, 63, 94, 0.35);
+  border-radius: 999px;
+  overflow: hidden;
+  position: relative;
+}
+
+.heatmap-breadth-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981 0%, #00f59b 100%);
+  border-radius: 999px;
+  transition: width 0.4s ease;
+  box-shadow: 0 0 8px rgba(0, 245, 155, 0.6);
+}
+
+/* ---- Sector Clusters Mode ---- */
+.heatmap-sectors-container {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.sector-cluster-card {
+  background: rgba(8, 12, 20, 0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: var(--radius-md, 12px);
+  padding: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  transition: border-color 0.2s ease;
+}
+
+.sector-cluster-card:hover {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.sector-cluster-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.sector-cluster-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sector-cluster-name {
+  font-family: var(--font-display, system-ui);
+  font-size: 14px;
+  font-weight: 700;
+  color: #f1f5f9;
+  letter-spacing: -0.01em;
+}
+
+.sector-cluster-count {
+  font-size: 11px;
+  font-family: var(--font-mono, monospace);
+  color: #64748b;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+.sector-cluster-badge {
+  font-family: var(--font-mono, monospace);
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.sector-cluster-badge.up {
+  background: rgba(0, 245, 155, 0.12);
+  color: #00f59b;
+  border: 1px solid rgba(0, 245, 155, 0.3);
+}
+
+.sector-cluster-badge.down {
+  background: rgba(244, 63, 94, 0.12);
+  color: #f43f5e;
+  border: 1px solid rgba(244, 63, 94, 0.3);
+}
+
+.sector-cluster-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   gap: 8px;
 }
 
-/* ---- Tile ---- */
+/* ---- Unified Treemap Grid ---- */
+.heatmap-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(136px, 1fr));
+  gap: 8px;
+  align-content: start;
+}
+
+/* ---- CYBER GLASS HEAT TILE (Default) ---- */
 .heatmap-tile {
   position: relative;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   padding: 10px 12px;
-  border-radius: 4px;
+  border-radius: 10px;
   cursor: pointer;
-  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease;
-  animation: heatmapTileFadeIn 0.4s ease-out both;
-  min-height: 70px;
+  min-height: 80px;
+  box-sizing: border-box;
   overflow: visible;
-  color: #ffffff; /* Text in colored blocks is always white */
+  user-select: none;
+  transform-origin: center center;
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s ease, border-color 0.18s ease;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  will-change: transform;
 }
 
-.heatmap-tile.hovered {
-  transform: scale(1.05);
-  z-index: 10;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+.heatmap-tile > * {
+  pointer-events: none;
 }
 
-@keyframes heatmapTileFadeIn {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
+.heatmap-tile:hover {
+  transform: scale(1.035);
+  z-index: 30;
 }
 
+/* Dynamic Weighted Sizing */
+.heatmap-tile.weighted-large {
+  grid-column: span 2;
+  grid-row: span 2;
+  min-height: 168px;
+  padding: 14px 16px;
+}
+
+.heatmap-tile.weighted-medium {
+  grid-column: span 2;
+  min-height: 80px;
+  padding: 10px 14px;
+}
+
+/* ---- Cyber Glass Theme Tiers ---- */
+/* Super Bull (>= +3%) */
+.heatmap-tile.tier-super-bull {
+  background: linear-gradient(145deg, rgba(0, 245, 155, 0.22) 0%, rgba(6, 78, 59, 0.45) 50%, rgba(8, 14, 22, 0.85) 100%);
+  border: 1px solid rgba(0, 245, 155, 0.38);
+  box-shadow: inset 0 1px 0 rgba(0, 245, 155, 0.4), 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+.heatmap-tile.tier-super-bull:hover {
+  border-color: #00f59b;
+  box-shadow: 0 12px 28px -4px rgba(0, 245, 155, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+/* Moderate Bull (+1% to +3%) */
+.heatmap-tile.tier-bull {
+  background: linear-gradient(145deg, rgba(16, 185, 129, 0.16) 0%, rgba(4, 47, 46, 0.4) 50%, rgba(8, 14, 22, 0.85) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.26);
+  box-shadow: inset 0 1px 0 rgba(16, 185, 129, 0.3), 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+.heatmap-tile.tier-bull:hover {
+  border-color: #10b981;
+  box-shadow: 0 12px 24px -4px rgba(16, 185, 129, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+/* Mild Bull (0% to +1%) */
+.heatmap-tile.tier-mild-bull {
+  background: linear-gradient(145deg, rgba(16, 185, 129, 0.08) 0%, rgba(13, 20, 28, 0.5) 60%, rgba(8, 14, 22, 0.85) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.16);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+.heatmap-tile.tier-mild-bull:hover {
+  border-color: rgba(16, 185, 129, 0.5);
+  box-shadow: 0 10px 20px -4px rgba(16, 185, 129, 0.25);
+}
+
+/* Neutral (~0%) */
+.heatmap-tile.tier-neutral {
+  background: linear-gradient(145deg, rgba(51, 65, 85, 0.15) 0%, rgba(15, 23, 42, 0.5) 60%, rgba(8, 14, 22, 0.85) 100%);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+.heatmap-tile.tier-neutral:hover {
+  border-color: rgba(148, 163, 184, 0.4);
+  box-shadow: 0 10px 20px -4px rgba(148, 163, 184, 0.2);
+}
+
+/* Mild Bear (-1% to 0%) */
+.heatmap-tile.tier-mild-bear {
+  background: linear-gradient(145deg, rgba(244, 63, 94, 0.08) 0%, rgba(26, 14, 20, 0.5) 60%, rgba(8, 14, 22, 0.85) 100%);
+  border: 1px solid rgba(244, 63, 94, 0.16);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+.heatmap-tile.tier-mild-bear:hover {
+  border-color: rgba(244, 63, 94, 0.5);
+  box-shadow: 0 10px 20px -4px rgba(244, 63, 94, 0.25);
+}
+
+/* Moderate Bear (-3% to -1%) */
+.heatmap-tile.tier-bear {
+  background: linear-gradient(145deg, rgba(244, 63, 94, 0.18) 0%, rgba(88, 28, 44, 0.4) 50%, rgba(8, 14, 22, 0.85) 100%);
+  border: 1px solid rgba(244, 63, 94, 0.28);
+  box-shadow: inset 0 1px 0 rgba(244, 63, 94, 0.3), 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+.heatmap-tile.tier-bear:hover {
+  border-color: #f43f5e;
+  box-shadow: 0 12px 24px -4px rgba(244, 63, 94, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+/* Super Bear (<= -3%) */
+.heatmap-tile.tier-super-bear {
+  background: linear-gradient(145deg, rgba(244, 63, 94, 0.26) 0%, rgba(136, 19, 55, 0.45) 50%, rgba(8, 14, 22, 0.85) 100%);
+  border: 1px solid rgba(244, 63, 94, 0.42);
+  box-shadow: inset 0 1px 0 rgba(244, 63, 94, 0.45), 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+.heatmap-tile.tier-super-bear:hover {
+  border-color: #f43f5e;
+  box-shadow: 0 12px 28px -4px rgba(244, 63, 94, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+/* ---- HIGH INTENSITY THEME (Alternative) ---- */
+.heatmap-tile.high-heat.tier-super-bull {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  border: 1px solid #10b981;
+}
+.heatmap-tile.high-heat.tier-bull {
+  background: linear-gradient(135deg, #047857 0%, #065f46 100%);
+  border: 1px solid #059669;
+}
+.heatmap-tile.high-heat.tier-mild-bull {
+  background: linear-gradient(135deg, #064e3b 0%, #022c22 100%);
+  border: 1px solid #047857;
+}
+.heatmap-tile.high-heat.tier-neutral {
+  background: #1e293b;
+  border: 1px solid #334155;
+}
+.heatmap-tile.high-heat.tier-mild-bear {
+  background: linear-gradient(135deg, #4c0519 0%, #881337 100%);
+  border: 1px solid #9f1239;
+}
+.heatmap-tile.high-heat.tier-bear {
+  background: linear-gradient(135deg, #881337 0%, #9f1239 100%);
+  border: 1px solid #be123c;
+}
+.heatmap-tile.high-heat.tier-super-bear {
+  background: linear-gradient(135deg, #9f1239 0%, #e11d48 100%);
+  border: 1px solid #f43f5e;
+}
+
+/* ---- Internal Tile Layout ---- */
 .heatmap-tile-top {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: flex-start;
+  gap: 6px;
+}
+
+.heatmap-tile-identity {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
 }
 
 .heatmap-tile-symbol {
-  font-family: 'Space Grotesk', -apple-system, sans-serif;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.heatmap-tile-bottom {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  margin-top: 12px;
-}
-
-.heatmap-tile-price {
-  font-family: 'Inter', -apple-system, sans-serif;
-  font-variant-numeric: tabular-nums;
-  font-size: 13px;
-  font-weight: 500;
-  opacity: 0.95;
-}
-
-.heatmap-tile-change {
-  font-family: 'Inter', -apple-system, sans-serif;
-  font-variant-numeric: tabular-nums;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.heatmap-spike-icon {
-  color: #fff;
-  opacity: 0.8;
-  animation: pulseGlow 1.5s ease-in-out infinite;
-}
-
-/* ---- Tooltip ---- */
-.heatmap-tooltip {
-  position: absolute;
-  bottom: calc(100% + 8px);
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(10, 10, 15, 0.96);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  padding: 10px 14px;
-  min-width: 180px;
-  z-index: 100;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-  animation: fadeIn 0.15s ease;
-  pointer-events: none;
-  color: #fff;
-}
-
-.heatmap-tooltip-name {
-  font-size: 12px;
-  font-weight: 700;
-  margin-bottom: 8px;
+  font-family: var(--font-display, system-ui);
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: #ffffff;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
+.heatmap-spike-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: rgba(245, 158, 11, 0.2);
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  color: #fbbf24;
+  font-size: 9px;
+  font-weight: 700;
+  font-family: var(--font-mono, monospace);
+  padding: 1px 4px;
+  border-radius: 4px;
+  animation: cyberSpikePulse 1.8s ease-in-out infinite;
+}
+
+@keyframes cyberSpikePulse {
+  0%, 100% { box-shadow: 0 0 4px rgba(245, 158, 11, 0.3); }
+  50% { box-shadow: 0 0 10px rgba(245, 158, 11, 0.7); }
+}
+
+.heatmap-tile-name {
+  font-family: var(--font-body, system-ui);
+  font-size: 10px;
+  color: #94a3b8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+  margin-bottom: auto;
+}
+
+.heatmap-tile-bottom {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.heatmap-tile-price {
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+  font-weight: 600;
+  color: #e2e8f0;
+  letter-spacing: -0.02em;
+}
+
+/* Percentage Change Pill */
+.heatmap-tile-change-pill {
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+
+.heatmap-tile.tier-super-bull .heatmap-tile-change-pill,
+.heatmap-tile.tier-bull .heatmap-tile-change-pill,
+.heatmap-tile.tier-mild-bull .heatmap-tile-change-pill {
+  background: rgba(0, 245, 155, 0.15);
+  color: #00f59b;
+  border: 1px solid rgba(0, 245, 155, 0.3);
+}
+
+.heatmap-tile.tier-neutral .heatmap-tile-change-pill {
+  background: rgba(148, 163, 184, 0.12);
+  color: #94a3b8;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.heatmap-tile.tier-super-bear .heatmap-tile-change-pill,
+.heatmap-tile.tier-bear .heatmap-tile-change-pill,
+.heatmap-tile.tier-mild-bear .heatmap-tile-change-pill {
+  background: rgba(244, 63, 94, 0.15);
+  color: #f43f5e;
+  border: 1px solid rgba(244, 63, 94, 0.3);
+}
+
+/* Large Weighted Variant Specifics */
+.heatmap-tile.weighted-large .heatmap-tile-symbol {
+  font-size: 17px;
+}
+.heatmap-tile.weighted-large .heatmap-tile-price {
+  font-size: 15px;
+}
+.heatmap-tile.weighted-large .heatmap-tile-change-pill {
+  font-size: 13px;
+  padding: 3px 8px;
+}
+.heatmap-tile.weighted-large .heatmap-tile-name {
+  font-size: 12px;
+}
+
+/* ---- High-Tech Floating Tooltip ---- */
+.heatmap-tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  background: rgba(6, 10, 18, 0.96);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(0, 245, 155, 0.35);
+  border-radius: 10px;
+  padding: 12px 16px;
+  min-width: 220px;
+  z-index: 100;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 245, 155, 0.15);
+  pointer-events: none;
+  color: #f1f5f9;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s ease;
+}
+
+.heatmap-tile:hover .heatmap-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+
+.heatmap-tooltip-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.heatmap-tooltip-title {
+  font-family: var(--font-display, system-ui);
+  font-size: 13px;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.heatmap-tooltip-sector {
+  font-size: 10.5px;
+  font-family: var(--font-mono, monospace);
+  color: var(--cyan, #00d4ff);
+}
+
 .heatmap-tooltip-row {
   display: flex;
   justify-content: space-between;
-  gap: 12px;
-  font-size: 11px;
+  align-items: center;
   padding: 3px 0;
+  font-size: 11.5px;
 }
 
-.heatmap-tooltip-row span:first-child {
-  color: #8a8a8e;
+.heatmap-tooltip-label {
+  color: #94a3b8;
 }
 
-.heatmap-tooltip-row span:last-child {
-  font-family: 'Space Grotesk', -apple-system, sans-serif;
-  font-variant-numeric: tabular-nums;
+.heatmap-tooltip-val {
+  font-family: var(--font-mono, monospace);
   font-weight: 600;
+  color: #f8fafc;
 }
 
-.heatmap-tooltip-row span.positive { color: #10b981; }
-.heatmap-tooltip-row span.negative { color: #ef4444; }
+.heatmap-tooltip-val.positive {
+  color: #00f59b;
+}
 
-/* ---- Empty State ---- */
+.heatmap-tooltip-val.negative {
+  color: #f43f5e;
+}
+
+.heatmap-tooltip-hint {
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 10px;
+  color: #64748b;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+/* Empty State */
 .heatmap-empty {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 300px;
+  height: 320px;
   gap: 12px;
-  color: #8a8a8e;
+  color: #64748b;
   font-size: 14px;
 }
 
-.heatmap-empty-icon {
-  font-size: 48px;
-  opacity: 0.3;
+/* Responsive adjustments */
+@media (max-width: 900px) {
+  .heatmap-controls-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .heatmap-controls-left, .heatmap-controls-right {
+    justify-content: space-between;
+  }
 }
 
-/* ---- Responsive ---- */
-@media (max-width: 768px) {
-  .heatmap-grid {
-    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-    gap: 4px;
+@media (max-width: 640px) {
+  .heatmap-grid, .sector-cluster-grid {
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 6px;
   }
-
   .heatmap-tile {
-    padding: 8px 8px;
-    min-height: 60px;
+    padding: 8px 10px;
+    min-height: 70px;
   }
-
-  .heatmap-tile-symbol { font-size: 11px; }
-  .heatmap-tile-price { font-size: 11px; }
-  .heatmap-tile-change { font-size: 11px; }
+  .heatmap-tile.weighted-large {
+    grid-column: span 1;
+    grid-row: span 1;
+    min-height: 70px;
+  }
 }
-
-/* ---- Controls ---- */
-.heatmap-controls {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 12px;
-}
-
-.heatmap-tabs {
-  display: flex;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 4px;
-  gap: 4px;
-}
-
-.heatmap-tab {
-  background: transparent;
-  border: none;
-  padding: 6px 12px;
-  font-family: 'Inter', -apple-system, sans-serif;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-muted);
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.heatmap-tab:hover {
-  color: var(--text-primary);
-}
-
-.heatmap-tab.active {
-  background: var(--bg-panel);
-  color: var(--text-primary);
-  box-shadow: var(--shadow-sm);
-}
-

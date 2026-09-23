@@ -15,6 +15,7 @@ import type { StockData } from '../../types';
 import { formatVolume } from '../../utils/formatters';
 import { StockLogo } from '../common/StockLogo';
 import { isMarketOpen } from '../../utils/marketHours';
+import { AnimatedEmoji } from '../common/AnimatedEmoji';
 
 export const TIMEFRAMES = ['1m', '5m', '15m', '1h', '1D', '1W', '1M'] as const;
 export type Timeframe = typeof TIMEFRAMES[number];
@@ -1065,7 +1066,10 @@ export function ChartPane({
             gap: 10,
             zIndex: 10,
           }}>
-            <span style={{ fontSize: 13, color: '#f23645', fontWeight: 600 }}>⚠️ Connection Notice</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#f23645', fontWeight: 600, fontSize: 13 }}>
+              <AnimatedEmoji name="warning" size={16} />
+              <span>Connection Notice</span>
+            </div>
             <span style={{ fontSize: 11, color: '#8b949e', maxWidth: 280, textAlign: 'center' }}>{fetchError}</span>
             <button
               onClick={(e) => {

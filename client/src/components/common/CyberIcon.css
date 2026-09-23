@@ -1,0 +1,133 @@
+/* ============================================================
+   CYBER ICON SYSTEM — Sleek Bloomberg/TradingView Terminal Icons
+   Zero blurriness, vector precision, neon ambient glows
+   ============================================================ */
+
+.cyber-icon-wrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+.cyber-icon {
+  display: block;
+  overflow: visible;
+  pointer-events: none;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), filter 0.25s ease;
+  will-change: transform, filter;
+}
+
+/* Hover & Active Micro-interactions */
+.nav-item:hover .cyber-icon,
+.cyber-icon-wrapper:hover .cyber-icon {
+  transform: scale(1.12);
+}
+
+.nav-item.active .cyber-icon,
+.cyber-icon-wrapper.active .cyber-icon {
+  transform: scale(1.08);
+}
+
+/* Scanline animation for Table */
+@keyframes cyberScanline {
+  0% { transform: translateY(0); opacity: 0; }
+  20% { opacity: 0.8; }
+  80% { opacity: 0.8; }
+  100% { transform: translateY(12px); opacity: 0; }
+}
+
+.cyber-anim-scanline {
+  animation: cyberScanline 2.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Pulse animation for Overview & Breadth */
+@keyframes cyberPulseWave {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(1.35); }
+}
+
+.cyber-anim-bar-1 {
+  transform-origin: bottom;
+  animation: cyberPulseWave 1.6s ease-in-out infinite;
+}
+
+.cyber-anim-bar-2 {
+  transform-origin: bottom;
+  animation: cyberPulseWave 1.6s ease-in-out 0.25s infinite;
+}
+
+.cyber-anim-bar-3 {
+  transform-origin: bottom;
+  animation: cyberPulseWave 1.6s ease-in-out 0.5s infinite;
+}
+
+/* Treemap tile breathing */
+@keyframes cyberTileBreathe {
+  0%, 100% { opacity: 0.65; }
+  50% { opacity: 1; }
+}
+
+.cyber-anim-tile-1 { animation: cyberTileBreathe 2.4s ease-in-out infinite; }
+.cyber-anim-tile-2 { animation: cyberTileBreathe 2.4s ease-in-out 0.6s infinite; }
+.cyber-anim-tile-3 { animation: cyberTileBreathe 2.4s ease-in-out 1.2s infinite; }
+.cyber-anim-tile-4 { animation: cyberTileBreathe 2.4s ease-in-out 1.8s infinite; }
+
+/* Rotating sector gauge on hover/active */
+@keyframes cyberSpinSlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.nav-item:hover .cyber-anim-rotate,
+.nav-item.active .cyber-anim-rotate,
+.cyber-icon-wrapper:hover .cyber-anim-rotate {
+  animation: cyberSpinSlow 8s linear infinite;
+  transform-origin: center;
+}
+
+/* Gear micro-spin */
+@keyframes cyberGearRotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.nav-item:hover .cyber-anim-gear,
+.nav-item.active .cyber-anim-gear,
+.cyber-icon-wrapper:hover .cyber-anim-gear {
+  animation: cyberGearRotate 12s linear infinite;
+  transform-origin: center;
+}
+
+/* Star beacon shimmer */
+@keyframes cyberStarShimmer {
+  0%, 100% { transform: scale(1); opacity: 0.9; }
+  50% { transform: scale(1.12); opacity: 1; filter: drop-shadow(0 0 6px #f59e0b); }
+}
+
+.cyber-anim-shimmer {
+  transform-origin: center;
+  animation: cyberStarShimmer 2.5s ease-in-out infinite;
+}
+
+/* Radio beacon waves */
+@keyframes cyberSignalWave {
+  0% { opacity: 0.2; transform: scale(0.9); }
+  50% { opacity: 1; }
+  100% { opacity: 0.2; transform: scale(1.1); }
+}
+
+.cyber-anim-wave-1 { animation: cyberSignalWave 1.8s ease-in-out infinite; transform-origin: center; }
+.cyber-anim-wave-2 { animation: cyberSignalWave 1.8s ease-in-out 0.4s infinite; transform-origin: center; }
+
+/* Blinking terminal cursor */
+@keyframes cyberBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.cyber-anim-blink {
+  animation: cyberBlink 1s steps(2) infinite;
+}

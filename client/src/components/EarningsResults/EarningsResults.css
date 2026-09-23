@@ -1,72 +1,72 @@
 .earnings-results-container {
-  display: flex;
-  gap: 24px;
-  height: calc(100vh - 250px);
-  padding: 8px 0;
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 20px;
+  align-items: start;
+  width: 100%;
+  min-width: 0;
+  padding-bottom: 40px;
+}
+
+@media (max-width: 960px) {
+  .earnings-results-container {
+    grid-template-columns: 1fr;
+  }
 }
 
 .earnings-live-feed {
-  flex: 2;
   display: flex;
   flex-direction: column;
+}
+
+.section-title {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-1);
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.icon-accent {
+  color: var(--cyan);
+}
+
+.icon-glow {
+  color: var(--up);
+  filter: drop-shadow(0 0 8px var(--up-glow));
 }
 
 /* Glassmorphic Side Panel */
 .earnings-calendar {
-  flex: 1;
-  background: rgba(15, 15, 20, 0.4);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 16px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-sm);
   position: relative;
 }
 
-/* Glowing Top Edge */
-.earnings-calendar::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--accent), transparent);
-  opacity: 0.5;
-}
-
 .calendar-header-glass {
-  padding: 24px 24px 16px 24px;
-  background: linear-gradient(180deg, rgba(25, 25, 35, 0.6) 0%, transparent 100%);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  padding: 18px 20px;
+  background: var(--bg-surface-2);
+  border-bottom: 1px solid var(--border-soft);
 }
 
-.section-title {
-  font-size: 1.15rem;
-  color: #fff;
-  margin-bottom: 12px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-}
-
-.icon-accent {
-  color: var(--accent);
-}
-
-.icon-glow {
-  color: var(--positive);
-  filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.5));
+.calendar-header-glass .section-title {
+  margin-bottom: 6px;
 }
 
 .calendar-subtext {
-  font-size: 0.85rem;
-  color: var(--text-secondary);
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--text-2);
   line-height: 1.5;
   margin: 0;
 }
@@ -75,49 +75,40 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 16px 24px 24px 24px;
+  padding: 16px 18px;
+  max-height: 580px;
   overflow-y: auto;
-  flex: 1;
-}
-
-.calendar-list::-webkit-scrollbar,
-.news-list::-webkit-scrollbar {
-  width: 4px;
-}
-
-.calendar-list::-webkit-scrollbar-thumb,
-.news-list::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
 }
 
 .calendar-item {
   display: flex;
   flex-direction: column;
-  background: rgba(255, 255, 255, 0.02);
-  padding: 14px 16px;
-  border-radius: 10px;
-  border-left: 3px solid var(--accent);
+  background: var(--bg-surface-2);
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-soft);
+  border-left: 3px solid var(--cyan);
   transition: all 0.2s ease;
 }
 
 .calendar-item:hover {
-  background: rgba(255, 255, 255, 0.05);
-  transform: translateX(4px);
-  border-left-color: #fff;
+  background: rgba(255, 255, 255, 0.04);
+  transform: translateX(3px);
+  border-left-color: var(--up);
 }
 
 .calendar-symbol {
+  font-family: var(--font-mono);
   font-weight: 700;
-  color: #fff;
-  font-size: 0.95rem;
-  letter-spacing: 0.5px;
-  font-family: 'Space Grotesk', -apple-system, sans-serif;
+  color: var(--text-1);
+  font-size: 13px;
+  letter-spacing: 0.02em;
 }
 
 .calendar-name {
-  font-size: 0.8rem;
-  color: var(--text-muted);
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--text-2);
   margin-top: 4px;
 }
 
@@ -126,79 +117,26 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  overflow-y: auto;
-  padding-right: 8px;
-  padding-bottom: 24px;
 }
 
-/* Beautiful Empty States */
-.news-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  min-height: 200px;
-  color: var(--text-muted);
-  text-align: center;
-  padding: 40px;
-  gap: 16px;
-  animation: fadeIn 0.5s ease-out;
-}
-
-.news-empty svg {
-  color: var(--text-tertiary);
-  opacity: 0.5;
-}
-
-.news-empty p {
-  font-size: 1rem;
-  color: var(--text-secondary);
-  font-weight: 500;
-  margin: 0;
-}
-
-.empty-subtext {
-  font-size: 0.85rem;
-  color: var(--text-tertiary);
-}
-
-.spin-pulse {
-  animation: spinPulse 2s linear infinite;
-  color: var(--accent) !important;
-  opacity: 0.8 !important;
-}
-
-@keyframes spinPulse {
-  0% { transform: rotate(0deg) scale(1); opacity: 0.8; }
-  50% { transform: rotate(180deg) scale(1.1); opacity: 1; }
-  100% { transform: rotate(360deg) scale(1); opacity: 0.8; }
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* Redesigned News Cards */
 .news-card {
   display: flex;
   flex-direction: column;
-  background: rgba(20, 20, 25, 0.6);
-  backdrop-filter: blur(8px);
+  background: var(--bg-surface);
   padding: 16px 20px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
   text-decoration: none;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  gap: 10px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  gap: 8px;
+  box-shadow: var(--shadow-sm);
 }
 
 .news-card:hover {
-  background: rgba(30, 30, 40, 0.8);
-  border-color: rgba(255, 255, 255, 0.1);
+  background: var(--bg-surface-2);
+  border-color: rgba(255, 255, 255, 0.18);
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
 .news-card-header {
@@ -208,76 +146,102 @@
 }
 
 .news-time {
-  color: var(--accent);
-  font-family: 'Space Grotesk', monospace;
-  font-size: 0.85rem;
-  font-weight: 600;
-  opacity: 0.9;
+  color: var(--cyan);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
 }
 
 .news-title {
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 1.05rem;
-  line-height: 1.5;
+  color: var(--text-1);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.55;
   font-weight: 500;
-  letter-spacing: 0.01em;
-}
-
-.news-card:hover .news-title {
-  color: #fff;
 }
 
 .news-stocks {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 6px;
+  gap: 6px;
+  margin-top: 4px;
 }
 
 .news-stock-tag {
-  background: rgba(59, 130, 246, 0.1);
-  color: #60a5fa;
-  padding: 4px 12px;
-  border-radius: 6px;
-  font-size: 0.75rem;
+  background: var(--cyan-dim);
+  color: var(--cyan);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
   font-weight: 700;
-  border: 1px solid rgba(59, 130, 246, 0.2);
-  letter-spacing: 0.05em;
-  font-family: 'Space Grotesk', monospace;
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  font-family: var(--font-mono);
 }
 
 .news-sentiment-badge {
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 0.7rem;
+  font-size: 10px;
   font-weight: 700;
-  padding: 4px 8px;
+  padding: 3px 8px;
   border-radius: 6px;
   letter-spacing: 0.05em;
+  font-family: var(--font-mono);
 }
 
 .news-sentiment-badge.bullish {
-  background: rgba(16, 185, 129, 0.1);
-  color: #10b981;
-  border: 1px solid rgba(16, 185, 129, 0.2);
+  background: var(--up-dim);
+  color: var(--up);
+  border: 1px solid rgba(0, 245, 155, 0.25);
 }
 
 .news-sentiment-badge.bearish {
-  background: rgba(239, 68, 68, 0.1);
-  color: #ef4444;
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  background: var(--down-dim);
+  color: var(--down);
+  border: 1px solid rgba(255, 51, 102, 0.25);
 }
 
-/* ---- Mobile Responsiveness ---- */
-@media (max-width: 768px) {
-  .earnings-results-container {
-    flex-direction: column;
-    height: auto;
-    overflow-y: auto;
-  }
-  
-  .earnings-calendar {
-    max-height: 400px;
-  }
+/* Empty States */
+.news-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 220px;
+  color: var(--text-3);
+  text-align: center;
+  padding: 40px;
+  gap: 14px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.news-empty svg {
+  color: var(--text-3);
+  opacity: 0.5;
+}
+
+.news-empty p {
+  font-size: 13.5px;
+  color: var(--text-2);
+  font-weight: 600;
+  margin: 0;
+}
+
+.empty-subtext {
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.spin-pulse {
+  animation: spinPulse 2s linear infinite;
+  color: var(--cyan) !important;
+}
+
+@keyframes spinPulse {
+  0% { transform: rotate(0deg) scale(1); opacity: 0.8; }
+  50% { transform: rotate(180deg) scale(1.1); opacity: 1; }
+  100% { transform: rotate(360deg) scale(1); opacity: 0.8; }
 }

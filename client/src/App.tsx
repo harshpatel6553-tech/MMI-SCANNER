@@ -26,10 +26,123 @@ import { AlertToast } from './components/Alerts/AlertToast';
 import { FundamentalsModal } from './components/FundamentalsModal/FundamentalsModal';
 import { useAlerts } from './hooks/useAlerts';
 import { useStocks } from './hooks/useStocks';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { Login } from './components/Login/Login';
 import { Paywall } from './components/Paywall/Paywall';
+import { MaintenanceCountdown, TARGET_LAUNCH_TIME } from './components/Maintenance/MaintenanceCountdown';
 
+
+import { motion, AnimatePresence } from 'framer-motion';
+import { audioAlerts } from './utils/audioAlerts';
+import { CyberIcon } from './components/common/CyberIcon';
+
+function getTabHeader(tab: string, advancers: number, decliners: number, total: number) {
+  switch (tab) {
+    case 'Overview':
+      return {
+        eyebrow: 'MARKET OVERVIEW',
+        title: (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+            {advancers >= decliners ? "Today's tape is running green." : "Today's tape is running red."}
+            <CyberIcon name={advancers >= decliners ? 'pulse_up' : 'pulse_down'} size={24} />
+          </span>
+        ),
+        sub: (
+          <>
+            <b style={{ color: 'var(--up)', fontWeight: 700 }} className="tabular-nums">{advancers}▲</b> advancers vs{' '}
+            <b style={{ color: 'var(--down)', fontWeight: 700 }} className="tabular-nums">{decliners}▼</b> decliners across{' '}
+            <span className="tabular-nums">{total}</span> tracked stocks — real-time algorithmic scanner.
+          </>
+        )
+      };
+    case 'Table':
+      return {
+        eyebrow: 'EQUITY SCREENER',
+        title: 'Market Screener Table',
+        sub: (
+          <>Real-time NSE multi-factor screener with volume spike detection, Day High/Low breaks, and relative volume telemetry.</>
+        )
+      };
+    case 'Heatmap':
+      return {
+        eyebrow: 'VISUAL INTELLIGENCE',
+        title: 'Market Heatmap',
+        sub: (
+          <>Treemap performance sized by volume and color-coded by real-time percentage change across sectors.</>
+        )
+      };
+    case 'Sectors':
+      return {
+        eyebrow: 'SECTOR TELEMETRY',
+        title: 'Sector Performance & Breadth',
+        sub: (
+          <>Sector rotation dynamics, advance/decline distribution, and cumulative volume pressure.</>
+        )
+      };
+    case 'Technical':
+      return {
+        eyebrow: 'QUANT SIGNALS',
+        title: 'Algorithmic Technical Screener',
+        sub: (
+          <>Automated detection for MACD weekly buy setups, RSI momentum, and EMA trend divergence.</>
+        )
+      };
+    case 'Watchlist':
+      return {
+        eyebrow: 'PERSONAL MONITOR',
+        title: 'My Monitored Equities',
+        sub: (
+          <>Fast-access customized watchlist with real-time price streaming and instant chart switching.</>
+        )
+      };
+    case 'LiveNews':
+      return {
+        eyebrow: 'NEWS ALPHA WIRE',
+        title: 'Real-Time Market News Alpha',
+        sub: (
+          <>Sub-second regulatory filings, corporate disclosures, block deal alerts & algorithmic sentiment scoring.</>
+        )
+      };
+    case 'Results':
+      return {
+        eyebrow: 'CORPORATE DISCLOSURES',
+        title: 'Earnings Results & Announcements',
+        sub: (
+          <>Live earnings declarations, quarterly profit margin beats/misses, and expected corporate reporting calendar.</>
+        )
+      };
+    case 'Promoter':
+      return {
+        eyebrow: 'INSIDER ACTION',
+        title: 'NSE Bulk Deals & Promoter Watch',
+        sub: (
+          <>Institutional block trades, promoter buying & insider stake movements tracked in real time.</>
+        )
+      };
+    case 'PaperTrading':
+      return {
+        eyebrow: 'SIMULATION TERMINAL',
+        title: 'Paper Trading Terminal',
+        sub: (
+          <>Simulated real-time trade execution with live LTP fills, automated margin accounting, and P&L tracking.</>
+        )
+      };
+    case 'Admin':
+      return {
+        eyebrow: 'SYSTEM CONTROL',
+        title: 'Admin Console & User Telemetry',
+        sub: (
+          <>Live active user sessions, subscription access tiers, and remote broadcast controls.</>
+        )
+      };
+    default:
+      return {
+        eyebrow: tab.toUpperCase(),
+        title: tab,
+        sub: <>Real-time terminal view for {tab}.</>
+      };
+  }
+}
 
 function AppContent() {
   const { preferences, toggleWidget, activeTab, isCustomizing, setIsCustomizing, searchQuery } = useDashboard();
@@ -45,54 +158,80 @@ function AppContent() {
 
   return (
     <div className="app">
+      {/* Beast Cinematic Ambient Lighting & Noise Grain */}
+      <div className="beast-grain" />
+      <div className="beast-ambient-glow">
+        <div className="glow-orb-1" />
+        <div className="glow-orb-2" />
+        <div className="glow-orb-3" />
+      </div>
+
       <Sidebar />
       <div className="main">
         <Topbar allStocks={allStocks} alertCount={alertHistory.length} />
 
         <div className="content" style={activeTab === 'Charts' ? { padding: 0, overflow: 'hidden', height: '100%' } : {}}>
-          {activeTab !== 'Charts' && (
-            <div className="page-head">
-              <div className="eyebrow">{activeTab} · {new Date().toLocaleDateString('en-US', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()}</div>
-              <div className="page-title">
-                {activeTab === 'Overview' 
-                  ? (advancers >= decliners ? "Today's tape is running green." : "Today's tape is running red.")
-                  : activeTab}
+          {activeTab !== 'Charts' && (() => {
+            const head = getTabHeader(activeTab, advancers, decliners, allStocks.length);
+            return (
+              <div className="page-head">
+                <div className="eyebrow" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span className="telemetry-dot live" />
+                  <span>{head.eyebrow} · {new Date().toLocaleDateString('en-US', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()}</span>
+                  <span style={{ fontSize: 10, fontWeight: 800, padding: '1px 6px', borderRadius: 4, background: 'rgba(255,255,255,0.06)', color: 'var(--cyan)' }}>
+                    LIVE STREAM
+                  </span>
+                </div>
+                <div className="page-title" style={{ letterSpacing: '-0.025em' }}>
+                  {head.title}
+                </div>
+                <div className="page-sub">
+                  {head.sub}
+                </div>
               </div>
-              <div className="page-sub">
-                <b style={{ color: 'var(--up)', fontWeight: 600 }}>{advancers}▲</b> advancers vs <b style={{ color: 'var(--down)', fontWeight: 600 }}>{decliners}▼</b> decliners across {allStocks.length} tracked stocks — here's what's moving.
-              </div>
-            </div>
-          )}
+            );
+          })()}
 
-          {activeTab === 'Charts' && <ChartView allStocks={allStocks} />}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+              style={{ width: '100%' }}
+            >
+              {activeTab === 'Charts' && <ChartView allStocks={allStocks} />}
 
-          {activeTab === 'Overview' && (
-            <>
-              {preferences.showStats && <StatsWidget />}
-              {preferences.showAdvanceDecline && <AdvanceDeclineWidget />}
+              {activeTab === 'Overview' && (
+                <>
+                  {preferences.showStats && <StatsWidget />}
+                  {preferences.showAdvanceDecline && <AdvanceDeclineWidget />}
 
-              <div className="grid-2">
-                {preferences.showTopMovers && <TopMoversWidget />}
-                {preferences.showSectorPulse && <SectorPulseWidget />}
-              </div>
+                  <div className="grid-2">
+                    {preferences.showTopMovers && <TopMoversWidget />}
+                    {preferences.showSectorPulse && <SectorPulseWidget />}
+                  </div>
 
-              <div className="grid-2">
-                {preferences.showLiveNews && <LiveNewsWidget />}
-                {preferences.showWatchlist && <WatchlistWidget />}
-              </div>
-            </>
-          )}
+                  <div className="grid-2">
+                    {preferences.showLiveNews && <LiveNewsWidget />}
+                    {preferences.showWatchlist && <WatchlistWidget />}
+                  </div>
+                </>
+              )}
 
-          {activeTab === 'Table' && <MarketTableWidget fullView={true} />}
-          {activeTab === 'Heatmap' && <Heatmap stocks={stocks} />}
-          {activeTab === 'Sectors' && <SectorBreakdown sectorData={sectorData} />}
-          {activeTab === 'Technical' && <TechnicalScanner />}
-          {activeTab === 'Watchlist' && <MarketTableWidget fullView={true} watchlistOnly={true} />}
-          {activeTab === 'LiveNews' && <LiveNewsFeed />}
-          {activeTab === 'Results' && <EarningsResults />}
-          {activeTab === 'Promoter' && <PromoterWatch />}
-          {activeTab === 'PaperTrading' && <PaperTradingDashboard />}
-          {activeTab === 'Admin' && <AdminDashboard />}
+              {activeTab === 'Table' && <MarketTableWidget fullView={true} />}
+              {activeTab === 'Heatmap' && <Heatmap stocks={allStocks} />}
+              {activeTab === 'Sectors' && <SectorBreakdown sectorData={sectorData} />}
+              {activeTab === 'Technical' && <TechnicalScanner />}
+              {activeTab === 'Watchlist' && <MarketTableWidget fullView={true} watchlistOnly={true} />}
+              {activeTab === 'LiveNews' && <LiveNewsFeed />}
+              {activeTab === 'Results' && <EarningsResults />}
+              {activeTab === 'Promoter' && <PromoterWatch />}
+              {activeTab === 'PaperTrading' && <PaperTradingDashboard />}
+              {activeTab === 'Admin' && <AdminDashboard />}
+            </motion.div>
+          </AnimatePresence>
 
         </div>
       </div>
@@ -104,211 +243,98 @@ function AppContent() {
 
       {/* Floating Customize Button */}
       <div
+        className="beast-btn"
         style={{
           position: 'fixed',
           bottom: 20,
-          right: 120, /* Moved to make room for music player */
-          background: 'var(--bg-surface)',
-          border: '1px solid var(--border)',
-          padding: 10,
-          borderRadius: 8,
-          cursor: 'pointer',
+          right: 120,
+          padding: '9px 14px',
+          borderRadius: 12,
           zIndex: 100,
           display: 'flex',
           alignItems: 'center',
           gap: 8
         }}
-        onClick={() => setIsCustomizing(!isCustomizing)}
+        onClick={() => {
+          audioAlerts.playHapticClick();
+          setIsCustomizing(!isCustomizing);
+        }}
       >
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--text-1)" strokeWidth="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" /></svg>
-        <span style={{ color: 'var(--text-1)', fontSize: 13, fontWeight: 600 }}>Customize Layout</span>
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" /></svg>
+        <span style={{ fontSize: 12, fontWeight: 700 }}>Customize Grid</span>
       </div>
 
       {/* Customize Panel */}
       {isCustomizing && (
-        <div style={{
-          position: 'fixed',
-          bottom: 70,
-          right: 20,
-          background: 'var(--bg-surface-2)',
-          border: '1px solid var(--border)',
-          borderRadius: 12,
-          padding: 16,
-          width: 250,
-          zIndex: 100
-        }}>
-          <h3 style={{ fontSize: 14, marginBottom: 12, color: 'var(--text-1)' }}>Dashboard Widgets</h3>
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95, y: 10 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 10 }}
+          className="beast-card"
+          style={{
+            position: 'fixed',
+            bottom: 70,
+            right: 20,
+            padding: 18,
+            width: 260,
+            zIndex: 100
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+            <h3 style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-1)', letterSpacing: '-0.01em' }}>Terminal Widgets</h3>
+            <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--up)' }}>ACTIVE</span>
+          </div>
           {Object.entries(preferences).map(([key, value]) => (
-            <div key={key} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 13, color: 'var(--text-2)' }}>
-              <span>{key.replace('show', '')}</span>
+            <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, fontSize: 12.5, color: 'var(--text-2)' }}>
+              <span style={{ fontWeight: 600 }}>{key.replace('show', '')}</span>
               <input
                 type="checkbox"
                 checked={value as boolean}
-                onChange={() => toggleWidget(key as keyof typeof preferences)}
+                onChange={() => {
+                  audioAlerts.playHapticClick();
+                  toggleWidget(key as keyof typeof preferences);
+                }}
+                style={{ cursor: 'pointer', accentColor: 'var(--up)' }}
               />
             </div>
           ))}
-        </div>
+        </motion.div>
       )}
     </div>
   );
 }
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  // Login & paywall temporarily bypassed for open access
+  // Permits open access so visitors at 9:18 AM instantly experience the new update without being blocked by login barriers
   return <>{children}</>;
 }
 
-function Maintenance() {
-  return (
-    <div style={{
-      height: '100vh',
-      width: '100vw',
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'center',
-      alignItems: 'center',
-      background: '#040504',
-      color: '#ffffff',
-      fontFamily: 'Space Grotesk, Outfit, sans-serif',
-      padding: '20px',
-      textAlign: 'center',
-      boxSizing: 'border-box',
-      position: 'relative',
-      overflow: 'hidden'
-    }}>
-      {/* Watermelon Neon Glow Effects */}
-      <div style={{ position: 'absolute', top: '-10%', left: '-10%', width: '40vw', height: '40vw', background: 'radial-gradient(circle, rgba(255, 71, 126, 0.12) 0%, transparent 70%)', filter: 'blur(60px)', zIndex: 0 }}></div>
-      <div style={{ position: 'absolute', bottom: '-10%', right: '-10%', width: '40vw', height: '40vw', background: 'radial-gradient(circle, rgba(6, 214, 160, 0.08) 0%, transparent 70%)', filter: 'blur(60px)', zIndex: 0 }}></div>
+function MaintenanceGate({ children }: { children: React.ReactNode }) {
+  const [isUnlocked, setIsUnlocked] = useState(() => {
+    return Date.now() >= TARGET_LAUNCH_TIME;
+  });
 
-      {/* Backend Telemetry Background */}
-      <div style={{
-        position: 'absolute',
-        top: 0, left: 0, right: 0, bottom: 0,
-        zIndex: 0,
-        opacity: 0.15,
-        fontFamily: 'monospace',
-        fontSize: '12px',
-        color: '#06d6a0',
-        textAlign: 'left',
-        padding: '40px',
-        lineHeight: '1.8',
-        pointerEvents: 'none',
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gap: '40px',
-        userSelect: 'none'
-      }}>
-        <div>
-          {Array.from({ length: 40 }).map((_, i) => (
-            <div key={`l-${i}`}>
-              <span style={{ color: '#ff477e' }}>[SYS.MAINTENANCE]</span> {new Date(Date.now() - i * 10000).toISOString()} - Re-routing data streams... [OFFLINE]<br />
-              <span style={{ color: '#ffffff' }}>[SUPABASE.DB]</span> Disconnecting active WebSocket pool [PID: {Math.floor(Math.random() * 9000 + 1000)}]... OK<br />
-              <span style={{ color: '#06d6a0' }}>[SCRAPER.PUPPETEER]</span> Terminating invisible Chromium instances... SHUTDOWN<br />
-              <br />
-            </div>
-          ))}
-        </div>
-        <div>
-          {Array.from({ length: 40 }).map((_, i) => (
-            <div key={`r-${i}`}>
-              <span style={{ color: '#ffffff' }}>[ENGINE.CORE]</span> Updating Nifty 50 & 500 tracking arrays... IN PROGRESS<br />
-              <span style={{ color: '#ff477e' }}>[API.YAHOO]</span> Rate limit reset sequence initiated [Wait: {Math.floor(Math.random() * 10)}ms]<br />
-              <span style={{ color: '#06d6a0' }}>[MARKET.MINDS]</span> Awaiting new deployment artifact from ghcr.io...<br />
-              <br />
-            </div>
-          ))}
-        </div>
-      </div>
+  // Strict Total Lockdown: NOT EVEN ADMIN IS PERMITTED IN UNTIL 09:18 AM IST
+  if (!isUnlocked) {
+    return <MaintenanceCountdown onUnlock={() => setIsUnlocked(true)} />;
+  }
 
-      <div style={{
-        position: 'relative',
-        zIndex: 1,
-        maxWidth: '700px',
-        border: '1px solid rgba(255, 71, 126, 0.3)',
-        padding: '56px',
-        borderRadius: '24px',
-        background: 'rgba(15, 18, 15, 0.7)',
-        backdropFilter: 'blur(20px)',
-        boxShadow: '0 24px 48px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)'
-      }}>
-        <div style={{
-          display: 'inline-block',
-          padding: '6px 16px',
-          background: 'rgba(255, 71, 126, 0.1)',
-          border: '1px solid rgba(255, 71, 126, 0.5)',
-          borderRadius: '100px',
-          color: '#ff477e',
-          fontSize: '13px',
-          fontWeight: 700,
-          letterSpacing: '1px',
-          marginBottom: '24px',
-          textTransform: 'uppercase'
-        }}>
-          â— Offline for Upgrades
-        </div>
-
-        <h1 style={{
-          fontSize: '42px',
-          fontWeight: 800,
-          marginBottom: '20px',
-          letterSpacing: '-1.5px',
-          lineHeight: '1.1',
-          background: 'linear-gradient(135deg, #ffffff 0%, #a0a5a0 100%)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent'
-        }}>
-          MARKET MINDS IS <br />EVOLVING
-        </h1>
-
-        <p style={{
-          fontSize: '18px',
-          color: '#8a958a',
-          lineHeight: '1.6',
-          marginBottom: '40px',
-          maxWidth: '500px',
-          margin: '0 auto 40px auto'
-        }}>
-          We are currently deploying massive upgrades to our real-time scanning infrastructure. The tape will resume shortly.
-        </p>
-
-        <div style={{
-          padding: '24px',
-          background: 'rgba(6, 214, 160, 0.05)',
-          border: '1px solid rgba(6, 214, 160, 0.2)',
-          borderRadius: '12px',
-          fontSize: '15px',
-          color: '#a0a5a0'
-        }}>
-          For priority support or further queries, please contact <br />
-          <b style={{
-            color: '#06d6a0',
-            fontSize: '18px',
-            display: 'inline-block',
-            marginTop: '12px',
-            letterSpacing: '0.5px'
-          }}>
-            MARKET MINDS OWNERS
-          </b>
-        </div>
-      </div>
-    </div>
-  );
+  return <>{children}</>;
 }
-
-
 
 export default function App() {
   return (
     <SocketProvider>
       <AuthProvider>
         <DashboardProvider>
-          <Routes>
-            <Route path="/login" element={<Navigate to="/" replace />} />
-            <Route path="/paywall" element={<Navigate to="/" replace />} />
-            <Route path="/" element={<AppContent />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+          <MaintenanceGate>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/paywall" element={<Navigate to="/" replace />} />
+              <Route path="/" element={<AppContent />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </MaintenanceGate>
         </DashboardProvider>
       </AuthProvider>
     </SocketProvider>

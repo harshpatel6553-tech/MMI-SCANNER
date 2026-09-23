@@ -6,6 +6,7 @@ import {
   type PineExecutionResult,
 } from '../../utils/pineRunner';
 import { formatPrice, formatTime } from '../../utils/formatters';
+import { AnimatedEmoji } from '../common/AnimatedEmoji';
 import './PineStudio.css';
 
 interface PineStudioProps {
@@ -112,13 +113,13 @@ export function PineStudio({
             className={`pine-tab-btn ${activeTab === 'editor' ? 'active' : ''}`}
             onClick={() => setActiveTab('editor')}
           >
-            <span>📜</span> Pine Editor
+            <AnimatedEmoji name="scroll" size={16} /> Pine Editor
           </button>
           <button
             className={`pine-tab-btn ${activeTab === 'tester' ? 'active' : ''}`}
             onClick={() => setActiveTab('tester')}
           >
-            <span>📊</span> Strategy Tester
+            <AnimatedEmoji name="overview" size={16} /> Strategy Tester
             {strategy && strategy.totalTrades > 0 && (
               <span style={{
                 fontSize: 10,
@@ -136,7 +137,7 @@ export function PineStudio({
             className={`pine-tab-btn ${activeTab === 'logs' ? 'active' : ''}`}
             onClick={() => setActiveTab('logs')}
           >
-            <span>💻</span> Output & Logs
+            <AnimatedEmoji name="laptop" size={16} /> Output & Logs
           </button>
         </div>
 
@@ -171,8 +172,9 @@ export function PineStudio({
             className="pine-btn-secondary"
             onClick={handleSave}
             title="Save script to browser storage"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}
           >
-            💾 Save
+            <AnimatedEmoji name="floppy" size={14} /> Save
           </button>
 
           <button
@@ -211,10 +213,11 @@ export function PineStudio({
               placeholder="// Paste or write your Pine Script (v5/v6) here..."
             />
             {errorMessage && (
-              <div className="pine-error-banner">
-                <span>⚠️ {errorMessage}</span>
+              <div className="pine-error-banner" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <AnimatedEmoji name="warning" size={16} />
+                <span>{errorMessage}</span>
                 <button
-                  style={{ background: 'transparent', border: 'none', color: '#fca5a5', cursor: 'pointer' }}
+                  style={{ background: 'transparent', border: 'none', color: '#fca5a5', cursor: 'pointer', marginLeft: 'auto' }}
                   onClick={() => setErrorMessage(null)}
                 >
                   ✕
@@ -229,7 +232,9 @@ export function PineStudio({
           <div className="pine-tester-container">
             {!strategy ? (
               <div style={{ margin: 'auto', textAlign: 'center', color: '#8b949e', fontSize: 13 }}>
-                <div style={{ fontSize: 24, marginBottom: 6 }}>🎯</div>
+                <div style={{ marginBottom: 8 }}>
+                  <AnimatedEmoji name="bullseye" size={32} />
+                </div>
                 <strong>No Strategy Backtest Results Yet</strong>
                 <p style={{ fontSize: 11, opacity: 0.8, marginTop: 4 }}>
                   Use a <code>strategy(...)</code> script and click <strong>Apply to Chart</strong> to run full historical backtesting on {activeSymbol} ({activeTimeframe}).

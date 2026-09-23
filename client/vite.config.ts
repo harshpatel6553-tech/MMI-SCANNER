@@ -6,10 +6,16 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/api': 'http://localhost:5000',
+      '/api': {
+        target: process.env.VITE_BACKEND_URL || 'https://35.226.242.164.sslip.io',
+        changeOrigin: true,
+        secure: false,
+      },
       '/socket.io': {
-        target: 'http://localhost:5000',
+        target: process.env.VITE_BACKEND_URL || 'https://35.226.242.164.sslip.io',
         ws: true,
+        changeOrigin: true,
+        secure: false,
       },
     },
   },

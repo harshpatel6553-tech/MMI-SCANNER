@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSocketContext } from '../context/SocketContext';
 import type { StockAlert } from '../types';
+import { audioAlerts } from '../utils/audioAlerts';
 
 interface Toast extends StockAlert {
   dismissAt: number;
@@ -48,6 +49,15 @@ export function useAlerts() {
     if (!socket) return;
 
     const handleAlert = (alert: StockAlert) => {
+      // Play crystal audio chime for breakout / breakdown / spike
+      if (alert.alertType === 'DAY_HIGH') {
+        audioAlerts.playBreakoutChime();
+      } else if (alert.alertType === 'DAY_LOW') {
+        audioAlerts.playBreakdownTone();
+      } else if (alert.alertType === 'VOLUME_SPIKE') {
+        audioAlerts.playSpikeAlert();
+      }
+
       const isIdx = isIndexSymbol(alert.symbol) || alert.alertType === 'INDEX_MILESTONE';
       const durationMs = isIdx ? 8000 : 5000;
       const toast: Toast = { ...alert, dismissAt: Date.now() + durationMs };

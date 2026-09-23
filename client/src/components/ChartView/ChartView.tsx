@@ -17,6 +17,7 @@ import { PineStudio } from './PineStudio';
 import type { PineExecutionResult } from '../../utils/pineRunner';
 import { StockLogo } from '../common/StockLogo';
 import { isMarketOpen } from '../../utils/marketHours';
+import { AnimatedEmoji } from '../common/AnimatedEmoji';
 
 export type LayoutMode = '1' | '2-vert' | '2-horiz' | '4-grid';
 
@@ -220,7 +221,7 @@ export function ChartView({ allStocks: propStocks }: ChartViewProps) {
             }}
             onClick={() => setIsPineStudioOpen(prev => !prev)}
           >
-            <span>🌲</span>
+            <AnimatedEmoji name="pine" size={15} />
             <span style={{ fontSize: 11, fontWeight: 700 }}>Pine Script</span>
             {pineResult && (pineResult.plots.length > 0 || pineResult.markers.length > 0) && (
               <span style={{
@@ -296,7 +297,7 @@ export function ChartView({ allStocks: propStocks }: ChartViewProps) {
             { id: 'fib', icon: '◇', label: 'Fibonacci Retracement' },
             { id: 'rect', icon: '□', label: 'Rectangle Zone' },
             { id: 'text', icon: 'T', label: 'Text Annotation' },
-            { id: 'zoom', icon: '🔍', label: 'Zoom Area' },
+            { id: 'zoom', icon: <AnimatedEmoji name="search" size={14} />, label: 'Zoom Area' },
           ].map(tool => (
             <button
               key={tool.id}
@@ -458,10 +459,10 @@ export function ChartView({ allStocks: propStocks }: ChartViewProps) {
                 Nifty 50
               </button>
               <button
-                style={{ ...styles.watchTabBtn, ...(watchFilter === 'starred' ? styles.watchTabActive : {}) }}
+                style={{ ...styles.watchTabBtn, ...(watchFilter === 'starred' ? styles.watchTabActive : {}), display: 'inline-flex', alignItems: 'center', gap: 4 }}
                 onClick={() => setWatchFilter('starred')}
               >
-                ⭐ Watchlist
+                <AnimatedEmoji name="watchlist" size={13} /> Watchlist
               </button>
               <button
                 style={{ ...styles.watchTabBtn, ...(watchFilter === 'gainers' ? styles.watchTabActive : {}) }}
