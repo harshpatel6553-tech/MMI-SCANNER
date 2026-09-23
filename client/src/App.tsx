@@ -155,12 +155,7 @@ function AppContent() {
 }
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, isTrialExpired, loading } = useAuth();
-
-  if (loading) return <div className="app" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: 'var(--bg-app)', color: 'white' }}>Verifying Account...</div>;
-  if (!user) return <Navigate to="/login" replace />;
-  if (isTrialExpired) return <Navigate to="/paywall" replace />;
-
+  // Login & paywall temporarily bypassed for open access
   return <>{children}</>;
 }
 
@@ -309,13 +304,9 @@ export default function App() {
       <AuthProvider>
         <DashboardProvider>
           <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/paywall" element={<Paywall />} />
-            <Route path="/" element={
-              <ProtectedRoute>
-                <AppContent />
-              </ProtectedRoute>
-            } />
+            <Route path="/login" element={<Navigate to="/" replace />} />
+            <Route path="/paywall" element={<Navigate to="/" replace />} />
+            <Route path="/" element={<AppContent />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </DashboardProvider>
