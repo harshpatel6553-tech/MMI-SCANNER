@@ -160,7 +160,7 @@ export function Sidebar() {
       </div>
 
       {/* Footer User Profile */}
-      <div className="sidebar-foot" style={{ display: 'flex', justifyContent: 'center', paddingBottom: '16px' }}>
+      <div className="sidebar-foot">
         <ProfileDropdown />
       </div>
     </aside>

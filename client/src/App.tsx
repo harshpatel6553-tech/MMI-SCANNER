@@ -305,7 +305,37 @@ function AppContent() {
 }
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  // Permits open access so visitors at 9:18 AM instantly experience the new update without being blocked by login barriers
+  const { user, loading, isTrialExpired } = useAuth();
+
+  if (loading) {
+    return (
+      <div style={{
+        display: 'flex',
+        height: '100vh',
+        width: '100vw',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: '#04060c',
+        color: '#00f59b',
+        fontFamily: 'monospace',
+        fontSize: '14px',
+        letterSpacing: '0.1em'
+      }}>
+        INITIALIZING TERMINAL...
+      </div>
+    );
+  }
+
+  // Strictly block unauthenticated visitors - redirect directly to login
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Check trial expiration
+  if (isTrialExpired) {
+    return <Paywall />;
+  }
+
   return <>{children}</>;
 }
 
@@ -330,8 +360,15 @@ export default function App() {
           <MaintenanceGate>
             <Routes>
               <Route path="/login" element={<Login />} />
-              <Route path="/paywall" element={<Navigate to="/" replace />} />
-              <Route path="/" element={<AppContent />} />
+              <Route path="/paywall" element={<Paywall />} />
+              <Route 
+                path="/" 
+                element={
+                  <ProtectedRoute>
+                    <AppContent />
+                  </ProtectedRoute>
+                } 
+              />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </MaintenanceGate>

@@ -188,11 +188,6 @@ export function Login() {
                         </button>
                       </div>
                     )}
-                    <div style={{ marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-                      <button type="button" className="text-btn" onClick={() => navigate('/')} style={{ color: '#00f59b', fontSize: '0.85rem' }}>
-                        ← Return to Market Scanner
-                      </button>
-                    </div>
                   </>
                 )}
               </div>
