@@ -80,29 +80,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             .eq('id', userId)
             .single();
             
+          const userEmail = (user?.email || '').toLowerCase();
+          const isWhitelistedAdmin = [
+            'hp4302033@gmail.com',
+            'harshpatel6553@gmail.com',
+            'dhruvilpatel017@gmail.com',
+            'karanpatel.kp16@gmail.com',
+            'drakula6553@gmail.com'
+          ].includes(userEmail);
+
           if (retryError || !retryData) {
-            // CRITICAL FALLBACK: The Postgres trigger failed to create the profile!
-            // We will attempt to manually reconstruct it from the frontend.
             const newProfile = {
               id: userId,
               email: user?.email || '',
-              subscription_status: 'trialing',
+              subscription_status: isWhitelistedAdmin ? 'active' : 'trialing',
               trial_start_date: new Date().toISOString(),
-              is_admin: false
+              is_admin: isWhitelistedAdmin
             };
             
-            // Try to insert it (this may fail if RLS blocks frontend inserts, which is fine)
             await supabase.from('profiles').insert([newProfile]);
-            
-            // Regardless of DB success, set it locally so they aren't locked out
             setProfile(newProfile);
           } else {
-            setProfile(retryData);
+            setProfile({
+              ...retryData,
+              is_admin: isWhitelistedAdmin || !!retryData.is_admin,
+              subscription_status: isWhitelistedAdmin ? 'active' : retryData.subscription_status
+            });
           }
           setLoading(false);
         }, 1000);
       } else {
-        setProfile(data);
+        const userEmail = (user?.email || data.email || '').toLowerCase();
+        const isWhitelistedAdmin = [
+          'hp4302033@gmail.com',
+          'harshpatel6553@gmail.com',
+          'dhruvilpatel017@gmail.com',
+          'karanpatel.kp16@gmail.com',
+          'drakula6553@gmail.com'
+        ].includes(userEmail);
+
+        setProfile({
+          ...data,
+          is_admin: isWhitelistedAdmin || !!data.is_admin,
+          subscription_status: isWhitelistedAdmin ? 'active' : data.subscription_status
+        });
         setLoading(false);
       }
     } catch (err) {

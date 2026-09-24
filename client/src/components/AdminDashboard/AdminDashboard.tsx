@@ -110,22 +110,55 @@ export function AdminDashboard() {
     alert('Force refresh signal sent to all online users.');
   };
 
-  const handleSendBroadcast = (e?: React.FormEvent) => {
+  const handleSendBroadcast = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!socket) {
-      alert('Socket connection is offline. Please check network.');
-      return;
-    }
     if (!broadcastTitle.trim() || !broadcastMessage.trim()) {
       alert('Please enter both a title and message for the announcement.');
       return;
     }
 
-    socket.emit('admin:broadcast-announcement', {
+    const payload = {
+      id: Date.now().toString(),
       title: broadcastTitle.trim(),
       message: broadcastMessage.trim(),
-      type: broadcastType
-    });
+      type: broadcastType,
+      timestamp: new Date().toISOString(),
+      author: user?.email || 'System Administrator'
+    };
+
+    // 1. Socket emit (for backend WebSocket server if connected)
+    if (socket) {
+      socket.emit('admin:broadcast-announcement', payload);
+    }
+
+    // 2. Supabase Realtime broadcast (instant edge delivery across the internet)
+    try {
+      const ch = supabase.channel('mmi_announcements');
+      ch.subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await ch.send({
+            type: 'broadcast',
+            event: 'announcement',
+            payload
+          });
+        }
+      });
+    } catch (err) {
+      console.error('Supabase broadcast error:', err);
+    }
+
+    // 3. Local BroadcastChannel & localStorage (for instant cross-tab delivery)
+    try {
+      localStorage.setItem('mmi_active_announcement', JSON.stringify(payload));
+      if (typeof BroadcastChannel !== 'undefined') {
+        const bc = new BroadcastChannel('mmi_announcements');
+        bc.postMessage({ type: 'announcement', payload });
+        bc.close();
+      }
+    } catch {}
+
+    // 4. Trigger on current admin screen immediately as instant preview
+    window.dispatchEvent(new CustomEvent('mmi:local-announcement', { detail: payload }));
 
     setStatusFeedback('Broadcast published to all active screens!');
     setTimeout(() => {
@@ -136,11 +169,42 @@ export function AdminDashboard() {
     }, 1000);
   };
 
-  const handleClearBroadcast = () => {
-    if (!socket) return;
+  const handleClearBroadcast = async () => {
     if (!window.confirm("Are you sure you want to dismiss the active announcement from all users' screens?")) return;
     
-    socket.emit('admin:clear-announcement');
+    // 1. Socket emit
+    if (socket) {
+      socket.emit('admin:clear-announcement');
+    }
+
+    // 2. Supabase Realtime clear
+    try {
+      const ch = supabase.channel('mmi_announcements');
+      ch.subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await ch.send({
+            type: 'broadcast',
+            event: 'clear'
+          });
+        }
+      });
+    } catch (err) {
+      console.error('Supabase clear broadcast error:', err);
+    }
+
+    // 3. Local storage & BroadcastChannel
+    try {
+      localStorage.removeItem('mmi_active_announcement');
+      if (typeof BroadcastChannel !== 'undefined') {
+        const bc = new BroadcastChannel('mmi_announcements');
+        bc.postMessage({ type: 'clear' });
+        bc.close();
+      }
+    } catch {}
+
+    // 4. Local clear
+    window.dispatchEvent(new CustomEvent('mmi:local-clear-announcement'));
+
     setStatusFeedback('Active announcement cleared from all screens.');
     setTimeout(() => {
       setShowBroadcastModal(false);

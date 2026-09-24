@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSocketContext } from '../../context/SocketContext';
+import { supabase } from '../../supabaseClient';
 import type { SystemAnnouncement } from '../../types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Megaphone, Sparkles, AlertTriangle, Wrench, X, CheckCircle2 } from 'lucide-react';
@@ -11,8 +12,6 @@ export function AnnouncementModal() {
   const [announcement, setAnnouncement] = useState<SystemAnnouncement | null>(null);
 
   useEffect(() => {
-    if (!socket) return;
-
     const handleAnnouncement = (data: SystemAnnouncement) => {
       if (!data || !data.id) return;
       
@@ -30,12 +29,81 @@ export function AnnouncementModal() {
       setAnnouncement(null);
     };
 
-    socket.on('server:announcement' as any, handleAnnouncement);
-    socket.on('server:clear-announcement' as any, handleClearAnnouncement);
+    // 1. Initial cached check from localStorage
+    try {
+      const cached = localStorage.getItem('mmi_active_announcement');
+      if (cached) {
+        handleAnnouncement(JSON.parse(cached));
+      }
+    } catch {}
+
+    // 2. Socket.io listeners
+    if (socket) {
+      socket.on('server:announcement' as any, handleAnnouncement);
+      socket.on('server:clear-announcement' as any, handleClearAnnouncement);
+    }
+
+    // 3. Supabase Realtime broadcast listener (cloud-wide instant reach)
+    const sbChannel = supabase.channel('mmi_announcements');
+    sbChannel
+      .on('broadcast', { event: 'announcement' }, ({ payload }) => {
+        handleAnnouncement(payload);
+      })
+      .on('broadcast', { event: 'clear' }, () => {
+        handleClearAnnouncement();
+      })
+      .subscribe();
+
+    // 4. Browser BroadcastChannel listener (cross-tab in same browser)
+    let bc: BroadcastChannel | null = null;
+    if (typeof BroadcastChannel !== 'undefined') {
+      bc = new BroadcastChannel('mmi_announcements');
+      bc.onmessage = (event) => {
+        if (event.data?.type === 'announcement') {
+          handleAnnouncement(event.data.payload);
+        } else if (event.data?.type === 'clear') {
+          handleClearAnnouncement();
+        }
+      };
+    }
+
+    // 5. Local DOM CustomEvent listener (instant local preview in same window)
+    const localAnnounceHandler = (e: Event) => {
+      const customEvent = e as CustomEvent<SystemAnnouncement>;
+      if (customEvent.detail) {
+        handleAnnouncement(customEvent.detail);
+      }
+    };
+    const localClearHandler = () => {
+      handleClearAnnouncement();
+    };
+    window.addEventListener('mmi:local-announcement', localAnnounceHandler);
+    window.addEventListener('mmi:local-clear-announcement', localClearHandler);
+
+    // 6. Cross-tab storage event
+    const storageHandler = (e: StorageEvent) => {
+      if (e.key === 'mmi_active_announcement') {
+        if (e.newValue) {
+          try {
+            handleAnnouncement(JSON.parse(e.newValue));
+          } catch {}
+        } else {
+          handleClearAnnouncement();
+        }
+      }
+    };
+    window.addEventListener('storage', storageHandler);
 
     return () => {
-      socket.off('server:announcement' as any, handleAnnouncement);
-      socket.off('server:clear-announcement' as any, handleClearAnnouncement);
+      if (socket) {
+        socket.off('server:announcement' as any, handleAnnouncement);
+        socket.off('server:clear-announcement' as any, handleClearAnnouncement);
+      }
+      supabase.removeChannel(sbChannel);
+      if (bc) bc.close();
+      window.removeEventListener('mmi:local-announcement', localAnnounceHandler);
+      window.removeEventListener('mmi:local-clear-announcement', localClearHandler);
+      window.removeEventListener('storage', storageHandler);
     };
   }, [socket]);
 
