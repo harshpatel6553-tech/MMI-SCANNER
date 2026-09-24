@@ -29,7 +29,38 @@ export function AnnouncementModal() {
       setAnnouncement(null);
     };
 
-    // 1. Initial cached check from localStorage
+    // 1. Fetch active announcement from persistent Supabase database
+    const checkDatabaseAnnouncement = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('alerts')
+          .select('*')
+          .eq('alert_type', 'SYSTEM_BROADCAST')
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (!error && data && data.length > 0) {
+          try {
+            const parsed = JSON.parse(data[0].name);
+            handleAnnouncement(parsed);
+          } catch {}
+        } else if (!error && data && data.length === 0) {
+          // No active announcement in database
+          setAnnouncement(null);
+        }
+      } catch (err) {
+        console.error('Error fetching broadcast announcement:', err);
+      }
+    };
+
+    // Run immediately on mount
+    checkDatabaseAnnouncement();
+
+    // Poll every 3.5 seconds to guarantee all users receive active broadcasts
+    const pollInterval = setInterval(checkDatabaseAnnouncement, 3500);
+    window.addEventListener('focus', checkDatabaseAnnouncement);
+
+    // 2. Initial cached check from localStorage
     try {
       const cached = localStorage.getItem('mmi_active_announcement');
       if (cached) {
@@ -37,13 +68,13 @@ export function AnnouncementModal() {
       }
     } catch {}
 
-    // 2. Socket.io listeners
+    // 3. Socket.io listeners
     if (socket) {
       socket.on('server:announcement' as any, handleAnnouncement);
       socket.on('server:clear-announcement' as any, handleClearAnnouncement);
     }
 
-    // 3. Supabase Realtime broadcast listener (cloud-wide instant reach)
+    // 4. Supabase Realtime broadcast listener (cloud-wide instant reach)
     const sbChannel = supabase.channel('mmi_announcements');
     sbChannel
       .on('broadcast', { event: 'announcement' }, ({ payload }) => {
@@ -54,7 +85,7 @@ export function AnnouncementModal() {
       })
       .subscribe();
 
-    // 4. Browser BroadcastChannel listener (cross-tab in same browser)
+    // 5. Browser BroadcastChannel listener (cross-tab in same browser)
     let bc: BroadcastChannel | null = null;
     if (typeof BroadcastChannel !== 'undefined') {
       bc = new BroadcastChannel('mmi_announcements');
@@ -67,7 +98,7 @@ export function AnnouncementModal() {
       };
     }
 
-    // 5. Local DOM CustomEvent listener (instant local preview in same window)
+    // 6. Local DOM CustomEvent listener (instant local preview in same window)
     const localAnnounceHandler = (e: Event) => {
       const customEvent = e as CustomEvent<SystemAnnouncement>;
       if (customEvent.detail) {
@@ -80,7 +111,7 @@ export function AnnouncementModal() {
     window.addEventListener('mmi:local-announcement', localAnnounceHandler);
     window.addEventListener('mmi:local-clear-announcement', localClearHandler);
 
-    // 6. Cross-tab storage event
+    // 7. Cross-tab storage event
     const storageHandler = (e: StorageEvent) => {
       if (e.key === 'mmi_active_announcement') {
         if (e.newValue) {
@@ -95,6 +126,8 @@ export function AnnouncementModal() {
     window.addEventListener('storage', storageHandler);
 
     return () => {
+      clearInterval(pollInterval);
+      window.removeEventListener('focus', checkDatabaseAnnouncement);
       if (socket) {
         socket.off('server:announcement' as any, handleAnnouncement);
         socket.off('server:clear-announcement' as any, handleClearAnnouncement);

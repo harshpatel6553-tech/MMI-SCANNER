@@ -126,12 +126,28 @@ export function AdminDashboard() {
       author: user?.email || 'System Administrator'
     };
 
-    // 1. Socket emit (for backend WebSocket server if connected)
+    // 1. Persistent Database Record in Supabase (Guarantees ALL users worldwide receive it)
+    try {
+      // Remove any prior active announcements
+      await supabase.from('alerts').delete().eq('alert_type', 'SYSTEM_BROADCAST');
+
+      // Insert new active announcement
+      await supabase.from('alerts').insert([{
+        symbol: 'SYSTEM_BROADCAST',
+        alert_type: 'SYSTEM_BROADCAST',
+        name: JSON.stringify(payload),
+        price: 0
+      }]);
+    } catch (err) {
+      console.error('Error persisting announcement to Supabase:', err);
+    }
+
+    // 2. Socket emit (for backend WebSocket server if connected)
     if (socket) {
       socket.emit('admin:broadcast-announcement', payload);
     }
 
-    // 2. Supabase Realtime broadcast (instant edge delivery across the internet)
+    // 3. Supabase Realtime broadcast (instant edge delivery across the internet)
     try {
       const ch = supabase.channel('mmi_announcements');
       ch.subscribe(async (status) => {
@@ -172,12 +188,19 @@ export function AdminDashboard() {
   const handleClearBroadcast = async () => {
     if (!window.confirm("Are you sure you want to dismiss the active announcement from all users' screens?")) return;
     
-    // 1. Socket emit
+    // 1. Delete persistent announcement from Supabase DB
+    try {
+      await supabase.from('alerts').delete().eq('alert_type', 'SYSTEM_BROADCAST');
+    } catch (err) {
+      console.error('Error deleting announcement from Supabase:', err);
+    }
+
+    // 2. Socket emit
     if (socket) {
       socket.emit('admin:clear-announcement');
     }
 
-    // 2. Supabase Realtime clear
+    // 3. Supabase Realtime clear
     try {
       const ch = supabase.channel('mmi_announcements');
       ch.subscribe(async (status) => {
