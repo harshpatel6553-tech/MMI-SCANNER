@@ -1,9 +1,21 @@
 import { useAuth } from '../../context/AuthContext';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
+import { useDashboard } from '../../contexts/DashboardContext';
 import './Paywall.css';
 
 export function Paywall() {
+  const navigate = useNavigate();
   const { signOut, user, isTrialExpired, loading } = useAuth();
+  const { setActiveTab } = useDashboard();
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+    } finally {
+      setActiveTab('Overview');
+      navigate('/login');
+    }
+  };
 
   if (loading) return null;
   if (!isTrialExpired) return <Navigate to="/" replace />;
@@ -80,7 +92,7 @@ export function Paywall() {
         </div>
 
         <div className="paywall-footer">
-          <button className="signout-btn" onClick={signOut}>
+          <button className="signout-btn" onClick={handleSignOut}>
             Sign Out
           </button>
         </div>

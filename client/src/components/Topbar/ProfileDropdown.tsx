@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { LogOut, User } from 'lucide-react';
+import { useDashboard } from '../../contexts/DashboardContext';
+import { LogOut, LogIn, User } from 'lucide-react';
 import './ProfileDropdown.css';
 
 const AVATARS = [
@@ -13,7 +15,9 @@ const AVATARS = [
 ];
 
 export function ProfileDropdown() {
-  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+  const { user, profile, signOut } = useAuth();
+  const { setActiveTab } = useDashboard();
   const [isOpen, setIsOpen] = useState(false);
   const [selectedAvatar, setSelectedAvatar] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -51,22 +55,47 @@ export function ProfileDropdown() {
     return 'MM';
   };
 
+  const handleLogout = async () => {
+    try {
+      setIsOpen(false);
+      await signOut();
+    } catch (err) {
+      console.error('Logout error:', err);
+    } finally {
+      setActiveTab('Overview');
+      navigate('/login');
+    }
+  };
+
+  const handleSignIn = () => {
+    setIsOpen(false);
+    navigate('/login');
+  };
+
   return (
     <div className="profile-dropdown-container" ref={dropdownRef}>
-      <div className="avatar-trigger" onClick={() => setIsOpen(!isOpen)}>
+      <div 
+        className="avatar-trigger" 
+        onClick={() => setIsOpen(!isOpen)}
+        title={user ? user.email : 'Guest User · Click to Sign In'}
+      >
         {selectedAvatar ? (
           <img src={selectedAvatar} alt="User Avatar" className="avatar-image" />
         ) : (
-          <div className="avatar-initials">{getInitials()}</div>
+          <div className="avatar-initials">
+            {user ? getInitials() : <User size={18} />}
+          </div>
         )}
-        <div className="status-indicator"></div>
+        <div className={`status-indicator ${user ? 'online' : 'offline'}`}></div>
       </div>
 
       {isOpen && (
         <div className="profile-dropdown-menu">
           <div className="dropdown-header">
             <p className="user-email">{user?.email || 'Guest User'}</p>
-            <p className="user-status">Available</p>
+            <p className={`user-status ${!user ? 'offline' : ''}`}>
+              {user ? (profile?.is_admin ? 'Administrator' : 'Active Member') : 'Not Signed In'}
+            </p>
           </div>
 
           <div className="avatar-selection-section">
@@ -92,10 +121,17 @@ export function ProfileDropdown() {
 
           <div className="dropdown-divider"></div>
 
-          <button className="logout-button" onClick={signOut}>
-            <LogOut size={16} />
-            <span>Log Out</span>
-          </button>
+          {user ? (
+            <button className="logout-button" onClick={handleLogout}>
+              <LogOut size={16} />
+              <span>Log Out</span>
+            </button>
+          ) : (
+            <button className="login-button" onClick={handleSignIn}>
+              <LogIn size={16} />
+              <span>Sign In / Register</span>
+            </button>
+          )}
         </div>
       )}
     </div>

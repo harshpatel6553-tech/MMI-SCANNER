@@ -1,12 +1,14 @@
 import React from 'react';
 import { useDashboard } from '../../contexts/DashboardContext';
 import { useWatchlist } from '../../hooks/useWatchlist';
+import { useAuth } from '../../context/AuthContext';
 import { ProfileDropdown } from '../Topbar/ProfileDropdown';
 import { audioAlerts } from '../../utils/audioAlerts';
 import { CyberIcon } from '../common/CyberIcon';
 
 export function Sidebar() {
   const { activeTab, setActiveTab } = useDashboard();
+  const { profile } = useAuth();
   const { count } = useWatchlist();
 
   const handleTabChange = (tab: string) => {
@@ -142,17 +144,19 @@ export function Sidebar() {
           </div>
         </div>
 
-        <div className="nav-group">
-          <div className="nav-label">Terminal System</div>
-          
-          <div 
-            className={`nav-item ${activeTab === 'Admin' ? 'active' : ''}`} 
-            onClick={() => handleTabChange('Admin')}
-          >
-            <CyberIcon name="admin" size={20} active={activeTab === 'Admin'} />
-            <span>Admin Console</span>
+        {profile?.is_admin && (
+          <div className="nav-group">
+            <div className="nav-label">Terminal System</div>
+            
+            <div 
+              className={`nav-item ${activeTab === 'Admin' ? 'active' : ''}`} 
+              onClick={() => handleTabChange('Admin')}
+            >
+              <CyberIcon name="admin" size={20} active={activeTab === 'Admin'} />
+              <span>Admin Console</span>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Footer User Profile */}

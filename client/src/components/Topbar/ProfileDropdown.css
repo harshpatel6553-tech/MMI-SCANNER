@@ -169,3 +169,34 @@
 .logout-button:hover {
   background: rgba(239, 68, 68, 0.1);
 }
+
+.login-button {
+  width: 100%;
+  padding: 14px 16px;
+  background: transparent;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--up, #10b981);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.login-button:hover {
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.user-status.offline {
+  color: var(--text-3);
+}
+
+.user-status.offline::before {
+  background: #64748b;
+}
+
+.status-indicator.offline {
+  background-color: #64748b;
+}

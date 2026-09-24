@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../supabaseClient';
 import { useAuth } from '../../context/AuthContext';
 import { useSocketContext } from '../../context/SocketContext';
+import { useDashboard } from '../../contexts/DashboardContext';
 import './AdminDashboard.css';
 
 interface Profile {
@@ -19,7 +20,8 @@ type FilterState = {
 
 export function AdminDashboard() {
   const navigate = useNavigate();
-  const { profile, signOut } = useAuth();
+  const { user, profile, signOut } = useAuth();
+  const { setActiveTab } = useDashboard();
   const [users, setUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [onlineUsers, setOnlineUsers] = useState<{ email: string; connectedAt: string; avatar?: string }[]>([]);
@@ -163,13 +165,42 @@ export function AdminDashboard() {
     }
   };
 
+  const handleReturnToScanner = () => {
+    setActiveTab('Overview');
+    navigate('/');
+  };
+
+  const handleAdminSignOut = async () => {
+    try {
+      await signOut();
+    } finally {
+      setActiveTab('Overview');
+      navigate('/login');
+    }
+  };
+
+  if (!user) {
+    return (
+      <div className="admin-container">
+        <div className="admin-live-card" style={{ padding: '3rem', textAlign: 'center' }}>
+          <h2 style={{ fontFamily: 'var(--font-display)', marginBottom: 16 }}>Authentication Required</h2>
+          <p style={{ color: 'var(--text-2)', marginBottom: 20 }}>You must be signed in with an administrator account to access this console.</p>
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+            <button className="beast-btn" onClick={handleReturnToScanner}>← Return to Scanner</button>
+            <button className="beast-btn primary" onClick={() => navigate('/login')}>Sign In to Admin</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!profile?.is_admin) {
     return (
       <div className="admin-container">
         <div className="admin-live-card" style={{ padding: '3rem', textAlign: 'center' }}>
           <h2 style={{ fontFamily: 'var(--font-display)', marginBottom: 16 }}>Access Denied</h2>
           <p style={{ color: 'var(--text-2)', marginBottom: 20 }}>Your account does not have administrative privileges.</p>
-          <button className="beast-btn" onClick={() => navigate('/')}>← Return to Scanner</button>
+          <button className="beast-btn" onClick={handleReturnToScanner}>← Return to Scanner</button>
         </div>
       </div>
     );
@@ -179,10 +210,10 @@ export function AdminDashboard() {
     <div className="admin-container">
       {/* Top Action Bar */}
       <div className="admin-toolbar">
-        <button className="beast-btn" onClick={() => navigate('/')}>
+        <button className="beast-btn" onClick={handleReturnToScanner}>
           ← Back to Scanner
         </button>
-        <button className="beast-btn danger" onClick={signOut}>
+        <button className="beast-btn danger" onClick={handleAdminSignOut}>
           Sign Out
         </button>
       </div>
