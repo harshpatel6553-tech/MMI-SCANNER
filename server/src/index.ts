@@ -42,6 +42,8 @@ import { twitterService } from './services/twitterService.js';
 import {
   setupSocketHandlers,
   broadcastStockUpdate,
+  broadcastAnnouncementDirect,
+  clearActiveAnnouncement,
 } from './sockets/stockSocket.js';
 
 // ── Configuration ──────────────────────────────────────────────
@@ -123,20 +125,6 @@ app.get('/api/chart', (req, res) => {
   res.redirect(307, `/api/stocks/chart/${encodeURIComponent(symbol)}${queryString}`);
 });
 
-// Explicit 404 for unhandled API endpoints so clients never hang
-app.all('/api/*', (req, res) => {
-  res.status(404).json({ error: `API route ${req.method} ${req.path} not found` });
-});
-
-// SPA Fallback for React Router
-if (fs.existsSync(clientDistPath)) {
-  app.get('*', (req, res) => {
-    if (!req.path.startsWith('/api')) {
-      res.sendFile(path.join(clientDistPath, 'index.html'));
-    }
-  });
-}
-
 // ── News Alerts ────────────────────────────────────────────────
 
 newsService.on('news:alert', (news) => {
@@ -171,6 +159,20 @@ app.post('/api/admin/force-refresh', (req: Request, res: Response) => {
   io.emit('server:force_refresh');
   logger.info('Admin triggered a global force-refresh to all connected clients.');
   res.json({ success: true, message: 'Refresh command broadcasted to all users.' });
+});
+
+app.post('/api/admin/broadcast', (req: Request, res: Response) => {
+  const { title, message, type } = req.body;
+  if (!title || !message) {
+    return res.status(400).json({ error: 'Title and message are required' });
+  }
+  const announcement = broadcastAnnouncementDirect(io, { title, message, type });
+  res.json({ success: true, announcement });
+});
+
+app.post('/api/admin/clear-announcement', (req: Request, res: Response) => {
+  clearActiveAnnouncement(io);
+  res.json({ success: true, message: 'Announcement cleared from all client screens.' });
 });
 
 
@@ -218,21 +220,34 @@ app.get('/api/twitter/:userId', async (req: Request, res: Response) => {
   }
 });
 
-// ── Root endpoint ──────────────────────────────────────────────
-
-app.get('/', (_req, res) => {
-  res.json({
-    name: 'Nifty Stock Screener API',
-    version: '1.0.0',
-    endpoints: {
-      stocks: '/api/stocks',
-      stockBySymbol: '/api/stocks/:symbol',
-      alerts: '/api/alerts',
-      health: '/api/health',
-    },
-    websocket: `ws://localhost:${PORT}`,
-  });
+// Explicit 404 for unhandled API endpoints so clients never hang
+app.all('/api/*', (req, res) => {
+  res.status(404).json({ error: `API route ${req.method} ${req.path} not found` });
 });
+
+// SPA Fallback for React Router (if client build exists)
+if (fs.existsSync(clientDistPath)) {
+  app.get('*', (req, res) => {
+    if (!req.path.startsWith('/api')) {
+      res.sendFile(path.join(clientDistPath, 'index.html'));
+    }
+  });
+} else {
+  // ── Root endpoint for API only mode ────────────────────────────
+  app.get('/', (_req, res) => {
+    res.json({
+      name: 'Nifty Stock Screener API',
+      version: '1.0.0',
+      endpoints: {
+        stocks: '/api/stocks',
+        stockBySymbol: '/api/stocks/:symbol',
+        alerts: '/api/alerts',
+        health: '/api/health',
+      },
+      websocket: `ws://localhost:${PORT}`,
+    });
+  });
+}
 
 // ── Supabase Upsert Helper ─────────────────────────────────────
 

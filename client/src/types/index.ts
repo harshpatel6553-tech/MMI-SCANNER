@@ -48,3 +48,12 @@ export interface FilterOptions {
 
 export type SortField = 'symbol' | 'name' | 'price' | 'change' | 'changePercent' | 'dayHigh' | 'dayLow' | 'volume';
 export type SortOrder = 'asc' | 'desc';
+
+export interface SystemAnnouncement {
+  id: string;
+  title: string;
+  message: string;
+  type: 'update' | 'alert' | 'maintenance' | 'info';
+  timestamp: string;
+  author?: string;
+}

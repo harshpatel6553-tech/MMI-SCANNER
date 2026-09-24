@@ -130,6 +130,20 @@ export interface ServerToClientEvents {
   'admin:online-users': (users: { email: string; connectedAt: string; avatar?: string }[]) => void;
   /** Force all clients to immediately refresh their browser */
   'server:force_refresh': () => void;
+  /** System announcement broadcast to all clients */
+  'server:announcement': (announcement: SystemAnnouncement) => void;
+  /** Clear active announcement */
+  'server:clear-announcement': () => void;
+}
+
+/** System announcement payload */
+export interface SystemAnnouncement {
+  id: string;
+  title: string;
+  message: string;
+  type: 'update' | 'alert' | 'maintenance' | 'info';
+  timestamp: string;
+  author?: string;
 }
 
 /** Socket.IO events emitted from client to server */
@@ -144,4 +158,8 @@ export interface ClientToServerEvents {
   'admin:request-online-users': () => void;
   /** Admin triggers a global refresh of all clients */
   'admin:force-refresh-all': () => void;
+  /** Admin broadcasts an announcement to all connected clients */
+  'admin:broadcast-announcement': (data: { title: string; message: string; type: 'update' | 'alert' | 'maintenance' | 'info' }) => void;
+  /** Admin clears the active announcement */
+  'admin:clear-announcement': () => void;
 }

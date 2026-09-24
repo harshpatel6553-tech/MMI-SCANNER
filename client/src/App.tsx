@@ -24,6 +24,7 @@ import { ChartView } from './components/ChartView/ChartView';
 import { AlertPanel } from './components/Alerts/AlertPanel';
 import { AlertToast } from './components/Alerts/AlertToast';
 import { FundamentalsModal } from './components/FundamentalsModal/FundamentalsModal';
+import { AnnouncementModal } from './components/Announcement/AnnouncementModal';
 import { useAlerts } from './hooks/useAlerts';
 import { useStocks } from './hooks/useStocks';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
@@ -240,6 +241,7 @@ function AppContent() {
       <AlertPanel alerts={alertHistory} onClearAll={clearAll} />
       <FundamentalsModal stocks={allStocks} />
       <AlertToast toasts={toasts} onDismiss={dismissToast} />
+      <AnnouncementModal />
 
       {/* Floating Customize Button */}
       <div

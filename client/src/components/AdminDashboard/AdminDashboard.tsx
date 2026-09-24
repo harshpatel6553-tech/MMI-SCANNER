@@ -30,6 +30,13 @@ export function AdminDashboard() {
   const [filters, setFilters] = useState<FilterState>({ email: '', status: 'all' });
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
+  // Announcement Broadcast State
+  const [showBroadcastModal, setShowBroadcastModal] = useState(false);
+  const [broadcastTitle, setBroadcastTitle] = useState('');
+  const [broadcastMessage, setBroadcastMessage] = useState('');
+  const [broadcastType, setBroadcastType] = useState<'update' | 'alert' | 'maintenance' | 'info'>('update');
+  const [statusFeedback, setStatusFeedback] = useState<string | null>(null);
+
   useEffect(() => { fetchUsers(); }, []);
 
   useEffect(() => {
@@ -101,6 +108,44 @@ export function AdminDashboard() {
     if (!window.confirm("Are you sure you want to force all users to refresh?")) return;
     socket.emit('admin:force-refresh-all');
     alert('Force refresh signal sent to all online users.');
+  };
+
+  const handleSendBroadcast = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!socket) {
+      alert('Socket connection is offline. Please check network.');
+      return;
+    }
+    if (!broadcastTitle.trim() || !broadcastMessage.trim()) {
+      alert('Please enter both a title and message for the announcement.');
+      return;
+    }
+
+    socket.emit('admin:broadcast-announcement', {
+      title: broadcastTitle.trim(),
+      message: broadcastMessage.trim(),
+      type: broadcastType
+    });
+
+    setStatusFeedback('Broadcast published to all active screens!');
+    setTimeout(() => {
+      setShowBroadcastModal(false);
+      setStatusFeedback(null);
+      setBroadcastTitle('');
+      setBroadcastMessage('');
+    }, 1000);
+  };
+
+  const handleClearBroadcast = () => {
+    if (!socket) return;
+    if (!window.confirm("Are you sure you want to dismiss the active announcement from all users' screens?")) return;
+    
+    socket.emit('admin:clear-announcement');
+    setStatusFeedback('Active announcement cleared from all screens.');
+    setTimeout(() => {
+      setShowBroadcastModal(false);
+      setStatusFeedback(null);
+    }, 1000);
   };
   
   const computedUsers = useMemo(() => {
@@ -225,13 +270,25 @@ export function AdminDashboard() {
             <span className="telemetry-dot live" />
             <span>Live Concurrent Users · <span style={{ color: 'var(--up)' }}>{onlineUsers.length} Online</span></span>
           </div>
-          <button 
-            className="beast-btn danger sm"
-            onClick={handleForceRefresh}
-            style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-          >
-            <span>↻</span> Force Refresh All Sessions
-          </button>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            <button 
+              className="beast-btn sm"
+              onClick={() => {
+                setStatusFeedback(null);
+                setShowBroadcastModal(true);
+              }}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, borderColor: 'rgba(0, 245, 155, 0.4)', color: 'var(--up)' }}
+            >
+              <span>📢</span> Broadcast Announcement
+            </button>
+            <button 
+              className="beast-btn danger sm"
+              onClick={handleForceRefresh}
+              style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+            >
+              <span>↻</span> Force Refresh All Sessions
+            </button>
+          </div>
         </div>
 
         {onlineUsers.length === 0 ? (
@@ -435,6 +492,121 @@ export function AdminDashboard() {
           </table>
         </div>
       </div>
+
+      {/* Broadcast Announcement Modal */}
+      {showBroadcastModal && (
+        <div className="admin-modal-backdrop" onClick={() => setShowBroadcastModal(false)}>
+          <div className="admin-modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="admin-modal-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span className="telemetry-dot live" />
+                <div>
+                  <h3 className="admin-modal-title">Live System Broadcast</h3>
+                  <p className="admin-modal-subtitle">Push instantaneous modal alerts to all connected users</p>
+                </div>
+              </div>
+              <button 
+                className="admin-modal-close" 
+                onClick={() => setShowBroadcastModal(false)}
+                title="Close"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSendBroadcast} className="admin-modal-body">
+              {/* Type selector */}
+              <div className="admin-field">
+                <label className="admin-label">Announcement Category</label>
+                <div className="broadcast-type-pills">
+                  {(['update', 'alert', 'maintenance', 'info'] as const).map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      className={`broadcast-pill ${broadcastType === t ? `active active-${t}` : ''}`}
+                      onClick={() => setBroadcastType(t)}
+                    >
+                      {t === 'update' && '🟢 Platform Update'}
+                      {t === 'alert' && '🟡 Market Alert'}
+                      {t === 'maintenance' && '🔴 Maintenance'}
+                      {t === 'info' && '🔵 Announcement'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Title input */}
+              <div className="admin-field" style={{ marginTop: 14 }}>
+                <label className="admin-label">Announcement Headline</label>
+                <input
+                  type="text"
+                  className="admin-input"
+                  placeholder="e.g. Major Release v2.5: AI Sentiment & Sector Matrix Live!"
+                  value={broadcastTitle}
+                  onChange={(e) => setBroadcastTitle(e.target.value)}
+                  style={{ paddingLeft: 14 }}
+                  maxLength={100}
+                  required
+                />
+                <div style={{ display: 'flex', justifyContent: 'flex-end', fontSize: 11, color: 'var(--text-3)', marginTop: 4 }}>
+                  {broadcastTitle.length}/100
+                </div>
+              </div>
+
+              {/* Message input */}
+              <div className="admin-field" style={{ marginTop: 8 }}>
+                <label className="admin-label">Detailed Message</label>
+                <textarea
+                  className="admin-textarea"
+                  placeholder="Enter details, instructions, or notes for the users..."
+                  rows={4}
+                  value={broadcastMessage}
+                  onChange={(e) => setBroadcastMessage(e.target.value)}
+                  maxLength={500}
+                  required
+                />
+                <div style={{ display: 'flex', justifyContent: 'flex-end', fontSize: 11, color: 'var(--text-3)', marginTop: 4 }}>
+                  {broadcastMessage.length}/500
+                </div>
+              </div>
+
+              {statusFeedback && (
+                <div className="broadcast-feedback">
+                  ✓ {statusFeedback}
+                </div>
+              )}
+
+              {/* Modal Actions */}
+              <div className="admin-modal-footer">
+                <button
+                  type="button"
+                  className="beast-btn danger sm"
+                  onClick={handleClearBroadcast}
+                  title="Clear any existing active announcement from user screens"
+                >
+                  🧹 Clear Active Popup
+                </button>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button
+                    type="button"
+                    className="beast-btn sm"
+                    onClick={() => setShowBroadcastModal(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="beast-btn primary sm"
+                    style={{ background: 'var(--up)', color: '#000', fontWeight: 800 }}
+                  >
+                    📢 Send Broadcast
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

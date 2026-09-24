@@ -10,10 +10,14 @@ import type {
   ClientToServerEvents,
   StockData,
   StockAlert,
+  SystemAnnouncement,
 } from '../types/index.js';
 import { stockService } from '../services/stockService.js';
 import { newsService } from '../services/newsService.js';
 import logger from '../utils/logger.js';
+
+/** Currently active announcement (cached for new connections) */
+let activeAnnouncement: SystemAnnouncement | null = null;
 
 /** Extended socket data to store per-client subscription preferences */
 interface SocketData {
@@ -124,6 +128,11 @@ export function setupSocketHandlers(io: TypedServer): void {
       lastUpdate: new Date().toISOString(),
     });
 
+    // Send active announcement to newly connected client if one exists
+    if (activeAnnouncement) {
+      socket.emit('server:announcement', activeAnnouncement);
+    }
+
     // Handle user identification
     socket.on('auth:identify', (data) => {
       if (data?.email) {
@@ -155,8 +164,34 @@ export function setupSocketHandlers(io: TypedServer): void {
     // Handle admin forcing all clients to refresh
     socket.on('admin:force-refresh-all', () => {
       if (adminSockets.has(socket.id)) {
-        logger.warn(`dY"O Admin ${socket.id} triggered a global force refresh!`);
+        logger.warn(`Admin ${socket.id} triggered a global force refresh!`);
         io.emit('server:force_refresh');
+      }
+    });
+
+    // Handle admin broadcasting an instant announcement
+    socket.on('admin:broadcast-announcement', (data) => {
+      if (adminSockets.has(socket.id)) {
+        const announcement: SystemAnnouncement = {
+          id: Date.now().toString(),
+          title: data.title.trim(),
+          message: data.message.trim(),
+          type: data.type || 'update',
+          timestamp: new Date().toISOString(),
+          author: onlineUsers.get(socket.id)?.email || 'System Administrator',
+        };
+        activeAnnouncement = announcement;
+        logger.info(`📢 Broadcast announcement: "${announcement.title}" by ${announcement.author}`);
+        io.emit('server:announcement', announcement);
+      }
+    });
+
+    // Handle admin clearing the active announcement
+    socket.on('admin:clear-announcement', () => {
+      if (adminSockets.has(socket.id)) {
+        activeAnnouncement = null;
+        logger.info(`🧹 Admin ${socket.id} cleared active announcement`);
+        io.emit('server:clear-announcement');
       }
     });
 
@@ -267,4 +302,34 @@ export function broadcastStockUpdate(
     const message = err instanceof Error ? err.message : String(err);
     logger.error(`Error broadcasting stock update: ${message}`);
   }
+}
+
+/**
+ * Programmatically broadcast an announcement to all clients.
+ */
+export function broadcastAnnouncementDirect(
+  io: TypedServer,
+  data: { title: string; message: string; type?: 'update' | 'alert' | 'maintenance' | 'info'; author?: string }
+): SystemAnnouncement {
+  const announcement: SystemAnnouncement = {
+    id: Date.now().toString(),
+    title: data.title.trim(),
+    message: data.message.trim(),
+    type: data.type || 'update',
+    timestamp: new Date().toISOString(),
+    author: data.author || 'System Administrator',
+  };
+  activeAnnouncement = announcement;
+  logger.info(`📢 Programmatic broadcast: "${announcement.title}"`);
+  io.emit('server:announcement', announcement);
+  return announcement;
+}
+
+/**
+ * Programmatically clear the current active announcement.
+ */
+export function clearActiveAnnouncement(io: TypedServer): void {
+  activeAnnouncement = null;
+  logger.info(`🧹 Programmatic clear announcement`);
+  io.emit('server:clear-announcement');
 }
