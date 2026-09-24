@@ -361,14 +361,19 @@ export default function App() {
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route path="/paywall" element={<Paywall />} />
-              <Route 
-                path="/" 
-                element={
-                  <ProtectedRoute>
-                    <AppContent />
-                  </ProtectedRoute>
-                } 
-              />
+              <Route path="/overview" element={<Navigate to="/" replace />} />
+              <Route path="/" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
+              <Route path="/table" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
+              <Route path="/heatmap" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
+              <Route path="/sectors" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
+              <Route path="/charts" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
+              <Route path="/technical" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
+              <Route path="/watchlist" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
+              <Route path="/news" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
+              <Route path="/results" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
+              <Route path="/promoter" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
+              <Route path="/papertrading" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
+              <Route path="/admin" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </MaintenanceGate>

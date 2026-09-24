@@ -1,9 +1,10 @@
 import { useState, useMemo } from 'react';
 import type { StockData } from '../../types';
-import { formatPercent, formatPrice } from '../../utils/formatters';
-import { ChevronDown, ChevronUp, PieChart } from 'lucide-react';
+import { formatPrice } from '../../utils/formatters';
+import { ChevronDown, ChevronUp, PieChart, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useDashboard } from '../../contexts/DashboardContext';
+import { useNavigate } from 'react-router-dom';
 import { audioAlerts } from '../../utils/audioAlerts';
 import './SectorBreakdown.css';
 
@@ -21,7 +22,9 @@ interface SectorBreakdownProps {
 
 export function SectorBreakdown({ sectorData }: SectorBreakdownProps) {
   const [expandedSector, setExpandedSector] = useState<string | null>(null);
+  const [sectorSearch, setSectorSearch] = useState<string>('');
   const { setActiveTab, setChartSymbol } = useDashboard();
+  const navigate = useNavigate();
 
   const sortedSectors = useMemo(() => {
     return Array.from(sectorData.entries())
@@ -40,27 +43,38 @@ export function SectorBreakdown({ sectorData }: SectorBreakdownProps) {
   }
 
   return (
-    <div className="sector-breakdown-container" style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px', alignItems: 'start'}}>
+    <div className="sector-breakdown-container">
       {sortedSectors.map(([sector, data]) => {
         const isExpanded = expandedSector === sector;
         const topGainer = [...data.stocks].sort((a, b) => b.changePercent - a.changePercent)[0];
         const topLoser = [...data.stocks].sort((a, b) => a.changePercent - b.changePercent)[0];
         const up = data.avgChange >= 0;
 
+        const filteredStocks = data.stocks
+          .filter(s => {
+            if (!sectorSearch) return true;
+            const q = sectorSearch.toLowerCase();
+            return s.symbol.toLowerCase().includes(q) || s.name.toLowerCase().includes(q);
+          })
+          .sort((a, b) => b.changePercent - a.changePercent);
+
         return (
           <div 
             key={sector} 
-            className="beast-card"
+            className={`beast-card sector-card ${isExpanded ? 'is-expanded' : ''}`}
             style={{
               padding: '18px', 
               display: 'flex', 
               flexDirection: 'column',
               cursor: 'pointer',
-              borderColor: isExpanded ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.08)'
+              zIndex: isExpanded ? 20 : 1,
+              borderColor: isExpanded ? 'rgba(0, 245, 155, 0.45)' : 'rgba(255, 255, 255, 0.08)',
+              boxShadow: isExpanded ? '0 16px 40px rgba(0, 0, 0, 0.75), 0 0 20px rgba(0, 245, 155, 0.12)' : undefined
             }}
             onClick={() => {
               audioAlerts.playClickHaptic();
               setExpandedSector(isExpanded ? null : sector);
+              setSectorSearch('');
             }}
           >
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
@@ -70,7 +84,7 @@ export function SectorBreakdown({ sectorData }: SectorBreakdownProps) {
                   {data.totalStocks} SECURITIES · <span style={{ color: 'var(--up)' }}>{data.gainers}▲</span> <span style={{ color: 'var(--down)' }}>{data.losers}▼</span>
                 </div>
               </div>
-              <div style={{color: 'var(--text-3)', background: 'rgba(255,255,255,0.06)', borderRadius: 6, padding: '4px'}}>
+              <div style={{color: isExpanded ? 'var(--up)' : 'var(--text-3)', background: isExpanded ? 'rgba(0, 245, 155, 0.12)' : 'rgba(255,255,255,0.06)', borderRadius: 6, padding: '4px', transition: 'all 0.2s'}}>
                 {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
               </div>
             </div>
@@ -116,18 +130,42 @@ export function SectorBreakdown({ sectorData }: SectorBreakdownProps) {
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: 'auto', opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+                  transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
                   style={{overflow: 'hidden'}}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <div style={{marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '8px', background: 'rgba(0,0,0,0.3)', padding: '12px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.06)'}}>
-                    <div style={{display: 'flex', justifyContent: 'space-between', fontSize: '9.5px', textTransform: 'uppercase', color: 'var(--text-3)', fontWeight: 700, paddingBottom: '6px', borderBottom: '1px solid rgba(255,255,255,0.06)', letterSpacing: '0.05em'}}>
+                  <div className="sector-expanded-panel">
+                    {/* Search inside sector if > 5 stocks */}
+                    {data.stocks.length > 5 && (
+                      <div className="sector-search-bar" onClick={(e) => e.stopPropagation()}>
+                        <Search size={13} color="var(--text-3)" />
+                        <input
+                          type="text"
+                          placeholder={`Filter ${sector} stocks...`}
+                          value={sectorSearch}
+                          onChange={(e) => setSectorSearch(e.target.value)}
+                          className="sector-search-input"
+                        />
+                        {sectorSearch && (
+                          <button 
+                            type="button"
+                            className="sector-search-clear" 
+                            onClick={() => setSectorSearch('')}
+                          >
+                            ×
+                          </button>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="sector-table-head">
                       <span>Security</span>
-                      <span>Change %</span>
+                      <span>Price</span>
+                      <span style={{ textAlign: 'right' }}>Change %</span>
                     </div>
-                    {data.stocks
-                      .sort((a, b) => b.changePercent - a.changePercent)
-                      .map(stock => (
+
+                    <div className="sector-stocks-scroll-list">
+                      {filteredStocks.map(stock => (
                         <div 
                           key={stock.symbol} 
                           onClick={() => {
@@ -135,16 +173,27 @@ export function SectorBreakdown({ sectorData }: SectorBreakdownProps) {
                             setChartSymbol(stock.symbol);
                             setActiveTab('Charts');
                           }}
-                          style={{display: 'flex', justifyContent: 'space-between', fontSize: '11.5px', fontWeight: 600, padding: '4px 6px', borderRadius: 4, cursor: 'pointer', transition: 'background 0.1s ease'}}
-                          className="mover-row"
-                          title={`Analyze ${stock.symbol} chart`}
+                          className="sector-stock-row"
+                          title={`Open ${stock.symbol} in Pro Charts`}
                         >
-                          <span style={{color: '#fff'}}>{stock.symbol}</span>
-                          <span style={{color: stock.changePercent >= 0 ? 'var(--up)' : 'var(--down)', fontFamily: 'var(--font-mono)', fontWeight: 700}}>
+                          <div className="sector-stock-meta">
+                            <span className="stock-sym">{stock.symbol}</span>
+                            <span className="stock-name">{stock.name}</span>
+                          </div>
+                          <span className="stock-price tabular-nums">
+                            {formatPrice(stock.price)}
+                          </span>
+                          <span 
+                            className={`stock-chg tabular-nums ${stock.changePercent >= 0 ? 'up' : 'down'}`}
+                          >
                             {stock.changePercent >= 0 ? '+' : ''}{stock.changePercent.toFixed(2)}%
                           </span>
                         </div>
                       ))}
+                      {filteredStocks.length === 0 && (
+                        <div className="sector-no-stocks">No securities match "{sectorSearch}"</div>
+                      )}
+                    </div>
                   </div>
                 </motion.div>
               )}
