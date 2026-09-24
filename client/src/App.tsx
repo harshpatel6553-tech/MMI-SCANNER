@@ -241,7 +241,6 @@ function AppContent() {
       <AlertPanel alerts={alertHistory} onClearAll={clearAll} />
       <FundamentalsModal stocks={allStocks} />
       <AlertToast toasts={toasts} onDismiss={dismissToast} />
-      <AnnouncementModal />
 
       {/* Floating Customize Button */}
       <div
@@ -359,6 +358,7 @@ export default function App() {
     <SocketProvider>
       <AuthProvider>
         <DashboardProvider>
+          <AnnouncementModal />
           <MaintenanceGate>
             <Routes>
               <Route path="/login" element={<Login />} />
