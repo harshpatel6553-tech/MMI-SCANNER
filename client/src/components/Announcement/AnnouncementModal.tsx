@@ -37,13 +37,23 @@ export function AnnouncementModal() {
           .select('*')
           .eq('alert_type', 'SYSTEM_BROADCAST')
           .order('created_at', { ascending: false })
-          .limit(1);
+          .limit(5);
 
         if (!error && data && data.length > 0) {
-          try {
-            const parsed = JSON.parse(data[0].name);
-            handleAnnouncement(parsed);
-          } catch {}
+          for (const row of data) {
+            try {
+              const parsed = JSON.parse(row.name);
+              if (parsed.is_cleared) {
+                // If latest record was a clear signal, hide the modal
+                setAnnouncement(null);
+                return;
+              }
+              if (parsed.id && parsed.title) {
+                handleAnnouncement(parsed);
+                return;
+              }
+            } catch {}
+          }
         } else if (!error && data && data.length === 0) {
           // No active announcement in database
           setAnnouncement(null);
@@ -74,7 +84,7 @@ export function AnnouncementModal() {
       socket.on('server:clear-announcement' as any, handleClearAnnouncement);
     }
 
-    // 4. Supabase Realtime broadcast listener (cloud-wide instant reach)
+    // 4. Supabase Realtime listeners (cloud-wide instant reach)
     const sbChannel = supabase.channel('mmi_announcements');
     sbChannel
       .on('broadcast', { event: 'announcement' }, ({ payload }) => {
@@ -83,6 +93,13 @@ export function AnnouncementModal() {
       .on('broadcast', { event: 'clear' }, () => {
         handleClearAnnouncement();
       })
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'alerts' },
+        () => {
+          checkDatabaseAnnouncement();
+        }
+      )
       .subscribe();
 
     // 5. Browser BroadcastChannel listener (cross-tab in same browser)

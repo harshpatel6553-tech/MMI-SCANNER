@@ -188,11 +188,17 @@ export function AdminDashboard() {
   const handleClearBroadcast = async () => {
     if (!window.confirm("Are you sure you want to dismiss the active announcement from all users' screens?")) return;
     
-    // 1. Delete persistent announcement from Supabase DB
+    // 1. Insert clear signal & delete from Supabase DB
     try {
+      await supabase.from('alerts').insert([{
+        symbol: 'SYSTEM_BROADCAST',
+        alert_type: 'SYSTEM_BROADCAST',
+        name: JSON.stringify({ is_cleared: true, id: 'clear-' + Date.now(), timestamp: new Date().toISOString() }),
+        price: 0
+      }]);
       await supabase.from('alerts').delete().eq('alert_type', 'SYSTEM_BROADCAST');
     } catch (err) {
-      console.error('Error deleting announcement from Supabase:', err);
+      console.error('Error clearing announcement from Supabase:', err);
     }
 
     // 2. Socket emit

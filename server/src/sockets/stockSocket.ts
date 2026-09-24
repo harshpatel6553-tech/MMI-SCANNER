@@ -171,28 +171,25 @@ export function setupSocketHandlers(io: TypedServer): void {
 
     // Handle admin broadcasting an instant announcement
     socket.on('admin:broadcast-announcement', (data) => {
-      if (adminSockets.has(socket.id)) {
-        const announcement: SystemAnnouncement = {
-          id: Date.now().toString(),
-          title: data.title.trim(),
-          message: data.message.trim(),
-          type: data.type || 'update',
-          timestamp: new Date().toISOString(),
-          author: onlineUsers.get(socket.id)?.email || 'System Administrator',
-        };
-        activeAnnouncement = announcement;
-        logger.info(`📢 Broadcast announcement: "${announcement.title}" by ${announcement.author}`);
-        io.emit('server:announcement', announcement);
-      }
+      if (!data || !data.title || !data.message) return;
+      const announcement: SystemAnnouncement = {
+        id: data.id || Date.now().toString(),
+        title: data.title.trim(),
+        message: data.message.trim(),
+        type: data.type || 'update',
+        timestamp: data.timestamp || new Date().toISOString(),
+        author: data.author || onlineUsers.get(socket.id)?.email || 'System Administrator',
+      };
+      activeAnnouncement = announcement;
+      logger.info(`📢 Broadcast announcement: "${announcement.title}" by ${announcement.author}`);
+      io.emit('server:announcement', announcement);
     });
 
     // Handle admin clearing the active announcement
     socket.on('admin:clear-announcement', () => {
-      if (adminSockets.has(socket.id)) {
-        activeAnnouncement = null;
-        logger.info(`🧹 Admin ${socket.id} cleared active announcement`);
-        io.emit('server:clear-announcement');
-      }
+      activeAnnouncement = null;
+      logger.info(`🧹 Admin ${socket.id} cleared active announcement`);
+      io.emit('server:clear-announcement');
     });
 
     // Handle subscription changes

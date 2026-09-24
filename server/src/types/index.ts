@@ -159,7 +159,7 @@ export interface ClientToServerEvents {
   /** Admin triggers a global refresh of all clients */
   'admin:force-refresh-all': () => void;
   /** Admin broadcasts an announcement to all connected clients */
-  'admin:broadcast-announcement': (data: { title: string; message: string; type: 'update' | 'alert' | 'maintenance' | 'info' }) => void;
+  'admin:broadcast-announcement': (data: { title: string; message: string; type: 'update' | 'alert' | 'maintenance' | 'info'; id?: string; timestamp?: string; author?: string }) => void;
   /** Admin clears the active announcement */
   'admin:clear-announcement': () => void;
 }
