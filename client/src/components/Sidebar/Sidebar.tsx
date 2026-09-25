@@ -21,12 +21,30 @@ export function Sidebar() {
       {/* Brand Header */}
       <div className="brand" onClick={() => handleTabChange('Overview')} style={{ cursor: 'pointer' }}>
         <div className="brand-mark" style={{
-          background: 'linear-gradient(135deg, #00f59b 0%, #00d4ff 100%)',
-          boxShadow: '0 0 20px rgba(0, 245, 155, 0.45)',
-          color: '#020b08',
-          fontWeight: 900
+          width: 38,
+          height: 38,
+          borderRadius: 9,
+          background: '#ffffff',
+          border: '1px solid rgba(0, 245, 155, 0.4)',
+          boxShadow: '0 0 16px rgba(0, 245, 155, 0.25)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          overflow: 'hidden',
+          padding: 2,
+          flexShrink: 0
         }}>
-          M
+          <img 
+            src="/logo.jpg" 
+            alt="MMI Logo" 
+            style={{ 
+              width: '100%', 
+              height: '100%', 
+              objectFit: 'contain', 
+              borderRadius: 7,
+              display: 'block' 
+            }} 
+          />
         </div>
         <div>
           <div className="brand-name" style={{ letterSpacing: '-0.025em', fontWeight: 800 }}>Market Minds</div>

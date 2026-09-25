@@ -62,7 +62,9 @@ export function MaintenanceCountdown({ onUnlock }: MaintenanceCountdownProps) {
       {/* Header Bar */}
       <header className="maintenance-header">
         <div className="maintenance-brand">
-          <div className="maintenance-brand-mark">M</div>
+          <div className="maintenance-brand-mark" style={{ background: '#ffffff', padding: 2, overflow: 'hidden' }}>
+            <img src="/logo.jpg" alt="MMI Logo" style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: 7 }} />
+          </div>
           <div>
             <div className="maintenance-brand-title">Market Minds</div>
             <div className="maintenance-brand-subtitle">TERMINAL 2.0 UPGRADE</div>
