@@ -31,9 +31,9 @@ export function LiveNewsFeed({ onStockClick }: LiveNewsFeedProps) {
   const decliners = allStocks.filter(s => s.change < 0).length;
   const total = allStocks.length;
   
-  // Nifty/BankNifty for tape (mocked if not found)
-  const nifty50 = allStocks.find(s => s.symbol.includes('NIFTY')) || { changePercent: 0.37 };
-  const bankNifty = allStocks.find(s => s.symbol.includes('BANK')) || { changePercent: 0.64 };
+  // Nifty/BankNifty for tape
+  const nifty50 = allStocks.find(s => s.symbol === 'NIFTY 50' || s.symbol === 'NIFTY') || { changePercent: 0.0 };
+  const bankNifty = allStocks.find(s => s.symbol === 'BANKNIFTY' || s.symbol === 'BANK NIFTY') || { changePercent: 0.0 };
 
   const counts = useMemo(() => {
     let bullish = 0, bearish = 0, block = 0;

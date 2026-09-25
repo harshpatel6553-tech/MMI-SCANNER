@@ -46,18 +46,16 @@ export function HeaderIndices({ nifty50, bankNifty }: HeaderIndicesProps) {
 
         <div className="index-chip-body">
           <span className="index-chip-price num tabular-nums">
-            {formatIndexPrice(nifty50?.price || 23449.25)}
+            {nifty50 ? formatIndexPrice(nifty50.price) : '---'}
           </span>
           
           <span className={`index-chip-badge num tabular-nums ${niftyUp ? 'up' : 'down'}`}>
             {niftyUp ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
             <span>
-              {niftyUp ? '+' : ''}
-              {nifty50 ? nifty50.change.toFixed(2) : '+34.95'}
+              {nifty50 ? `${niftyUp ? '+' : ''}${nifty50.change.toFixed(2)}` : '0.00'}
             </span>
             <span className="index-chip-pct">
-              ({niftyUp ? '+' : ''}
-              {nifty50 ? nifty50.changePercent.toFixed(2) : '0.15'}%)
+              ({nifty50 ? `${niftyUp ? '+' : ''}${nifty50.changePercent.toFixed(2)}` : '0.00'}%)
             </span>
           </span>
         </div>
@@ -83,18 +81,16 @@ export function HeaderIndices({ nifty50, bankNifty }: HeaderIndicesProps) {
 
         <div className="index-chip-body">
           <span className="index-chip-price num tabular-nums">
-            {formatIndexPrice(bankNifty?.price || 56575.70)}
+            {bankNifty ? formatIndexPrice(bankNifty.price) : '---'}
           </span>
           
           <span className={`index-chip-badge num tabular-nums ${bankUp ? 'up' : 'down'}`}>
             {bankUp ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
             <span>
-              {bankUp ? '+' : ''}
-              {bankNifty ? bankNifty.change.toFixed(2) : '+105.10'}
+              {bankNifty ? `${bankUp ? '+' : ''}${bankNifty.change.toFixed(2)}` : '0.00'}
             </span>
             <span className="index-chip-pct">
-              ({bankUp ? '+' : ''}
-              {bankNifty ? bankNifty.changePercent.toFixed(2) : '0.19'}%)
+              ({bankNifty ? `${bankUp ? '+' : ''}${bankNifty.changePercent.toFixed(2)}` : '0.00'}%)
             </span>
           </span>
         </div>

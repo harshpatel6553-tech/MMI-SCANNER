@@ -260,7 +260,21 @@ class StockService {
   }
 
   async fetchIndices(): Promise<StockData[]> {
-    const indices = [
+    // 1. TradingView-supported index definitions (official NSE/BSE real-time data with exact change and previous close)
+    const TV_INDEX_MAP: Record<string, { displaySymbol: string; name: string; aliases?: string[] }> = {
+      'NSE:NIFTY':       { displaySymbol: 'NIFTY 50',          name: 'NIFTY 50' },
+      'NSE:BANKNIFTY':   { displaySymbol: 'BANKNIFTY',         name: 'Bank NIFTY', aliases: ['BANK NIFTY'] },
+      'BSE:SENSEX':      { displaySymbol: 'SENSEX',            name: 'BSE SENSEX' },
+      'NSE:CNX500':      { displaySymbol: 'NIFTY 500',         name: 'NIFTY 500' },
+      'NSE:CNXIT':       { displaySymbol: 'NIFTY IT',          name: 'NIFTY IT' },
+      'NSE:CNXENERGY':   { displaySymbol: 'NIFTY ENERGY',      name: 'NIFTY ENERGY' },
+      'NSE:CNXMIDCAP':   { displaySymbol: 'NIFTY MIDCAP 50',   name: 'NIFTY MIDCAP 50' },
+      'NSE:CNXSMALLCAP': { displaySymbol: 'NIFTY SMALLCAP',    name: 'NIFTY SMALLCAP' },
+      'NSE:CNXFINANCE':  { displaySymbol: 'NIFTY FIN SERVICE', name: 'NIFTY FIN SERVICE' },
+    };
+
+    // 2. Full index list for Yahoo Finance fallback and additional sectoral indices
+    const yahooIndices = [
       { yahooSymbol: '^NSEI',      displaySymbol: 'NIFTY 50',          name: 'NIFTY 50' },
       { yahooSymbol: '^NSEBANK',   displaySymbol: 'BANKNIFTY',         name: 'Bank NIFTY' },
       { yahooSymbol: '^CNX100',    displaySymbol: 'NIFTY 100',         name: 'NIFTY 100' },
@@ -281,73 +295,166 @@ class StockService {
     ];
 
     const results: StockData[] = [];
+    const resolvedSymbols = new Set<string>();
 
+    // Step 1: Query TradingView Scanner for official, real-time NSE/BSE indices data (no lag, accurate previousClose)
     try {
-      const symbolsStr = indices.map(i => i.yahooSymbol).join(',');
-      // Same fetch style as stocks: 1m interval + cache buster for real-time ticks
-      const url = `https://query1.finance.yahoo.com/v7/finance/spark?symbols=${encodeURIComponent(symbolsStr)}&range=1d&interval=1m&cb=${Date.now()}`;
-      const res = await fetch(url, {
+      const tvRes = await fetch('https://scanner.tradingview.com/india/scan', {
+        method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
           'User-Agent': USER_AGENT,
-          'Accept': 'application/json'
-        }
+        },
+        body: JSON.stringify({
+          symbols: { tickers: Object.keys(TV_INDEX_MAP) },
+          columns: [
+            'name',
+            'close',
+            'change',
+            'change_abs',
+            'open',
+            'high',
+            'low',
+            'volume',
+            'price_52_week_high',
+            'price_52_week_low',
+          ],
+        }),
       });
 
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (tvRes.ok) {
+        const tvData = (await tvRes.json()) as any;
+        for (const item of tvData?.data || []) {
+          const cfg = TV_INDEX_MAP[item.s];
+          if (!cfg) continue;
 
-      const data = await res.json() as any;
-      const sparkResults = data?.spark?.result || [];
+          const d = item.d || [];
+          const price: number = d[1] ?? 0;
+          if (price === 0) continue;
 
-      for (const sparkObj of sparkResults) {
-        const meta = sparkObj.response?.[0]?.meta;
-        if (!meta) continue;
+          const changePercent: number = typeof d[2] === 'number' ? d[2] : 0;
+          const change: number = typeof d[3] === 'number' ? d[3] : 0;
+          const prevClose: number = price - change;
+          const open: number = d[4] ?? price;
+          const dayHigh: number = d[5] ?? price;
+          const dayLow: number = d[6] ?? price;
+          const volume: number = d[7] ?? 0;
+          const fiftyTwoWeekHigh: number = d[8] ?? 0;
+          const fiftyTwoWeekLow: number = d[9] ?? 0;
 
-        const idx = indices.find(i => i.yahooSymbol === meta.symbol);
-        if (!idx) continue;
+          const atDayHigh = dayHigh > 0 && price > 0 && price >= dayHigh;
+          const atDayLow = dayLow > 0 && price > 0 && price <= dayLow;
 
-        const price: number = meta.regularMarketPrice ?? 0;
-        if (price === 0) continue;
+          const indexData: StockData = {
+            symbol: cfg.displaySymbol,
+            name: cfg.name,
+            price,
+            previousClose: prevClose,
+            open,
+            dayHigh,
+            dayLow,
+            change,
+            changePercent,
+            volume,
+            sector: 'Index',
+            averageVolume: 0,
+            relativeVolume: 0,
+            volumeSpike: false,
+            indexName: 'INDEX',
+            lastUpdated: new Date().toISOString(),
+            atDayHigh,
+            atDayLow,
+            fiftyTwoWeekHigh,
+            fiftyTwoWeekLow,
+            marketCap: 0,
+          };
 
-        const dayHigh: number = meta.regularMarketDayHigh ?? price;
-        const dayLow: number  = meta.regularMarketDayLow  ?? price;
-        const prevClose: number = meta.previousClose ?? meta.chartPreviousClose ?? price;
+          results.push(indexData);
+          this.stockCache.set(cfg.displaySymbol, indexData);
+          resolvedSymbols.add(cfg.displaySymbol);
 
-        // Same logic as individual stocks — exact match only
-        const atDayHigh = dayHigh > 0 && price > 0 && price >= dayHigh;
-        const atDayLow  = dayLow  > 0 && price > 0 && price <= dayLow;
-
-        const change = price - prevClose;
-        const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
-
-        const indexData: StockData = {
-          symbol: idx.displaySymbol,
-          name: idx.name,
-          price,
-          previousClose: prevClose,
-          open: meta.regularMarketOpen ?? price,
-          dayHigh,
-          dayLow,
-          change,
-          changePercent,
-          volume: meta.regularMarketVolume ?? 0,
-          sector: 'Index',
-          averageVolume: 0,
-          relativeVolume: 0,
-          volumeSpike: false,
-          indexName: 'INDEX',
-          lastUpdated: new Date().toISOString(),
-          atDayHigh,
-          atDayLow,
-          fiftyTwoWeekHigh: meta.fiftyTwoWeekHigh ?? 0,
-          fiftyTwoWeekLow: meta.fiftyTwoWeekLow ?? 0,
-          marketCap: 0,
-        };
-
-        results.push(indexData);
-        this.stockCache.set(idx.displaySymbol, indexData);
+          if (cfg.aliases) {
+            for (const alias of cfg.aliases) {
+              const aliasData = { ...indexData, symbol: alias };
+              results.push(aliasData);
+              this.stockCache.set(alias, aliasData);
+              resolvedSymbols.add(alias);
+            }
+          }
+        }
       }
-    } catch (err: any) {
-      logger.error(`Failed to fetch indices: ${err.message}`);
+    } catch (tvErr: any) {
+      logger.warn(`TradingView indices fetch failed, falling back to Yahoo: ${tvErr.message}`);
+    }
+
+    // Step 2: Query Yahoo Spark for remaining sector indices or fallback
+    const remainingIndices = yahooIndices.filter(i => !resolvedSymbols.has(i.displaySymbol));
+    if (remainingIndices.length > 0) {
+      try {
+        const symbolsStr = remainingIndices.map(i => i.yahooSymbol).join(',');
+        const url = `https://query1.finance.yahoo.com/v7/finance/spark?symbols=${encodeURIComponent(symbolsStr)}&range=1d&interval=1m&cb=${Date.now()}`;
+        const res = await fetch(url, {
+          headers: {
+            'User-Agent': USER_AGENT,
+            'Accept': 'application/json',
+          },
+        });
+
+        if (res.ok) {
+          const data = (await res.json()) as any;
+          const sparkResults = data?.spark?.result || [];
+
+          for (const sparkObj of sparkResults) {
+            const meta = sparkObj.response?.[0]?.meta;
+            if (!meta) continue;
+
+            const idx = remainingIndices.find(i => i.yahooSymbol === meta.symbol);
+            if (!idx) continue;
+
+            const price: number = meta.regularMarketPrice ?? 0;
+            if (price === 0) continue;
+
+            const dayHigh: number = meta.regularMarketDayHigh ?? price;
+            const dayLow: number = meta.regularMarketDayLow ?? price;
+            const prevClose: number = meta.previousClose ?? meta.chartPreviousClose ?? price;
+
+            const atDayHigh = dayHigh > 0 && price > 0 && price >= dayHigh;
+            const atDayLow = dayLow > 0 && price > 0 && price <= dayLow;
+
+            const change = price - prevClose;
+            const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
+
+            const indexData: StockData = {
+              symbol: idx.displaySymbol,
+              name: idx.name,
+              price,
+              previousClose: prevClose,
+              open: meta.regularMarketOpen ?? price,
+              dayHigh,
+              dayLow,
+              change,
+              changePercent,
+              volume: meta.regularMarketVolume ?? 0,
+              sector: 'Index',
+              averageVolume: 0,
+              relativeVolume: 0,
+              volumeSpike: false,
+              indexName: 'INDEX',
+              lastUpdated: new Date().toISOString(),
+              atDayHigh,
+              atDayLow,
+              fiftyTwoWeekHigh: meta.fiftyTwoWeekHigh ?? 0,
+              fiftyTwoWeekLow: meta.fiftyTwoWeekLow ?? 0,
+              marketCap: 0,
+            };
+
+            results.push(indexData);
+            this.stockCache.set(idx.displaySymbol, indexData);
+          }
+        }
+      } catch (err: any) {
+        logger.error(`Failed to fetch Yahoo fallback indices: ${err.message}`);
+      }
     }
 
     return results;

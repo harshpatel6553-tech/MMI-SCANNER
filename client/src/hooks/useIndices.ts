@@ -13,7 +13,7 @@ export function useIndices(allStocks: StockData[]) {
       try {
         const backendUrl = import.meta.env.VITE_SOCKET_URL || '';
         const baseUrl = backendUrl.endsWith('/') ? backendUrl.slice(0, -1) : backendUrl;
-        const res = await fetch(`${baseUrl}/api/stocks/stocks?index=INDEX`);
+        const res = await fetch(`${baseUrl}/api/stocks?index=INDEX`);
         if (res.ok) {
           const json = await res.json();
           if (json.success && Array.isArray(json.data) && isMounted) {

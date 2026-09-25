@@ -35,7 +35,7 @@ type SortOrder = 'asc' | 'desc';
  * - `sort` — Sort field: symbol | price | change | changePercent | volume (default: symbol)
  * - `order` — Sort direction: asc | desc (default: asc)
  */
-router.get('/stocks', (req: Request, res: Response): void => {
+router.get(['/', '/stocks'], (req: Request, res: Response): void => {
   try {
     let stocks = stockService.getCachedStocks();
 
