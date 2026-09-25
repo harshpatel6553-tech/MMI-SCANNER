@@ -9,6 +9,8 @@ export interface NewsItem {
   source: string;
   sentiment?: 'Bullish' | 'Bearish' | 'Neutral';
   affectedStocks?: string[];
+  reasoning?: string;
+  perspective?: 'Company' | 'IndiaMacro' | 'General';
   isEarningsResult?: boolean;
   isPromoterAction?: boolean;
 }

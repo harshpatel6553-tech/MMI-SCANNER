@@ -62,13 +62,26 @@ const ALLOWED_ORIGINS = [
   ...(process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : []),
 ];
 
+const isAllowedOrigin = (origin: string | undefined): boolean => {
+  if (!origin) return true;
+  if (ALLOWED_ORIGINS.includes(origin)) return true;
+  if (origin.endsWith('.vercel.app')) return true;
+  return false;
+};
+
 // ── Express Setup ──────────────────────────────────────────────
 
 const app = express();
 
 app.use(
   cors({
-    origin: '*',
+    origin: (origin, callback) => {
+      if (isAllowedOrigin(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Blocked by CORS policy'));
+      }
+    },
     methods: ['GET', 'POST'],
     credentials: true,
   })
@@ -94,8 +107,15 @@ const io = new SocketIOServer<ClientToServerEvents, ServerToClientEvents>(
   httpServer,
   {
     cors: {
-      origin: '*', // Allow all origins
+      origin: (origin, callback) => {
+        if (isAllowedOrigin(origin)) {
+          callback(null, true);
+        } else {
+          callback(new Error('Blocked by CORS policy'));
+        }
+      },
       methods: ['GET', 'POST'],
+      credentials: true,
     },
     pingInterval: 25000,
     pingTimeout: 20000,
@@ -153,15 +173,28 @@ app.get('/api/paper-trading/portfolio/:userId', paperTradingController.getPortfo
 app.post('/api/paper-trading/trade', paperTradingController.executeTrade);
 app.get('/api/paper-trading/leaderboard', paperTradingController.getLeaderboard);
 
+// ── Admin Authentication Middleware ───────────────────────────
+const authenticateAdmin = (req: Request, res: Response, next: express.NextFunction) => {
+  const adminSecret = process.env.ADMIN_SECRET_KEY || 'mmi-admin-secret-2026';
+  const authHeader = req.headers.authorization;
+  const customHeader = req.headers['x-admin-key'];
+
+  if ((authHeader && authHeader === `Bearer ${adminSecret}`) || customHeader === adminSecret) {
+    return next();
+  }
+
+  logger.warn(`⚠️ Blocked unauthorized admin API request from IP: ${req.ip} to ${req.originalUrl}`);
+  return res.status(401).json({ error: 'Unauthorized: Valid admin credentials required' });
+};
+
 // ── Admin Tools ────────────────────────────────────────────────
-app.post('/api/admin/force-refresh', (req: Request, res: Response) => {
-  // In a real app, verify admin token here. For this request, we leave it open.
+app.post('/api/admin/force-refresh', authenticateAdmin, (req: Request, res: Response) => {
   io.emit('server:force_refresh');
   logger.info('Admin triggered a global force-refresh to all connected clients.');
   res.json({ success: true, message: 'Refresh command broadcasted to all users.' });
 });
 
-app.post('/api/admin/broadcast', (req: Request, res: Response) => {
+app.post('/api/admin/broadcast', authenticateAdmin, (req: Request, res: Response) => {
   const { title, message, type } = req.body;
   if (!title || !message) {
     return res.status(400).json({ error: 'Title and message are required' });
@@ -170,7 +203,7 @@ app.post('/api/admin/broadcast', (req: Request, res: Response) => {
   res.json({ success: true, announcement });
 });
 
-app.post('/api/admin/clear-announcement', (req: Request, res: Response) => {
+app.post('/api/admin/clear-announcement', authenticateAdmin, (req: Request, res: Response) => {
   clearActiveAnnouncement(io);
   res.json({ success: true, message: 'Announcement cleared from all client screens.' });
 });

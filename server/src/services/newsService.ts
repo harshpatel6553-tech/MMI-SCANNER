@@ -11,6 +11,8 @@ export interface NewsItem {
   source: string;
   sentiment?: 'Bullish' | 'Bearish' | 'Neutral';
   affectedStocks?: string[];
+  reasoning?: string;
+  perspective?: 'Company' | 'IndiaMacro' | 'General';
   isEarningsResult?: boolean;
 }
 
@@ -189,6 +191,8 @@ class NewsService extends EventEmitter {
 
             cachedTweet.sentiment = s as 'Bullish' | 'Bearish' | 'Neutral';
             cachedTweet.affectedStocks = res.affectedStocks || [];
+            cachedTweet.reasoning = res.reasoning;
+            cachedTweet.perspective = res.perspective;
             updatedAny = true;
           }
         }

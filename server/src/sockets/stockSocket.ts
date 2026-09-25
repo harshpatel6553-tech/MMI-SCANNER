@@ -63,6 +63,15 @@ const onlineUsers: Map<string, { email: string; connectedAt: string; avatar?: st
 /** Set of admin socket IDs that should receive live user updates */
 const adminSockets: Set<string> = new Set();
 
+/** Whitelist of authorized administrator emails */
+const ADMIN_EMAILS = new Set([
+  'hp4302033@gmail.com',
+  'harshpatel6553@gmail.com',
+  'dhruvilpatel017@gmail.com',
+  'karanpatel.kp16@gmail.com',
+  'drakula6553@gmail.com',
+]);
+
 /** Helper: get the deduplicated online user list */
 function getOnlineUserList(): { email: string; connectedAt: string; avatar?: string }[] {
   const seen = new Set<string>();
@@ -143,9 +152,15 @@ export function setupSocketHandlers(io: TypedServer): void {
         });
         logger.info(`👤 User identified: ${data.email} (${socket.id})`);
 
-        // If user is admin, add to admin sockets
-        if (data.isAdmin) {
+        // If user claims admin, verify against whitelist
+        const userEmail = (data.email || '').toLowerCase().trim();
+        const isVerifiedAdmin = ADMIN_EMAILS.has(userEmail);
+
+        if (data.isAdmin && isVerifiedAdmin) {
           adminSockets.add(socket.id);
+          logger.info(`🛡️ Verified admin socket registered: ${userEmail} (${socket.id})`);
+        } else if (data.isAdmin && !isVerifiedAdmin) {
+          logger.warn(`⚠️ Rejected unverified admin privilege claim: ${userEmail} (${socket.id})`);
         }
 
         // Notify all admins about the updated user list
@@ -158,6 +173,8 @@ export function setupSocketHandlers(io: TypedServer): void {
       if (adminSockets.has(socket.id)) {
         const userList = getOnlineUserList();
         socket.emit('admin:online-users', userList);
+      } else {
+        logger.warn(`⚠️ Unauthorized online users request from: ${socket.id}`);
       }
     });
 
@@ -166,11 +183,17 @@ export function setupSocketHandlers(io: TypedServer): void {
       if (adminSockets.has(socket.id)) {
         logger.warn(`Admin ${socket.id} triggered a global force refresh!`);
         io.emit('server:force_refresh');
+      } else {
+        logger.warn(`⚠️ Unauthorized force-refresh attempt from: ${socket.id}`);
       }
     });
 
     // Handle admin broadcasting an instant announcement
     socket.on('admin:broadcast-announcement', (data) => {
+      if (!adminSockets.has(socket.id)) {
+        logger.warn(`⚠️ Blocked unauthorized broadcast attempt from socket: ${socket.id}`);
+        return;
+      }
       if (!data || !data.title || !data.message) return;
       const announcement: SystemAnnouncement = {
         id: data.id || Date.now().toString(),
@@ -187,6 +210,10 @@ export function setupSocketHandlers(io: TypedServer): void {
 
     // Handle admin clearing the active announcement
     socket.on('admin:clear-announcement', () => {
+      if (!adminSockets.has(socket.id)) {
+        logger.warn(`⚠️ Blocked unauthorized clear-announcement attempt from socket: ${socket.id}`);
+        return;
+      }
       activeAnnouncement = null;
       logger.info(`🧹 Admin ${socket.id} cleared active announcement`);
       io.emit('server:clear-announcement');
