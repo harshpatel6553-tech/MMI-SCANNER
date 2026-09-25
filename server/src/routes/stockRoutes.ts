@@ -37,6 +37,7 @@ type SortOrder = 'asc' | 'desc';
  */
 router.get(['/', '/stocks'], (req: Request, res: Response): void => {
   try {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     let stocks = stockService.getCachedStocks();
 
     // ── Index filter ───────────────────────────────────────────

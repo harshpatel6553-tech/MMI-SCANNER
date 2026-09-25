@@ -7,9 +7,10 @@ import { TrendingUp, TrendingDown, Activity } from 'lucide-react';
 interface HeaderIndicesProps {
   nifty50?: StockData;
   bankNifty?: StockData;
+  flashes?: { nifty?: 'up' | 'down'; bank?: 'up' | 'down' };
 }
 
-export function HeaderIndices({ nifty50, bankNifty }: HeaderIndicesProps) {
+export function HeaderIndices({ nifty50, bankNifty, flashes }: HeaderIndicesProps) {
   const { setChartSymbol, setActiveTab } = useDashboard();
 
   // Format helper for Indian Rupee numbers (e.g. 23,449.25)
@@ -28,7 +29,7 @@ export function HeaderIndices({ nifty50, bankNifty }: HeaderIndicesProps) {
     <div className="header-indices-wrapper">
       {/* ── NIFTY 50 INDEX CHIP ── */}
       <div
-        className={`header-index-chip ${niftyUp ? 'is-up' : 'is-down'}`}
+        className={`header-index-chip ${niftyUp ? 'is-up' : 'is-down'} ${flashes?.nifty ? `flash-${flashes.nifty}` : ''}`}
         onClick={() => {
           audioAlerts.playClickHaptic();
           setChartSymbol('NIFTY 50');
@@ -41,11 +42,13 @@ export function HeaderIndices({ nifty50, bankNifty }: HeaderIndicesProps) {
             <Activity size={12} className={niftyUp ? 'text-up' : 'text-down'} />
           </span>
           <span className="index-chip-name">NIFTY 50</span>
-          <span className="index-chip-market-tag">NSE</span>
+          <span className="index-chip-market-tag">
+            <span className="live-pulse-dot" /> NSE
+          </span>
         </div>
 
         <div className="index-chip-body">
-          <span className="index-chip-price num tabular-nums">
+          <span className={`index-chip-price num tabular-nums ${flashes?.nifty ? `price-${flashes.nifty}` : ''}`}>
             {nifty50 ? formatIndexPrice(nifty50.price) : '---'}
           </span>
           
@@ -63,7 +66,7 @@ export function HeaderIndices({ nifty50, bankNifty }: HeaderIndicesProps) {
 
       {/* ── BANK NIFTY INDEX CHIP ── */}
       <div
-        className={`header-index-chip ${bankUp ? 'is-up' : 'is-down'}`}
+        className={`header-index-chip ${bankUp ? 'is-up' : 'is-down'} ${flashes?.bank ? `flash-${flashes.bank}` : ''}`}
         onClick={() => {
           audioAlerts.playClickHaptic();
           setChartSymbol('BANKNIFTY');
@@ -76,11 +79,13 @@ export function HeaderIndices({ nifty50, bankNifty }: HeaderIndicesProps) {
             <Activity size={12} className={bankUp ? 'text-up' : 'text-down'} />
           </span>
           <span className="index-chip-name">BANK NIFTY</span>
-          <span className="index-chip-market-tag">FNO</span>
+          <span className="index-chip-market-tag">
+            <span className="live-pulse-dot" /> FNO
+          </span>
         </div>
 
         <div className="index-chip-body">
-          <span className="index-chip-price num tabular-nums">
+          <span className={`index-chip-price num tabular-nums ${flashes?.bank ? `price-${flashes.bank}` : ''}`}>
             {bankNifty ? formatIndexPrice(bankNifty.price) : '---'}
           </span>
           

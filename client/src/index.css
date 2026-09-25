@@ -334,6 +334,57 @@ a {
     box-shadow: 0 0 8px var(--down-glow);
   }
 
+  .header-index-chip.flash-up {
+    animation: chipTickUp 0.8s ease-out;
+  }
+
+  .header-index-chip.flash-down {
+    animation: chipTickDown 0.8s ease-out;
+  }
+
+  @keyframes chipTickUp {
+    0% {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.25) 0%, rgba(10, 15, 29, 0.9) 100%);
+      border-color: rgba(16, 185, 129, 0.6);
+      box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
+    }
+    100% {
+      background: linear-gradient(135deg, rgba(16, 23, 44, 0.75) 0%, rgba(10, 15, 29, 0.9) 100%);
+      border-color: rgba(255, 255, 255, 0.08);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    }
+  }
+
+  @keyframes chipTickDown {
+    0% {
+      background: linear-gradient(135deg, rgba(244, 63, 94, 0.25) 0%, rgba(10, 15, 29, 0.9) 100%);
+      border-color: rgba(244, 63, 94, 0.6);
+      box-shadow: 0 0 15px rgba(244, 63, 94, 0.3);
+    }
+    100% {
+      background: linear-gradient(135deg, rgba(16, 23, 44, 0.75) 0%, rgba(10, 15, 29, 0.9) 100%);
+      border-color: rgba(255, 255, 255, 0.08);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    }
+  }
+
+  .live-pulse-dot {
+    display: inline-block;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--up);
+    box-shadow: 0 0 6px var(--up-glow);
+    animation: livePulse 1.5s infinite;
+    margin-right: 3px;
+    vertical-align: middle;
+  }
+
+  @keyframes livePulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.4); opacity: 0.5; }
+  }
+
   .header-index-chip:hover {
     border-color: rgba(255, 255, 255, 0.22);
     transform: translateY(-1px);

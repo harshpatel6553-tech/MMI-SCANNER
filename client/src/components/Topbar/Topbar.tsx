@@ -34,7 +34,7 @@ function getMarketCountdown(isOpen: boolean): string {
 
 export function Topbar({ allStocks, alertCount }: TopbarProps) {
   const { searchQuery, setSearchQuery, setSelectedStock, activeTab, setChartSymbol, isAlertPanelOpen, setIsAlertPanelOpen } = useDashboard();
-  const { nifty50, bankNifty } = useIndices(allStocks);
+  const { nifty50, bankNifty, flashes } = useIndices(allStocks);
   const [time, setTime] = useState('');
   const [isMuted, setIsMuted] = useState(audioAlerts.getIsMuted());
 
@@ -99,7 +99,7 @@ export function Topbar({ allStocks, alertCount }: TopbarProps) {
   return (
     <header className="topbar">
       {/* Live NIFTY 50 & BANK NIFTY Indices Telemetry (Replaces Breaking News) */}
-      <HeaderIndices nifty50={nifty50} bankNifty={bankNifty} />
+      <HeaderIndices nifty50={nifty50} bankNifty={bankNifty} flashes={flashes} />
 
       {/* Global Command Search */}
       <CommandSearch items={searchItems} />
