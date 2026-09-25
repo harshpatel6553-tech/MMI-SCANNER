@@ -35,14 +35,21 @@ type SortOrder = 'asc' | 'desc';
  * - `sort` — Sort field: symbol | price | change | changePercent | volume (default: symbol)
  * - `order` — Sort direction: asc | desc (default: asc)
  */
-router.get(['/', '/stocks'], (req: Request, res: Response): void => {
+router.get(['/', '/stocks'], async (req: Request, res: Response): Promise<void> => {
   try {
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     let stocks = stockService.getCachedStocks();
 
     // ── Index filter ───────────────────────────────────────────
     const indexFilter = (req.query.index as string)?.toUpperCase();
-    if (indexFilter && indexFilter !== 'ALL') {
+    if (indexFilter === 'INDEX') {
+      let indexStocks = stocks.filter((s) => s.indexName === 'INDEX');
+      if (indexStocks.length === 0) {
+        await stockService.fetchIndices();
+        indexStocks = stockService.getCachedStocks().filter((s) => s.indexName === 'INDEX');
+      }
+      stocks = indexStocks;
+    } else if (indexFilter && indexFilter !== 'ALL') {
       stocks = stocks.filter((s) => s.indexName === indexFilter);
     }
 
