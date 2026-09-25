@@ -1,6 +1,5 @@
 import logger from '../utils/logger.js';
 import { NIFTY_500_STOCKS } from '../data/nifty500.js';
-import { configService, type AISentimentConfig } from './configService.js';
 
 export interface AISentimentResult {
   sentiment: 'Bullish' | 'Bearish' | 'Neutral';
@@ -10,42 +9,36 @@ export interface AISentimentResult {
   confidence?: number;
 }
 
-export interface AISentimentTestResponse {
-  success: boolean;
-  model: string;
-  latencyMs: number;
-  result: AISentimentResult;
-  usedHeuristic: boolean;
-  error?: string;
-}
-
 class AIService {
   public get hasValidKey(): boolean {
-    return !!(configService.getKey('GEMINI_API_KEY') || process.env.GEMINI_API_KEY);
+    return Boolean(process.env.GEMINI_API_KEY?.trim());
   }
 
   /**
-   * Generates the prompt incorporating the dynamic Company Perspective and India Macro directives.
+   * Universal prompt applying:
+   * 1. Company Financial Perspective (Micro level)
+   * 2. Global-to-India Macro Lens (Macro level)
    */
-  private buildPrompt(headlines: string[], config: AISentimentConfig): string {
+  private buildUniversalPrompt(headlines: string[]): string {
     return `You are the chief quantitative financial news analyst for Market Minds India (MMI), classifying market-moving news impacting the Indian Stock Market (NSE / BSE).
 
-=== CORE DIRECTIVES ===
+=== UNIVERSAL DIRECTIVES ===
 
-1. COMPANY PERSPECTIVE (Micro Level):
-${config.companyPerspectivePrompt}
+1. COMPANY FINANCIAL PERSPECTIVE (Micro Level):
+- Analyze news primarily from the perspective of the affected company's balance sheet, operational revenue, order pipeline, and cash flows.
+- BULLISH: Order wins, earnings beats, capacity expansion, debt reduction, cost efficiencies, favorable litigation/regulatory approvals, or positive forward guidance.
+- BEARISH: Fines, penalties, investigations, plant shutdowns, client losses, executive resignations, accounting discrepancies, downgrades, or margin contraction.
+- NEUTRAL: Routine procedural announcements with zero financial or directional enterprise value impact.
 
-2. GLOBAL-TO-INDIA PERSPECTIVE (Macro Level):
-${config.indiaMacroLensPrompt}
+2. GLOBAL-TO-INDIA MACRO LENS (Macro Level):
+- For global news and macroeconomic developments (e.g., US Federal Reserve, global central banks, crude oil, commodity cycles, geopolitics, forex/USDINR), STRICTLY evaluate through the lens of Indian markets (Dalal Street) and Indian equities.
+- Examples: 
+  * Crude oil price drops -> BULLISH for Indian Oil Marketing Companies (IOC, BPCL), paints (ASIANPAINT, BERGEPAINT), tyres, and overall Indian fiscal deficit.
+  * Rising US treasury yields / hawkish Fed -> BEARISH for Indian IT exporters and foreign institutional investment (FII) flows.
+  * China economic stimulus/slowdown -> evaluate direct export/import substitution impact on Indian chemicals, steel, and textiles.
 
-3. SENSITIVITY CALIBRATION: ${config.sensitivity.toUpperCase()}
-${
-  config.sensitivity === 'Aggressive'
-    ? '- Aggressively flag any tangible positive or negative catalysts. Only use Neutral when there is genuinely zero financial or directional impact.'
-    : config.sensitivity === 'Conservative'
-    ? '- Only assign Bullish or Bearish if there is high certainty and meaningful financial magnitude. Default routine news to Neutral.'
-    : '- Maintain balanced evaluation, assigning Bullish or Bearish when probability of market impact exceeds 60%.'
-}
+3. SENSITIVITY:
+- Aggressively flag any tangible positive or negative catalysts. Only use Neutral when there is genuinely zero financial or directional impact.
 
 === REQUIRED OUTPUT FORMAT ===
 You must return a valid JSON object with a single key "results" containing an array of EXACTLY ${headlines.length} items, matching the order of headlines.
@@ -61,33 +54,32 @@ ${headlines.map((h, i) => `[${i}] ${h}`).join('\n')}`;
   }
 
   /**
-   * Analyzes a batch of news headlines using the configured Gemini model.
+   * Universal batch analysis using the GEMINI_API_KEY from environment.
    */
   public async analyzeNewsBatch(headlines: string[]): Promise<AISentimentResult[]> {
     if (headlines.length === 0) return [];
 
-    const config = configService.getSentimentConfig();
-    const geminiKey = configService.getKey('GEMINI_API_KEY') || process.env.GEMINI_API_KEY;
-
+    const geminiKey = process.env.GEMINI_API_KEY?.trim();
     if (!geminiKey) {
-      logger.warn('No GEMINI_API_KEY configured, falling back to local heuristic analysis.');
+      logger.warn('No GEMINI_API_KEY provided in .env, falling back to local heuristic analysis.');
       return this.analyzeLocally(headlines);
     }
 
     try {
-      const promptText = this.buildPrompt(headlines, config);
+      const promptText = this.buildUniversalPrompt(headlines);
       const { GoogleGenAI } = await import('@google/genai');
-      const ai = new GoogleGenAI({ apiKey: geminiKey.trim() });
+      const ai = new GoogleGenAI({ apiKey: geminiKey });
 
       let response;
-      const primaryModel = config.model || 'gemini-3.5-flash';
+      const primaryModel = process.env.AI_SENTIMENT_MODEL?.trim() || 'gemini-3.5-flash';
+
       try {
         response = await ai.models.generateContent({
           model: primaryModel,
           contents: promptText,
           config: {
             responseMimeType: 'application/json',
-            temperature: typeof config.temperature === 'number' ? config.temperature : 0.1,
+            temperature: 0.1,
           },
         });
       } catch (primaryErr: any) {
@@ -98,7 +90,7 @@ ${headlines.map((h, i) => `[${i}] ${h}`).join('\n')}`;
             contents: promptText,
             config: {
               responseMimeType: 'application/json',
-              temperature: typeof config.temperature === 'number' ? config.temperature : 0.1,
+              temperature: 0.1,
             },
           });
         } else {
@@ -131,111 +123,13 @@ ${headlines.map((h, i) => `[${i}] ${h}`).join('\n')}`;
 
       return results;
     } catch (err: any) {
-      logger.warn(`Gemini AI analysis failed (${config.model}): ${err.message}. Falling back to local heuristic.`);
-      if (config.fallbackHeuristic) {
-        return this.analyzeLocally(headlines);
-      }
-      return headlines.map(() => ({
-        sentiment: 'Neutral',
-        affectedStocks: [],
-        reasoning: 'AI analysis unavailable and heuristic fallback disabled.',
-        perspective: 'General',
-        confidence: 0,
-      }));
+      logger.warn(`Gemini AI analysis failed: ${err.message}. Falling back to local heuristic.`);
+      return this.analyzeLocally(headlines);
     }
   }
 
   /**
-   * Tests a single headline live in the Admin Console sandbox with performance latency tracking.
-   */
-  public async testHeadline(headline: string, overrideConfig?: Partial<AISentimentConfig>): Promise<AISentimentTestResponse> {
-    const config = {
-      ...configService.getSentimentConfig(),
-      ...(overrideConfig || {}),
-    };
-    const geminiKey = overrideConfig?.apiKey || configService.getKey('GEMINI_API_KEY') || process.env.GEMINI_API_KEY;
-    const startTime = Date.now();
-
-    if (!geminiKey) {
-      const heuristicResult = this.analyzeLocally([headline])[0];
-      return {
-        success: true,
-        model: 'Local Heuristic (No API Key)',
-        latencyMs: Date.now() - startTime,
-        result: heuristicResult,
-        usedHeuristic: true,
-        error: 'No GEMINI_API_KEY supplied. Used local heuristic fallback.',
-      };
-    }
-
-    try {
-      const promptText = this.buildPrompt([headline], config);
-      const { GoogleGenAI } = await import('@google/genai');
-      const ai = new GoogleGenAI({ apiKey: geminiKey.trim() });
-
-      let response;
-      let usedModel = config.model || 'gemini-3.5-flash';
-      try {
-        response = await ai.models.generateContent({
-          model: usedModel,
-          contents: promptText,
-          config: {
-            responseMimeType: 'application/json',
-            temperature: typeof config.temperature === 'number' ? config.temperature : 0.1,
-          },
-        });
-      } catch (primaryErr: any) {
-        if (usedModel !== 'gemini-3.5-flash') {
-          usedModel = 'gemini-3.5-flash';
-          response = await ai.models.generateContent({
-            model: usedModel,
-            contents: promptText,
-            config: {
-              responseMimeType: 'application/json',
-              temperature: typeof config.temperature === 'number' ? config.temperature : 0.1,
-            },
-          });
-        } else {
-          throw primaryErr;
-        }
-      }
-
-      const parsed = JSON.parse(response.text || '{}');
-      const item = parsed?.results?.[0];
-
-      if (!item) {
-        throw new Error('No result returned from Gemini model');
-      }
-
-      return {
-        success: true,
-        model: usedModel,
-        latencyMs: Date.now() - startTime,
-        result: {
-          sentiment: item.sentiment || 'Neutral',
-          affectedStocks: item.affectedStocks || [],
-          reasoning: item.reasoning || '',
-          perspective: item.perspective || 'Company',
-          confidence: item.confidence || 80,
-        },
-        usedHeuristic: false,
-      };
-    } catch (err: any) {
-      const latencyMs = Date.now() - startTime;
-      const heuristicResult = this.analyzeLocally([headline])[0];
-      return {
-        success: false,
-        model: config.model,
-        latencyMs,
-        result: heuristicResult,
-        usedHeuristic: true,
-        error: err.message,
-      };
-    }
-  }
-
-  /**
-   * Fast rule-based heuristic when AI API key is unavailable or rate-limited.
+   * Fast rule-based heuristic fallback if API quota is reached or network is unavailable.
    */
   private analyzeLocally(headlines: string[]): AISentimentResult[] {
     const BULLISH_COMPANY = ['order win', 'wins order', 'profit jumps', 'profit up', 'revenue growth', 'capacity expansion', 'debt free', 'acquires', 'acquisition', 'secures contract', 'usfda approval', 'favorable order', 'beats estimates', 'dividend', 'buyback', 'soars', 'surges'];

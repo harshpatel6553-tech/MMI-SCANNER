@@ -4,7 +4,6 @@ import { supabase } from '../../supabaseClient';
 import { useAuth } from '../../context/AuthContext';
 import { useSocketContext } from '../../context/SocketContext';
 import { useDashboard } from '../../contexts/DashboardContext';
-import { AISentimentConfigPanel } from './AISentimentConfigPanel';
 import './AdminDashboard.css';
 
 interface Profile {
@@ -23,7 +22,6 @@ export function AdminDashboard() {
   const navigate = useNavigate();
   const { user, profile, signOut } = useAuth();
   const { setActiveTab } = useDashboard();
-  const [adminSubTab, setAdminSubTab] = useState<'users' | 'ai'>('ai');
   const [users, setUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [onlineUsers, setOnlineUsers] = useState<{ email: string; connectedAt: string; avatar?: string }[]>([]);
@@ -373,45 +371,19 @@ export function AdminDashboard() {
 
   return (
     <div className="admin-container">
-      {/* Admin Sub-Navigation */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 22, flexWrap: 'wrap', gap: 12 }}>
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <button
-            type="button"
-            className={`beast-btn ${adminSubTab === 'users' ? 'primary' : ''}`}
-            onClick={() => setAdminSubTab('users')}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 18px', fontSize: 13 }}
-          >
-            <span>👥</span> Users & Sessions
-          </button>
-          <button
-            type="button"
-            className={`beast-btn ${adminSubTab === 'ai' ? 'primary' : ''}`}
-            onClick={() => setAdminSubTab('ai')}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 18px', fontSize: 13 }}
-          >
-            <span>🧠</span> AI Sentiment Engine & Macro Tuning
-            <span style={{ fontSize: 10, background: 'rgba(0, 245, 155, 0.2)', color: 'var(--up)', padding: '2px 6px', borderRadius: 4, fontWeight: 800 }}>GEMINI 2.5</span>
-          </button>
-        </div>
-
-        <div className="admin-toolbar" style={{ margin: 0 }}>
-          <button className="beast-btn" onClick={handleReturnToScanner}>
-            ← Back to Scanner
-          </button>
-          <button className="beast-btn danger" onClick={handleAdminSignOut}>
-            Sign Out
-          </button>
-        </div>
+      {/* Top Action Bar */}
+      <div className="admin-toolbar">
+        <button className="beast-btn" onClick={handleReturnToScanner}>
+          ← Back to Scanner
+        </button>
+        <button className="beast-btn danger" onClick={handleAdminSignOut}>
+          Sign Out
+        </button>
       </div>
 
-      {adminSubTab === 'ai' && <AISentimentConfigPanel />}
-
-      {adminSubTab === 'users' && (
-        <>
-          {/* Live Online Users Card */}
-          <div className="admin-live-card">
-            <div className="admin-live-head">
+      {/* Live Online Users Card */}
+      <div className="admin-live-card">
+        <div className="admin-live-head">
           <div className="admin-live-title">
             <span className="telemetry-dot live" />
             <span>Live Concurrent Users · <span style={{ color: 'var(--up)' }}>{onlineUsers.length} Online</span></span>
@@ -638,8 +610,6 @@ export function AdminDashboard() {
           </table>
         </div>
       </div>
-      </>
-      )}
 
       {/* Broadcast Announcement Modal */}
       {showBroadcastModal && (
