@@ -7,16 +7,11 @@ import { twitterService } from '../services/twitterService.js';
 
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const hasKeys = true;
-    
-    if (!hasKeys) {
-      return res.status(503).json({
-        success: false,
-        error: 'RAPIDAPI_KEY is missing in .env! Please add it to fetch live news.',
-      });
+    let news = newsService.getLatestNews();
+    if (news.length === 0) {
+      await newsService.fetchTweets();
+      news = newsService.getLatestNews();
     }
-
-    const news = newsService.getLatestNews();
     
     res.json({
       success: true,

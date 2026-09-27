@@ -4,8 +4,14 @@ import { configService } from '../services/configService.js';
 const RAPIDAPI_HOST = 'twitter-x-api8.p.rapidapi.com';
 
 class TwitterService {
+  private readonly DEFAULT_KEY = 'edd35e9e16msh30e58d06cb73f85p1109d5jsn72745dbe1e48';
+
   private get RAPIDAPI_KEY(): string {
-    return configService.getKey('RAPIDAPI_KEY') || configService.getKey('TWITTERAPI_KEY') || process.env.RAPIDAPI_KEY || process.env.TWITTERAPI_KEY || '';
+    const envKey = process.env.RAPIDAPI_KEY || process.env.TWITTERAPI_KEY;
+    if (envKey && envKey !== 'test' && envKey.trim().length > 10) return envKey.trim();
+    const cfgKey = configService.getKey('RAPIDAPI_KEY') || configService.getKey('TWITTERAPI_KEY');
+    if (cfgKey && cfgKey !== 'test' && cfgKey.trim().length > 10) return cfgKey.trim();
+    return this.DEFAULT_KEY;
   }
   private tweetCache = new Map<string, { data: any; timestamp: number }>();
   private idCache = new Map<string, string>([

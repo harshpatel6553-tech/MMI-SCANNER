@@ -19,9 +19,7 @@ export interface NewsItem {
 class NewsService extends EventEmitter {
   private newsCache: NewsItem[] = [];
   private isPolling = false;
-  private currentKeyIndex = 0;
-  private rapidApiKeys: string[] = [];
-  private readonly POLL_INTERVAL = 3 * 1000; // 3 seconds
+  private readonly POLL_INTERVAL = 60 * 1000; // 60 seconds (protects API quota)
 
   constructor() {
     super();
@@ -34,28 +32,99 @@ class NewsService extends EventEmitter {
 
   private isFetching = false;
 
-  private async fetchTweets(): Promise<void> {
-    if (this.isFetching) return;
-    this.isFetching = true;
+  private computeQuickSentiment(title: string): 'Bullish' | 'Bearish' | 'Neutral' {
+    if (/\b(surge|jumps?|rall(?:y|ies)|gains?|beats?|rises?|profit up|record high|bullish|buy|upgrade|positive|expansion|orders? won|contract won|strong growth)\b/i.test(title)) {
+      return 'Bullish';
+    }
+    if (/\b(plunges?|falls?|drops?|slumps?|miss(?:es)?|loss|profit down|bearish|sell|downgrade|probe|fraud|penalty|crackdown|warning|cut)\b/i.test(title)) {
+      return 'Bearish';
+    }
+    return 'Neutral';
+  }
+
+  private extractAffectedStocks(title: string): string[] {
+    const tUpper = title.toUpperCase();
+    const matched = new Set<string>();
+    const COMMON_SYMBOLS = [
+      'RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK', 'SBIN', 'BHARTIARTL',
+      'ITC', 'KOTAKBANK', 'LT', 'AXISBANK', 'HINDUNILVR', 'BAJFINANCE', 'MARUTI',
+      'TATASTEEL', 'WIPRO', 'TITAN', 'TATAMOTORS', 'TMPV', 'TMCV', 'ADANIENT',
+      'ADANIPORTS', 'NTPC', 'POWERGRID', 'ONGC', 'COALINDIA', 'SUNPHARMA',
+      'JSWSTEEL', 'TECHM', 'ASIANPAINT', 'ZOMATO', 'PAYTM', 'JIOFIN', 'VEDL',
+      'HAL', 'BEL', 'BSE', 'CDSL', 'IRCTC', 'SUZLON'
+    ];
+
+    for (const sym of COMMON_SYMBOLS) {
+      if (new RegExp(`\\b${sym}\\b`, 'i').test(tUpper)) {
+        matched.add(sym);
+      }
+    }
+    return Array.from(matched).slice(0, 5);
+  }
+
+  private async fetchRssNews(): Promise<any[]> {
+    try {
+      const url = 'https://news.google.com/rss/search?q=NIFTY+OR+NSE+OR+BSE+stocks+when:1d&hl=en-IN&gl=IN&ceid=IN:en';
+      const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(5000) });
+      if (!res.ok) return [];
+      const xml = await res.text();
+      const chunks = xml.split('<item>').slice(1);
+      return chunks.slice(0, 30).map(chunk => {
+        const titleMatch = chunk.match(/<title>(.*?)<\/title>/);
+        const linkMatch = chunk.match(/<link>(.*?)<\/link>/);
+        const pubDateMatch = chunk.match(/<pubDate>(.*?)<\/pubDate>/);
+        const sourceMatch = chunk.match(/<source[^>]*>(.*?)<\/source>/);
+        const rawTitle = titleMatch ? titleMatch[1].replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1') : '';
+        return {
+          full_text: he.decode(rawTitle),
+          created_at: pubDateMatch ? new Date(pubDateMatch[1]).toISOString() : new Date().toISOString(),
+          _sourceAccount: sourceMatch ? sourceMatch[1] : 'Market Wire',
+          id_str: 'rss-' + Buffer.from(rawTitle).toString('base64').substring(0, 16),
+          link: linkMatch ? linkMatch[1] : '',
+        };
+      }).filter(item => item.full_text && item.full_text.length > 10);
+    } catch {
+      return [];
+    }
+  }
+
+  private currentFetchPromise: Promise<void> | null = null;
+
+  public async fetchTweets(): Promise<void> {
+    if (this.currentFetchPromise) {
+      return this.currentFetchPromise;
+    }
+    this.currentFetchPromise = this._executeFetch().finally(() => {
+      this.currentFetchPromise = null;
+    });
+    return this.currentFetchPromise;
+  }
+
+  private async _executeFetch(): Promise<void> {
 
     try {
       const accountsToFollow = ['RedboxIndia', 'yatinmota'];
       let allFetchedTweets: any[] = [];
 
-      // Use the newly centralized twitterService that handles user ID resolution and fetching
+      // Use the centralized twitterService that handles user ID resolution and fetching
       const { twitterService } = await import('./twitterService.js');
 
       const fetchPromises = accountsToFollow.map(async (username) => {
         try {
           const raw = await twitterService.getTweetsByUsername(username);
-          if (raw.error) return [];
+          if (raw.error) {
+            logger.warn(`Twitter fetch error for ${username}: ${raw.error}`);
+            return [];
+          }
 
-          // Helper to deeply find an array of tweets in the unknown RapidAPI JSON structure
+          // Helper to deeply find an array of tweets in RapidAPI JSON structure
           const findTweetArray = (obj: any): any[] => {
             if (!obj || typeof obj !== 'object') return [];
             if (Array.isArray(obj)) return obj.length > 0 ? obj : [];
             
-            const known = obj.data?.user?.result?.timeline?.timeline?.instructions?.[1]?.entries
+            const known = obj.data?.items
+                       || obj.items
+                       || obj.data?.user?.result?.timeline?.timeline?.instructions?.[1]?.entries
                        || obj.data?.user?.result?.timeline_v2?.timeline?.instructions?.find((i: any) => i.type === 'TimelineAddEntries')?.entries
                        || obj.timeline
                        || obj.tweets
@@ -83,7 +152,7 @@ class NewsService extends EventEmitter {
                  full_text: text,
                  created_at: date,
                  _sourceAccount: username,
-                 id_str: t.tweet_id || t.id_str || t.id || ''
+                 id_str: t.id || t.tweet_id || t.id_str || ''
                };
             }).filter((t: any) => t.full_text && t.full_text !== 'Breaking News Update');
           }
@@ -97,24 +166,25 @@ class NewsService extends EventEmitter {
       const results = await Promise.all(fetchPromises);
       allFetchedTweets = results.flat();
 
+      // If Twitter returned 0 tweets, fall back to Google News Market Wire RSS so feed is never blank!
       if (allFetchedTweets.length === 0) {
-        logger.warn(`Failed to fetch tweets from Syndication API for any account.`);
-        return;
+        logger.info('Pulling live Market Wire RSS as fallback...');
+        allFetchedTweets = await this.fetchRssNews();
       }
       
-      // Sort all fetched tweets by date descending (newest first)
+      // Sort all fetched items by date descending (newest first)
       allFetchedTweets.sort((a, b) => {
         const dateA = new Date(a.created_at || 0).getTime();
         const dateB = new Date(b.created_at || 0).getTime();
         return dateB - dateA;
       });
 
-      // Parse and clean the top 20 most recent tweets across all accounts
-      const newNews: NewsItem[] = allFetchedTweets.slice(0, 20).map((item: any) => {
+      // Parse and clean all fetched news items (up to 50)
+      const newNews: NewsItem[] = allFetchedTweets.slice(0, 50).map((item: any) => {
         const textContent = item.full_text || 'Breaking News';
         const cleanTitle = he.decode(textContent);
-        const earningsRegex = /\b(Q[1-4]|FY\d{2}|Quarterly Results|Net Profit|Revenue|EBITDA|PAT)\b/i;
-        const blockDealRegex = /\b(Block Deal|Bulk Deal|Stake Sale|Promoter|Pledge|OFS)\b/i;
+        const earningsRegex = /\b(Q[1-4]|FY\d{2}|Quarterly Results|Net Profit|Revenue|EBITDA|PAT|Earnings)\b/i;
+        const blockDealRegex = /\b(Block Deal|Bulk Deal|Stake Sale|Promoter|Pledge|OFS|Acquisition|Buyback)\b/i;
         
         const titleHashStr = cleanTitle.replace(/[^a-zA-Z0-9]/g, '').substring(0, 50).toLowerCase();
         const deterministicId = 'msg-' + Buffer.from(titleHashStr + item._sourceAccount).toString('hex');
@@ -122,9 +192,11 @@ class NewsService extends EventEmitter {
         return {
           id: deterministicId,
           title: cleanTitle,
-          link: `https://x.com/${item._sourceAccount}/status/${item.id_str || ''}`,
-          pubDate: item.created_at || new Date().toUTCString(),
+          link: item.link || `https://x.com/${item._sourceAccount}/status/${item.id_str || ''}`,
+          pubDate: item.created_at || new Date().toISOString(),
           source: item._sourceAccount,
+          sentiment: this.computeQuickSentiment(cleanTitle),
+          affectedStocks: this.extractAffectedStocks(cleanTitle),
           isEarningsResult: earningsRegex.test(cleanTitle),
           isPromoterAction: blockDealRegex.test(cleanTitle)
         };
@@ -233,13 +305,17 @@ class NewsService extends EventEmitter {
     // Initial fetch always runs so the news panel isn't blank
     this.fetchTweets();
 
+    let tickCount = 0;
     // Poll every interval
     setInterval(() => {
-      // Only waste API credits during active Indian Market Hours!
+      tickCount++;
       if (this.isIndianMarketOpen()) {
         this.fetchTweets();
       } else {
-        logger.debug('Indian Market is closed. Skipping Twitter API fetch to save credits.');
+        // Outside market hours, refresh every 5 cycles (5 mins) or if cache is empty
+        if (this.newsCache.length === 0 || tickCount % 5 === 0) {
+          this.fetchTweets();
+        }
       }
     }, this.POLL_INTERVAL);
   }
