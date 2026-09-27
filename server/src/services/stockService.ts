@@ -46,8 +46,6 @@ class StockService {
   private averageVolumeMap: Map<string, number> = new Map();
   private volumeHistory: Map<string, { timestamp: number, volume: number }[]> = new Map();
   private hasFetchedAverageVolume = false;
-  private nseCookies: string = '';
-  private nseCookieExpires: number = 0;
 
   constructor() {
     for (const s of NIFTY_50_STOCKS) {
@@ -262,357 +260,119 @@ class StockService {
   }
 
   /**
-   * Fetches real-time official index quotes directly from the National Stock Exchange of India (NSE).
-   * Authoritative, zero-delay exchange tick stream with accurate previous close and 52-week ranges.
+   * Fetches real-time index quotes exclusively from Yahoo Finance Spark API.
+   * Uses chartPreviousClose and fulldayChange directly from Yahoo Finance metadata.
    */
-  private async fetchOfficialNseIndices(): Promise<StockData[]> {
-    const NSE_INDEX_CONFIG: Record<string, { displaySymbol: string; name: string; aliases?: string[] }> = {
-      'NIFTY 50':                 { displaySymbol: 'NIFTY 50',          name: 'NIFTY 50' },
-      'NIFTY BANK':               { displaySymbol: 'BANKNIFTY',         name: 'Bank NIFTY', aliases: ['BANK NIFTY', 'NIFTY BANK'] },
-      'NIFTY 500':                { displaySymbol: 'NIFTY 500',         name: 'NIFTY 500' },
-      'NIFTY IT':                 { displaySymbol: 'NIFTY IT',          name: 'NIFTY IT' },
-      'INDIA VIX':                { displaySymbol: 'INDIA VIX',         name: 'India VIX' },
-      'NIFTY 100':                { displaySymbol: 'NIFTY 100',         name: 'NIFTY 100' },
-      'NIFTY 200':                { displaySymbol: 'NIFTY 200',         name: 'NIFTY 200' },
-      'NIFTY MIDCAP 50':          { displaySymbol: 'NIFTY MIDCAP 50',   name: 'NIFTY MIDCAP 50' },
-      'NIFTY MIDCAP 100':         { displaySymbol: 'NIFTY MIDCAP 100',  name: 'NIFTY MIDCAP 100' },
-      'NIFTY SMALLCAP 100':       { displaySymbol: 'NIFTY SMALLCAP 100',name: 'NIFTY SMALLCAP 100', aliases: ['NIFTY SMALLCAP'] },
-      'NIFTY AUTO':               { displaySymbol: 'NIFTY AUTO',        name: 'NIFTY AUTO' },
-      'NIFTY FMCG':               { displaySymbol: 'NIFTY FMCG',        name: 'NIFTY FMCG' },
-      'NIFTY METAL':              { displaySymbol: 'NIFTY METAL',       name: 'NIFTY METAL' },
-      'NIFTY PHARMA':             { displaySymbol: 'NIFTY PHARMA',      name: 'NIFTY PHARMA' },
-      'NIFTY REALTY':             { displaySymbol: 'NIFTY REALTY',      name: 'NIFTY REALTY' },
-      'NIFTY ENERGY':             { displaySymbol: 'NIFTY ENERGY',      name: 'NIFTY ENERGY' },
-      'NIFTY INFRASTRUCTURE':     { displaySymbol: 'NIFTY INFRA',       name: 'NIFTY INFRA', aliases: ['NIFTY INFRASTRUCTURE'] },
-      'NIFTY PSU BANK':           { displaySymbol: 'NIFTY PSU BANK',    name: 'NIFTY PSU BANK' },
-      'NIFTY FINANCIAL SERVICES': { displaySymbol: 'NIFTY FIN SERVICE', name: 'NIFTY FIN SERVICE', aliases: ['NIFTY FINANCIAL SERVICES'] },
-      'NIFTY MEDIA':              { displaySymbol: 'NIFTY MEDIA',       name: 'NIFTY MEDIA' },
-      'NIFTY PSE':                { displaySymbol: 'NIFTY PSE',         name: 'NIFTY PSE' },
-    };
-
-    const headers: Record<string, string> = {
-      'User-Agent': USER_AGENT,
-      'Accept': 'application/json, text/plain, */*',
-      'Accept-Language': 'en-US,en;q=0.9',
-      'Referer': 'https://www.nseindia.com/market-data/live-equity-market',
-    };
-
-    if (this.nseCookies && Date.now() < this.nseCookieExpires) {
-      headers['Cookie'] = this.nseCookies;
-    }
-
-    let res = await fetch('https://www.nseindia.com/api/allIndices', {
-      headers,
-      signal: AbortSignal.timeout(5000),
-    });
-
-    if (!res.ok || res.status === 401 || res.status === 403) {
-      const init = await fetch('https://www.nseindia.com', {
-        headers: { 'User-Agent': USER_AGENT },
-        signal: AbortSignal.timeout(5000),
-      });
-      const rawCookie = init.headers.get('set-cookie');
-      if (rawCookie) {
-        this.nseCookies = rawCookie
-          .split(';')
-          .map((c) => c.trim())
-          .filter((c) => c.startsWith('nsit=') || c.startsWith('nseappid='))
-          .join('; ') || rawCookie;
-        this.nseCookieExpires = Date.now() + 10 * 60 * 1000;
-        headers['Cookie'] = this.nseCookies;
-      }
-      res = await fetch('https://www.nseindia.com/api/allIndices', {
-        headers,
-        signal: AbortSignal.timeout(5000),
-      });
-    }
-
-    if (!res.ok) {
-      throw new Error(`NSE API returned status ${res.status}`);
-    }
-
-    const json = (await res.json()) as any;
-    const rawList: any[] = Array.isArray(json?.data) ? json.data : [];
-    if (rawList.length === 0) {
-      throw new Error('NSE API returned empty data');
-    }
-
-    const results: StockData[] = [];
-    const timestamp = new Date().toISOString();
-
-    for (const item of rawList) {
-      const indexKey = item.indexSymbol || item.index;
-      const cfg = NSE_INDEX_CONFIG[indexKey];
-      if (!cfg) continue;
-
-      const price = typeof item.last === 'number' ? item.last : parseFloat(item.last) || 0;
-      if (price === 0) continue;
-
-      const prevClose = typeof item.previousClose === 'number' ? item.previousClose : parseFloat(item.previousClose) || price;
-      const change = typeof item.variation === 'number' ? item.variation : parseFloat(item.variation) || (price - prevClose);
-      const changePercent = typeof item.percentChange === 'number' ? item.percentChange : parseFloat(item.percentChange) || 0;
-      const open = typeof item.open === 'number' ? item.open : parseFloat(item.open) || price;
-      const dayHigh = typeof item.high === 'number' ? item.high : parseFloat(item.high) || price;
-      const dayLow = typeof item.low === 'number' ? item.low : parseFloat(item.low) || price;
-      const fiftyTwoWeekHigh = typeof item.yearHigh === 'number' ? item.yearHigh : parseFloat(item.yearHigh) || 0;
-      const fiftyTwoWeekLow = typeof item.yearLow === 'number' ? item.yearLow : parseFloat(item.yearLow) || 0;
-
-      const atDayHigh = dayHigh > 0 && price > 0 && price >= dayHigh;
-      const atDayLow = dayLow > 0 && price > 0 && price <= dayLow;
-
-      const stockItem: StockData = {
-        symbol: cfg.displaySymbol,
-        name: cfg.name,
-        price,
-        previousClose: prevClose,
-        open,
-        dayHigh,
-        dayLow,
-        change,
-        changePercent,
-        volume: 0,
-        sector: 'Index',
-        averageVolume: 0,
-        relativeVolume: 0,
-        volumeSpike: false,
-        indexName: 'INDEX',
-        lastUpdated: timestamp,
-        atDayHigh,
-        atDayLow,
-        fiftyTwoWeekHigh,
-        fiftyTwoWeekLow,
-        marketCap: 0,
-      };
-
-      results.push(stockItem);
-      this.stockCache.set(cfg.displaySymbol, stockItem);
-
-      if (cfg.aliases) {
-        for (const alias of cfg.aliases) {
-          const aliasItem = { ...stockItem, symbol: alias };
-          results.push(aliasItem);
-          this.stockCache.set(alias, aliasItem);
-        }
-      }
-    }
-
-    return results;
-  }
-
   async fetchIndices(): Promise<StockData[]> {
-    const results: StockData[] = [];
-    const resolvedSymbols = new Set<string>();
-
-    // ── Tier 1: Official NSE India Direct API (Authoritative, Zero Third-Party Delay) ──
-    try {
-      const nseResults = await this.fetchOfficialNseIndices();
-      for (const item of nseResults) {
-        results.push(item);
-        resolvedSymbols.add(item.symbol);
-      }
-      logger.info(`🏛️ Fetched ${nseResults.length} live indices directly from Official NSE India API`);
-    } catch (nseErr: any) {
-      logger.warn(`Official NSE India API fetch failed, falling back to TradingView: ${nseErr.message}`);
-    }
-
-    // ── Tier 2: TradingView Scanner (For BSE:SENSEX and backup fallback) ──
-    const TV_INDEX_MAP: Record<string, { displaySymbol: string; name: string; aliases?: string[] }> = {
-      'NSE:NIFTY':       { displaySymbol: 'NIFTY 50',          name: 'NIFTY 50' },
-      'NSE:BANKNIFTY':   { displaySymbol: 'BANKNIFTY',         name: 'Bank NIFTY', aliases: ['BANK NIFTY'] },
-      'BSE:SENSEX':      { displaySymbol: 'SENSEX',            name: 'BSE SENSEX' },
-      'NSE:CNX500':      { displaySymbol: 'NIFTY 500',         name: 'NIFTY 500' },
-      'NSE:CNXIT':       { displaySymbol: 'NIFTY IT',          name: 'NIFTY IT' },
-      'NSE:CNXENERGY':   { displaySymbol: 'NIFTY ENERGY',      name: 'NIFTY ENERGY' },
-      'NSE:CNXMIDCAP':   { displaySymbol: 'NIFTY MIDCAP 50',   name: 'NIFTY MIDCAP 50' },
-      'NSE:CNXSMALLCAP': { displaySymbol: 'NIFTY SMALLCAP',    name: 'NIFTY SMALLCAP' },
-      'NSE:CNXFINANCE':  { displaySymbol: 'NIFTY FIN SERVICE', name: 'NIFTY FIN SERVICE' },
-    };
-
-    const neededTvTickers = Object.keys(TV_INDEX_MAP).filter(
-      (ticker) => !resolvedSymbols.has(TV_INDEX_MAP[ticker].displaySymbol)
-    );
-
-    if (neededTvTickers.length > 0) {
-      try {
-        const tvRes = await fetch('https://scanner.tradingview.com/india/scan', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'User-Agent': USER_AGENT,
-          },
-          body: JSON.stringify({
-            symbols: { tickers: neededTvTickers },
-            columns: [
-              'name',
-              'close',
-              'change',
-              'change_abs',
-              'open',
-              'high',
-              'low',
-              'volume',
-              'price_52_week_high',
-              'price_52_week_low',
-            ],
-          }),
-          signal: AbortSignal.timeout(5000),
-        });
-
-        if (tvRes.ok) {
-          const tvData = (await tvRes.json()) as any;
-          for (const item of tvData?.data || []) {
-            const cfg = TV_INDEX_MAP[item.s];
-            if (!cfg) continue;
-
-            const d = item.d || [];
-            const price: number = d[1] ?? 0;
-            if (price === 0) continue;
-
-            const changePercent: number = typeof d[2] === 'number' ? d[2] : 0;
-            const change: number = typeof d[3] === 'number' ? d[3] : 0;
-            const prevClose: number = price - change;
-            const open: number = d[4] ?? price;
-            const dayHigh: number = d[5] ?? price;
-            const dayLow: number = d[6] ?? price;
-            const volume: number = d[7] ?? 0;
-            const fiftyTwoWeekHigh: number = d[8] ?? 0;
-            const fiftyTwoWeekLow: number = d[9] ?? 0;
-
-            const atDayHigh = dayHigh > 0 && price > 0 && price >= dayHigh;
-            const atDayLow = dayLow > 0 && price > 0 && price <= dayLow;
-
-            const indexData: StockData = {
-              symbol: cfg.displaySymbol,
-              name: cfg.name,
-              price,
-              previousClose: prevClose,
-              open,
-              dayHigh,
-              dayLow,
-              change,
-              changePercent,
-              volume,
-              sector: 'Index',
-              averageVolume: 0,
-              relativeVolume: 0,
-              volumeSpike: false,
-              indexName: 'INDEX',
-              lastUpdated: new Date().toISOString(),
-              atDayHigh,
-              atDayLow,
-              fiftyTwoWeekHigh,
-              fiftyTwoWeekLow,
-              marketCap: 0,
-            };
-
-            results.push(indexData);
-            this.stockCache.set(cfg.displaySymbol, indexData);
-            resolvedSymbols.add(cfg.displaySymbol);
-
-            if (cfg.aliases) {
-              for (const alias of cfg.aliases) {
-                const aliasData = { ...indexData, symbol: alias };
-                results.push(aliasData);
-                this.stockCache.set(alias, aliasData);
-                resolvedSymbols.add(alias);
-              }
-            }
-          }
-        }
-      } catch (tvErr: any) {
-        logger.warn(`TradingView indices fetch failed, falling back to Yahoo: ${tvErr.message}`);
-      }
-    }
-
-    // ── Tier 3: Query Yahoo Spark for remaining sector indices or fallback ──
-    const yahooIndices = [
+    const yahooIndices: { yahooSymbol: string; displaySymbol: string; name: string; aliases?: string[] }[] = [
       { yahooSymbol: '^NSEI',      displaySymbol: 'NIFTY 50',          name: 'NIFTY 50' },
-      { yahooSymbol: '^NSEBANK',   displaySymbol: 'BANKNIFTY',         name: 'Bank NIFTY' },
+      { yahooSymbol: '^NSEBANK',   displaySymbol: 'BANKNIFTY',         name: 'Bank NIFTY', aliases: ['BANK NIFTY', 'NIFTY BANK'] },
+      { yahooSymbol: '^BSESN',     displaySymbol: 'SENSEX',            name: 'BSE SENSEX' },
+      { yahooSymbol: '^CRSLDX',    displaySymbol: 'NIFTY 500',         name: 'NIFTY 500' },
+      { yahooSymbol: '^CNXIT',     displaySymbol: 'NIFTY IT',          name: 'NIFTY IT' },
+      { yahooSymbol: '^INDIAVIX',  displaySymbol: 'INDIA VIX',         name: 'India VIX' },
       { yahooSymbol: '^CNX100',    displaySymbol: 'NIFTY 100',         name: 'NIFTY 100' },
       { yahooSymbol: '^CNX200',    displaySymbol: 'NIFTY 200',         name: 'NIFTY 200' },
-      { yahooSymbol: '^CRSLDX',    displaySymbol: 'NIFTY 500',         name: 'NIFTY 500' },
       { yahooSymbol: '^NSEMDCP50', displaySymbol: 'NIFTY MIDCAP 50',  name: 'NIFTY MIDCAP 50' },
       { yahooSymbol: '^CNXAUTO',   displaySymbol: 'NIFTY AUTO',        name: 'NIFTY AUTO' },
-      { yahooSymbol: '^CNXIT',     displaySymbol: 'NIFTY IT',          name: 'NIFTY IT' },
-      { yahooSymbol: '^CNXMETAL',  displaySymbol: 'NIFTY METAL',       name: 'NIFTY METAL' },
-      { yahooSymbol: '^CNXPHARMA', displaySymbol: 'NIFTY PHARMA',      name: 'NIFTY PHARMA' },
       { yahooSymbol: '^CNXENERGY', displaySymbol: 'NIFTY ENERGY',      name: 'NIFTY ENERGY' },
       { yahooSymbol: '^CNXFMCG',   displaySymbol: 'NIFTY FMCG',        name: 'NIFTY FMCG' },
+      { yahooSymbol: '^CNXMETAL',  displaySymbol: 'NIFTY METAL',       name: 'NIFTY METAL' },
+      { yahooSymbol: '^CNXPHARMA', displaySymbol: 'NIFTY PHARMA',      name: 'NIFTY PHARMA' },
       { yahooSymbol: '^CNXREALTY', displaySymbol: 'NIFTY REALTY',      name: 'NIFTY REALTY' },
       { yahooSymbol: '^CNXINFRA',  displaySymbol: 'NIFTY INFRA',       name: 'NIFTY INFRA' },
       { yahooSymbol: '^CNXPSUBANK',displaySymbol: 'NIFTY PSU BANK',    name: 'NIFTY PSU BANK' },
-      { yahooSymbol: '^CNXFIN',    displaySymbol: 'NIFTY FIN SERVICE', name: 'NIFTY FIN SERVICE' },
+      { yahooSymbol: '^CNXFIN',    displaySymbol: 'NIFTY FIN SERVICE', name: 'NIFTY FIN SERVICE', aliases: ['NIFTY FINANCIAL SERVICES'] },
       { yahooSymbol: '^CNXPSE',    displaySymbol: 'NIFTY PSE',         name: 'NIFTY PSE' },
     ];
 
-    const remainingIndices = yahooIndices.filter(i => !resolvedSymbols.has(i.displaySymbol));
-    if (remainingIndices.length > 0) {
-      try {
-        const symbolsStr = remainingIndices.map(i => i.yahooSymbol).join(',');
-        const url = `https://query1.finance.yahoo.com/v7/finance/spark?symbols=${encodeURIComponent(symbolsStr)}&range=1d&interval=1m&cb=${Date.now()}`;
-        const res = await fetch(url, {
-          headers: {
-            'User-Agent': USER_AGENT,
-            'Accept': 'application/json',
-          },
-          signal: AbortSignal.timeout(5000),
-        });
+    const results: StockData[] = [];
 
-        if (res.ok) {
-          const data = (await res.json()) as any;
-          const sparkResults = data?.spark?.result || [];
+    try {
+      const symbolsStr = yahooIndices.map(i => i.yahooSymbol).join(',');
+      const url = `https://query1.finance.yahoo.com/v7/finance/spark?symbols=${encodeURIComponent(symbolsStr)}&range=1d&interval=1m&cb=${Date.now()}`;
+      const res = await fetch(url, {
+        headers: {
+          'User-Agent': USER_AGENT,
+          'Accept': 'application/json',
+        },
+        signal: AbortSignal.timeout(6000),
+      });
 
-          for (const sparkObj of sparkResults) {
-            const meta = sparkObj.response?.[0]?.meta;
-            if (!meta) continue;
+      if (res.ok) {
+        const data = (await res.json()) as any;
+        const sparkResults = data?.spark?.result || [];
 
-            const idx = remainingIndices.find(i => i.yahooSymbol === meta.symbol);
-            if (!idx) continue;
+        for (const sparkObj of sparkResults) {
+          const meta = sparkObj.response?.[0]?.meta;
+          if (!meta) continue;
 
-            const price: number = meta.regularMarketPrice ?? 0;
-            if (price === 0) continue;
+          const idx = yahooIndices.find(i => i.yahooSymbol === meta.symbol);
+          if (!idx) continue;
 
-            const dayHigh: number = meta.regularMarketDayHigh ?? price;
-            const dayLow: number = meta.regularMarketDayLow ?? price;
-            const prevClose: number = meta.previousClose ?? meta.chartPreviousClose ?? price;
+          const price: number = typeof meta.regularMarketPrice === 'number'
+            ? meta.regularMarketPrice
+            : (parseFloat(meta.regularMarketPrice) || 0);
+          if (price === 0) continue;
 
-            const atDayHigh = dayHigh > 0 && price > 0 && price >= dayHigh;
-            const atDayLow = dayLow > 0 && price > 0 && price <= dayLow;
+          const prevClose: number = typeof meta.chartPreviousClose === 'number'
+            ? meta.chartPreviousClose
+            : (typeof meta.previousClose === 'number' ? meta.previousClose : price);
 
-            const change = price - prevClose;
-            const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
+          const change: number = typeof meta.fulldayChange === 'number'
+            ? meta.fulldayChange
+            : (typeof meta.regularMarketChange === 'number' ? meta.regularMarketChange : (price - prevClose));
 
-            const indexData: StockData = {
-              symbol: idx.displaySymbol,
-              name: idx.name,
-              price,
-              previousClose: prevClose,
-              open: meta.regularMarketOpen ?? price,
-              dayHigh,
-              dayLow,
-              change,
-              changePercent,
-              volume: meta.regularMarketVolume ?? 0,
-              sector: 'Index',
-              averageVolume: 0,
-              relativeVolume: 0,
-              volumeSpike: false,
-              indexName: 'INDEX',
-              lastUpdated: new Date().toISOString(),
-              atDayHigh,
-              atDayLow,
-              fiftyTwoWeekHigh: meta.fiftyTwoWeekHigh ?? 0,
-              fiftyTwoWeekLow: meta.fiftyTwoWeekLow ?? 0,
-              marketCap: 0,
-            };
+          const changePercent: number = typeof meta.fulldayChangePercent === 'number'
+            ? meta.fulldayChangePercent
+            : (typeof meta.regularMarketChangePercent === 'number' ? meta.regularMarketChangePercent : (prevClose > 0 ? (change / prevClose) * 100 : 0));
 
-            results.push(indexData);
-            this.stockCache.set(idx.displaySymbol, indexData);
+          const dayHigh: number = meta.regularMarketDayHigh ?? price;
+          const dayLow: number = meta.regularMarketDayLow ?? price;
+          const open: number = meta.regularMarketOpen ?? price;
+
+          const atDayHigh = dayHigh > 0 && price > 0 && price >= dayHigh;
+          const atDayLow = dayLow > 0 && price > 0 && price <= dayLow;
+
+          const indexData: StockData = {
+            symbol: idx.displaySymbol,
+            name: idx.name,
+            price,
+            previousClose: prevClose,
+            open,
+            dayHigh,
+            dayLow,
+            change,
+            changePercent,
+            volume: meta.regularMarketVolume ?? 0,
+            sector: 'Index',
+            averageVolume: 0,
+            relativeVolume: 0,
+            volumeSpike: false,
+            indexName: 'INDEX',
+            lastUpdated: new Date().toISOString(),
+            atDayHigh,
+            atDayLow,
+            fiftyTwoWeekHigh: meta.fiftyTwoWeekHigh ?? 0,
+            fiftyTwoWeekLow: meta.fiftyTwoWeekLow ?? 0,
+            marketCap: 0,
+          };
+
+          results.push(indexData);
+          this.stockCache.set(idx.displaySymbol, indexData);
+
+          if (idx.aliases) {
+            for (const alias of idx.aliases) {
+              const aliasData = { ...indexData, symbol: alias };
+              results.push(aliasData);
+              this.stockCache.set(alias, aliasData);
+            }
           }
         }
-      } catch (err: any) {
-        logger.error(`Failed to fetch Yahoo fallback indices: ${err.message}`);
+        logger.info(`📊 Fetched ${results.length} indices exclusively from Yahoo Finance`);
       }
+    } catch (err: any) {
+      logger.error(`Yahoo Finance indices fetch failed: ${err.message}`);
     }
 
     return results;
