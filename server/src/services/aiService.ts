@@ -1,5 +1,6 @@
 import logger from '../utils/logger.js';
 import { NIFTY_500_STOCKS } from '../data/nifty500.js';
+import { configService } from './configService.js';
 
 export interface AISentimentResult {
   sentiment: 'Bullish' | 'Bearish' | 'Neutral';
@@ -11,7 +12,7 @@ export interface AISentimentResult {
 
 class AIService {
   public get hasValidKey(): boolean {
-    return Boolean(process.env.GEMINI_API_KEY?.trim());
+    return Boolean(process.env.GEMINI_API_KEY?.trim() || configService.getKey('GEMINI_API_KEY')?.trim());
   }
 
   /**
@@ -59,9 +60,9 @@ ${headlines.map((h, i) => `[${i}] ${h}`).join('\n')}`;
   public async analyzeNewsBatch(headlines: string[]): Promise<AISentimentResult[]> {
     if (headlines.length === 0) return [];
 
-    const geminiKey = process.env.GEMINI_API_KEY?.trim();
+    const geminiKey = process.env.GEMINI_API_KEY?.trim() || configService.getKey('GEMINI_API_KEY')?.trim();
     if (!geminiKey) {
-      logger.warn('No GEMINI_API_KEY provided in .env, falling back to local heuristic analysis.');
+      logger.warn('No GEMINI_API_KEY provided in .env or settings, falling back to local heuristic analysis.');
       return this.analyzeLocally(headlines);
     }
 

@@ -245,7 +245,9 @@ app.get('/api/twitter/:userId', async (req: Request, res: Response) => {
     const userId = req.params.userId;
     if (!userId) return res.status(400).json({ error: 'User ID required' });
     
-    const tweets = await twitterService.getUserTweets(userId);
+    const tweets = /^\d+$/.test(userId)
+      ? await twitterService.getUserTweets(userId)
+      : await twitterService.getTweetsByUsername(userId);
     res.json(tweets);
   } catch (err) {
     logger.error(`Error fetching tweets for ${req.params.userId}:`, err);
@@ -497,6 +499,12 @@ async function startServer(): Promise<void> {
     logger.info('🔄 Starting Technical MACD background calculation...');
     technicalService.updateAllStocksTechnicals();
     setInterval(() => technicalService.updateAllStocksTechnicals(), 60 * 60 * 1000);
+
+    // Initial news fetch
+    logger.info('🔄 Starting initial market news feed fetch...');
+    newsService.fetchTweets().catch((err) => {
+      logger.warn(`Initial news fetch warning: ${err instanceof Error ? err.message : String(err)}`);
+    });
 
     // Initial fetch — run immediately
     logger.info('🔄 Starting initial Nifty 50 data fetch...');
