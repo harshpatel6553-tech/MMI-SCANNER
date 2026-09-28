@@ -18,6 +18,18 @@ export function LiveNewsFeed({ onStockClick }: LiveNewsFeedProps) {
     return isNaN(d.getTime()) ? '' : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
+  const formatRelativeTime = (dateStr: string) => {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return '';
+    const diffSec = Math.max(0, Math.floor((Date.now() - d.getTime()) / 1000));
+    if (diffSec < 60) return 'Just now';
+    const diffMin = Math.floor(diffSec / 60);
+    if (diffMin < 60) return `${diffMin}m ago`;
+    const diffHours = Math.floor(diffMin / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+    return '';
+  };
+
   const getSentimentClass = (sentiment?: string) => {
     const s = sentiment?.toLowerCase();
     if (s === 'bullish') return 'bullish';
@@ -142,6 +154,24 @@ export function LiveNewsFeed({ onStockClick }: LiveNewsFeedProps) {
                   <div className="news-main">
                     <div className="news-meta">
                       <span className="news-time">{formatTime(item.pubDate)}</span>
+                      {(() => {
+                        const rel = formatRelativeTime(item.pubDate);
+                        const isFresh = rel === 'Just now' || (rel.endsWith('m ago') && parseInt(rel, 10) <= 3);
+                        return rel ? (
+                          <span 
+                            style={{ 
+                              fontSize: '11px', 
+                              fontWeight: 700, 
+                              color: isFresh ? 'var(--up, #10b981)' : 'var(--amber)',
+                              background: isFresh ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255, 180, 0, 0.1)',
+                              padding: '2px 6px',
+                              borderRadius: '4px'
+                            }}
+                          >
+                            {isFresh ? '⚡ ' + rel : rel}
+                          </span>
+                        ) : null;
+                      })()}
                       <span className="news-handle">@{item.source || 'REDBOXINDIA'}</span>
                       {!isNeutral && sentLabel && (
                         <span className={`news-sentiment ${sentClass}`}>

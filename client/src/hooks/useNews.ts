@@ -56,7 +56,7 @@ export function useNews() {
       ticks++;
       if (isWarmingUp.current) {
         fetchNews();
-      } else if (ticks >= 20) { 
+      } else if (ticks >= 3) { // Fallback refresh every 9s if socket misses
         fetchNews();
         ticks = 0;
       }
