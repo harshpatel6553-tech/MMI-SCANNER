@@ -69,7 +69,10 @@ class StockService {
         
         try {
           const url = `https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}?range=10d&interval=1d`;
-          const res = await fetch(url, { headers: { 'User-Agent': USER_AGENT } });
+          const res = await fetch(url, { 
+            headers: { 'User-Agent': USER_AGENT },
+            signal: AbortSignal.timeout(6000)
+          });
           
           if (res.ok) {
             const data = await res.json() as any;
@@ -128,13 +131,13 @@ class StockService {
 
       const fetchPromises = chunks.map(chunk => {
         const symbolsStr = chunk.join(',');
-        // CACHE BUSTER + 1m interval guarantees absolutely zero-delay ticks
         const url = `https://query1.finance.yahoo.com/v7/finance/spark?symbols=${encodeURIComponent(symbolsStr)}&range=1d&interval=1m&cb=${Date.now()}`;
         return fetch(url, {
           headers: {
             'User-Agent': USER_AGENT,
             'Accept': 'application/json'
-          }
+          },
+          signal: AbortSignal.timeout(6000)
         }).then(async res => {
           if (!res.ok) {
             logger.error(`[CRITICAL] Yahoo Spark chunk failed with HTTP ${res.status}`);

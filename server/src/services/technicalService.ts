@@ -21,8 +21,8 @@ class TechnicalService {
       const dailyUrl = `https://query1.finance.yahoo.com/v7/finance/spark?symbols=${encodeURIComponent(yahooSymbol)}&range=6mo&interval=1d`;
       
       const [weeklyRes, dailyRes] = await Promise.all([
-        fetch(weeklyUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } }),
-        fetch(dailyUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } })
+        fetch(weeklyUrl, { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(6000) }),
+        fetch(dailyUrl, { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(6000) })
       ]);
 
       if (!weeklyRes.ok || !dailyRes.ok) return null;
