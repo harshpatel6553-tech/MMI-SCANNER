@@ -243,7 +243,7 @@ class StockService {
     
     if (missingStocks.length > 0) {
       const missingSymbols = missingStocks.map(s => s.symbol).join(', ');
-      logger.error(`[CRITICAL] TradingView API completely missed ${missingStocks.length} stocks: ${missingSymbols}`);
+      logger.error(`[CRITICAL] Yahoo Finance completely missed ${missingStocks.length} stocks: ${missingSymbols}`);
     }
 
     this.lastFetchTime.set(indexName, Date.now());
