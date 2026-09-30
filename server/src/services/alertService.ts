@@ -53,55 +53,66 @@ class AlertService {
 
       const prev = this.previousHighLowState.get(stock.symbol)!;
       let triggeredAlert = false;
+      const SIGNIFICANCE_THRESHOLD = 0.001; // 0.1% movement required for subsequent alerts
 
       // ── 1. DAY HIGH ────────────────────────────────────────────────
       // Triggers if:
       // a) Exchange dayHigh moved higher than previous highValue (brand new high!)
       // b) Current price made a new high today (price > maxPriceSeenToday) and is at day high
-      // c) Price re-entered day high zone (atDayHigh && !prev.atHigh)
       const isNewExchangeHigh = stock.dayHigh > 0 && prev.highValue > 0 && stock.dayHigh > prev.highValue;
-      const isNewPriceHigh = stock.atDayHigh && (!prev.atHigh || stock.price > prev.maxPriceSeenToday);
+      const isNewPriceHigh = stock.atDayHigh && stock.price > prev.maxPriceSeenToday;
       const isNewHigh = isNewExchangeHigh || isNewPriceHigh;
 
       if (isNewHigh) {
         const alertPrice = isNewExchangeHigh ? stock.dayHigh : stock.price;
-        newAlerts.push({
-          id: this.generateDeterministicUUID(`${stock.symbol}_DAY_HIGH_${dayTimestamp}_${currentMs}`),
-          symbol: stock.symbol,
-          name: stock.name,
-          alertType: 'DAY_HIGH',
-          price: alertPrice,
-          change: stock.change,
-          changePercent: stock.changePercent,
-          createdAt: now,
-        });
-        triggeredAlert = true;
-        logger.info(`🚀 DAY HIGH: ${stock.symbol} @ ₹${alertPrice.toFixed(2)} (high: ₹${stock.dayHigh.toFixed(2)})`);
+        const requiredHigh = prev.highValue * (1 + SIGNIFICANCE_THRESHOLD);
+        
+        // Only trigger if it's a significant new high (0.1% higher) to prevent micro-tick spam
+        if (alertPrice >= requiredHigh || prev.highValue === 0) {
+          newAlerts.push({
+            id: this.generateDeterministicUUID(`${stock.symbol}_DAY_HIGH_${dayTimestamp}_${currentMs}`),
+            symbol: stock.symbol,
+            name: stock.name,
+            alertType: 'DAY_HIGH',
+            price: alertPrice,
+            change: stock.change,
+            changePercent: stock.changePercent,
+            createdAt: now,
+          });
+          triggeredAlert = true;
+          logger.info(`🚀 DAY HIGH: ${stock.symbol} @ ₹${alertPrice.toFixed(2)} (high: ₹${stock.dayHigh.toFixed(2)})`);
+          prev.highValue = Math.max(prev.highValue, alertPrice); // update to the alerted price
+        }
       }
 
       // ── 2. DAY LOW ─────────────────────────────────────────────────
       // Triggers if:
       // a) Exchange dayLow moved lower than previous lowValue (brand new low!)
       // b) Current price made a new low today (price < minPriceSeenToday) and is at day low
-      // c) Price re-entered day low zone (atDayLow && !prev.atLow)
       const isNewExchangeLow = stock.dayLow > 0 && prev.lowValue > 0 && stock.dayLow < prev.lowValue;
-      const isNewPriceLow = stock.atDayLow && (!prev.atLow || stock.price < prev.minPriceSeenToday);
+      const isNewPriceLow = stock.atDayLow && stock.price < prev.minPriceSeenToday;
       const isNewLow = isNewExchangeLow || isNewPriceLow;
 
       if (isNewLow && !triggeredAlert) {
         const alertPrice = isNewExchangeLow ? stock.dayLow : stock.price;
-        newAlerts.push({
-          id: this.generateDeterministicUUID(`${stock.symbol}_DAY_LOW_${dayTimestamp}_${currentMs}`),
-          symbol: stock.symbol,
-          name: stock.name,
-          alertType: 'DAY_LOW',
-          price: alertPrice,
-          change: stock.change,
-          changePercent: stock.changePercent,
-          createdAt: now,
-        });
-        triggeredAlert = true;
-        logger.info(`📉 DAY LOW: ${stock.symbol} @ ₹${alertPrice.toFixed(2)} (low: ₹${stock.dayLow.toFixed(2)})`);
+        const requiredLow = prev.lowValue * (1 - SIGNIFICANCE_THRESHOLD);
+        
+        // Only trigger if it's a significant new low (0.1% lower) to prevent micro-tick spam
+        if (alertPrice <= requiredLow || prev.lowValue === 0) {
+          newAlerts.push({
+            id: this.generateDeterministicUUID(`${stock.symbol}_DAY_LOW_${dayTimestamp}_${currentMs}`),
+            symbol: stock.symbol,
+            name: stock.name,
+            alertType: 'DAY_LOW',
+            price: alertPrice,
+            change: stock.change,
+            changePercent: stock.changePercent,
+            createdAt: now,
+          });
+          triggeredAlert = true;
+          logger.info(`📉 DAY LOW: ${stock.symbol} @ ₹${alertPrice.toFixed(2)} (low: ₹${stock.dayLow.toFixed(2)})`);
+          prev.lowValue = prev.lowValue === 0 ? alertPrice : Math.min(prev.lowValue, alertPrice);
+        }
       }
 
       // ── 3. VOLUME SPIKE (stocks only) ─────────────────────────────
