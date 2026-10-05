@@ -134,11 +134,11 @@ class AlertService {
       this.previousHighLowState.set(stock.symbol, {
         atHigh: stock.atDayHigh,
         atLow: stock.atDayLow,
-        highValue: Math.max(prev.highValue, stock.dayHigh),
-        lowValue: prev.lowValue === 0 ? stock.dayLow : Math.min(prev.lowValue, stock.dayLow),
+        highValue: prev.highValue, // Do not chase dayHigh, let the alert logic update it
+        lowValue: prev.lowValue,   // Do not chase dayLow, let the alert logic update it
         maxPriceSeenToday: Math.max(prev.maxPriceSeenToday, stock.price),
-        minPriceSeenToday: Math.min(prev.minPriceSeenToday, stock.price),
-        volumeSpiked: stock.volumeSpike,
+        minPriceSeenToday: isNaN(prev.minPriceSeenToday) ? stock.price : Math.min(prev.minPriceSeenToday, stock.price),
+        volumeSpiked: stock.volumeSpike || prev.volumeSpiked,
       });
     }
 

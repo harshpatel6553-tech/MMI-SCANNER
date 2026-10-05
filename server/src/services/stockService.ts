@@ -140,8 +140,16 @@ class StockService {
           signal: AbortSignal.timeout(6000)
         }).then(async res => {
           if (!res.ok) {
-            logger.error(`[CRITICAL] Yahoo Spark chunk failed with HTTP ${res.status}`);
-            return [];
+            logger.warn(`[WARNING] Yahoo Spark chunk failed with HTTP ${res.status}. Falling back to individual requests...`);
+            const fallbackPromises = chunk.map(sym => {
+              const indivUrl = `https://query1.finance.yahoo.com/v7/finance/spark?symbols=${encodeURIComponent(sym)}&range=1d&interval=1m&cb=${Date.now()}`;
+              return fetch(indivUrl, { headers: { 'User-Agent': USER_AGENT, 'Accept': 'application/json' }, signal: AbortSignal.timeout(3000) })
+                .then(r => r.ok ? r.json() : null)
+                .then(data => data?.spark?.result?.[0] || null)
+                .catch(() => null);
+            });
+            const fallbackResults = await Promise.all(fallbackPromises);
+            return fallbackResults.filter(r => r !== null);
           }
           const data = await res.json() as any;
           return data?.spark?.result || [];
