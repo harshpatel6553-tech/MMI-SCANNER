@@ -90,8 +90,8 @@ class StockService {
           // Silent catch to not spam logs
         }
         
-        // Very small delay to prevent IP ban
-        await sleep(100);
+        // Significant delay to prevent IP ban on startup
+        await sleep(2000);
       }
       logger.info('Finished background fetch of average volumes via v8 API.');
     } catch (err) {
@@ -177,7 +177,17 @@ class StockService {
 
         const dayHigh = meta.regularMarketDayHigh ?? price;
         const dayLow = meta.regularMarketDayLow ?? price;
-        const openPrice = meta.regularMarketOpen ?? price;
+        
+        let openPrice = meta.regularMarketOpen;
+        if (!openPrice) {
+          const closes = sparkObj.response[0].indicators?.quote?.[0]?.close;
+          if (closes && Array.isArray(closes) && closes.length > 0) {
+            openPrice = closes.find((c: number | null) => c !== null) ?? price;
+          } else {
+            openPrice = price;
+          }
+        }
+
         const volume = meta.regularMarketVolume ?? 0;
         const prevClose = meta.previousClose ?? meta.chartPreviousClose ?? price;
         
@@ -340,8 +350,16 @@ class StockService {
 
           const dayHigh: number = meta.regularMarketDayHigh ?? price;
           const dayLow: number = meta.regularMarketDayLow ?? price;
-          const open: number = meta.regularMarketOpen ?? price;
-
+          
+          let open: number = meta.regularMarketOpen;
+          if (!open) {
+            const closes = sparkObj.response[0].indicators?.quote?.[0]?.close;
+            if (closes && Array.isArray(closes) && closes.length > 0) {
+              open = closes.find((c: number | null) => c !== null) ?? price;
+            } else {
+              open = price;
+            }
+          }
           const atDayHigh = dayHigh > 0 && price > 0 && price >= dayHigh;
           const atDayLow = dayLow > 0 && price > 0 && price <= dayLow;
 
