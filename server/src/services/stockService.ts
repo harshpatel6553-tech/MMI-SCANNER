@@ -106,8 +106,8 @@ export class StockService {
           const volume = q.regularMarketVolume ?? 0;
           const prevClose = q.regularMarketPreviousClose ?? price;
           
-          const change = price - prevClose;
-          const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
+          const change = q.regularMarketChange ?? (price - prevClose);
+          const changePercent = q.regularMarketChangePercent ?? (prevClose > 0 ? (change / prevClose) * 100 : 0);
 
           const atDayHigh = dayHigh > 0 && price > 0 && price >= dayHigh;
           const atDayLow = dayLow > 0 && price > 0 && price <= dayLow;
@@ -234,8 +234,8 @@ export class StockService {
           const volume = meta.regularMarketVolume ?? 0;
           const prevClose = meta.previousClose ?? meta.chartPreviousClose ?? price;
           
-          const change = price - prevClose;
-          const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
+          const change = q.regularMarketChange ?? (price - prevClose);
+          const changePercent = q.regularMarketChangePercent ?? (prevClose > 0 ? (change / prevClose) * 100 : 0);
 
           const atDayHigh = dayHigh > 0 && price > 0 && price >= dayHigh;
           const atDayLow = dayLow > 0 && price > 0 && price <= dayLow;
@@ -337,8 +337,8 @@ export class StockService {
           if (price === 0) continue;
 
           const prevClose = q.regularMarketPreviousClose ?? price;
-          const change = price - prevClose;
-          const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
+          const change = q.regularMarketChange ?? (price - prevClose);
+          const changePercent = q.regularMarketChangePercent ?? (prevClose > 0 ? (change / prevClose) * 100 : 0);
           
           const dayHigh = q.regularMarketDayHigh ?? price;
           const dayLow = q.regularMarketDayLow ?? price;
