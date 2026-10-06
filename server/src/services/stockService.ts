@@ -326,24 +326,54 @@ export class StockService {
     const symbolsStr = yahooIndices.map(i => i.yahooSymbol).join(',');
 
     try {
-      try {
-        const quotes = await yahooFinance.quote(yahooIndices.map(i => i.yahooSymbol), { return: 'array' }) as any[];
-        
-        for (const q of quotes) {
-          const idx = yahooIndices.find(i => i.yahooSymbol === q.symbol);
+      // Use Spark API exclusively for indices to get real-time (undelayed) data for DAY HIGH alerts!
+      const url = `https://query1.finance.yahoo.com/v7/finance/spark?symbols=${encodeURIComponent(symbolsStr)}&range=1d&interval=1m&cb=${Date.now()}`;
+      const res = await fetch(url, {
+        headers: { 'User-Agent': USER_AGENT, 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(6000),
+      });
+
+      if (res.ok) {
+        const data = (await res.json()) as any;
+        const sparkResults = data?.spark?.result || [];
+
+        for (const sparkObj of sparkResults) {
+          const meta = sparkObj.response?.[0]?.meta;
+          if (!meta) continue;
+
+          const idx = yahooIndices.find(i => i.yahooSymbol === meta.symbol);
           if (!idx) continue;
 
-          const price = q.regularMarketPrice ?? 0;
+          const price: number = typeof meta.regularMarketPrice === 'number'
+            ? meta.regularMarketPrice
+            : (parseFloat(meta.regularMarketPrice) || 0);
           if (price === 0) continue;
 
-          const prevClose = q.regularMarketPreviousClose ?? price;
-          const change = price - prevClose;
-          const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
+          const prevClose: number = typeof meta.chartPreviousClose === 'number'
+            ? meta.chartPreviousClose
+            : (typeof meta.previousClose === 'number' ? meta.previousClose : price);
+
+          const change: number = typeof meta.fulldayChange === 'number'
+            ? meta.fulldayChange
+            : (typeof meta.regularMarketChange === 'number' ? meta.regularMarketChange : (price - prevClose));
+
+          const changePercent: number = typeof meta.fulldayChangePercent === 'number'
+            ? meta.fulldayChangePercent
+            : (typeof meta.regularMarketChangePercent === 'number' ? meta.regularMarketChangePercent : (prevClose > 0 ? (change / prevClose) * 100 : 0));
+
+          const dayHigh: number = meta.regularMarketDayHigh ?? price;
+          const dayLow: number = meta.regularMarketDayLow ?? price;
           
-          const dayHigh = q.regularMarketDayHigh ?? price;
-          const dayLow = q.regularMarketDayLow ?? price;
-          const open = q.regularMarketOpen ?? price;
-          
+          let open: number = meta.regularMarketOpen;
+          if (!open) {
+            const closes = sparkObj.response[0].indicators?.quote?.[0]?.close;
+            if (closes && Array.isArray(closes) && closes.length > 0) {
+              open = closes.find((c: any) => c !== null) ?? price;
+            } else {
+              open = price;
+            }
+          }
+
           const atDayHigh = dayHigh > 0 && price > 0 && price >= dayHigh;
           const atDayLow = dayLow > 0 && price > 0 && price <= dayLow;
 
@@ -357,7 +387,7 @@ export class StockService {
             dayLow,
             change,
             changePercent,
-            volume: q.regularMarketVolume ?? 0,
+            volume: meta.regularMarketVolume ?? 0,
             sector: 'Index',
             averageVolume: 0,
             relativeVolume: 0,
@@ -366,8 +396,8 @@ export class StockService {
             lastUpdated: new Date().toISOString(),
             atDayHigh,
             atDayLow,
-            fiftyTwoWeekHigh: q.fiftyTwoWeekHigh ?? 0,
-            fiftyTwoWeekLow: q.fiftyTwoWeekLow ?? 0,
+            fiftyTwoWeekHigh: meta.fiftyTwoWeekHigh ?? 0,
+            fiftyTwoWeekLow: meta.fiftyTwoWeekLow ?? 0,
             marketCap: 0
           };
           
@@ -377,93 +407,6 @@ export class StockService {
             for (const alias of idx.aliases) {
               const aliasData = { ...indexData, symbol: alias };
               this.stockCache.set(alias, aliasData);
-            }
-          }
-        }
-      } catch (err: any) {
-        logger.error('yahoo-finance2 failed for indices. Falling back to /spark: ' + err.message);
-        
-        const url = `https://query1.finance.yahoo.com/v7/finance/spark?symbols=${encodeURIComponent(symbolsStr)}&range=1d&interval=1m&cb=${Date.now()}`;
-        const res = await fetch(url, {
-          headers: { 'User-Agent': USER_AGENT, 'Accept': 'application/json' },
-          signal: AbortSignal.timeout(6000),
-        });
-
-        if (res.ok) {
-          const data = (await res.json()) as any;
-          const sparkResults = data?.spark?.result || [];
-
-          for (const sparkObj of sparkResults) {
-            const meta = sparkObj.response?.[0]?.meta;
-            if (!meta) continue;
-
-            const idx = yahooIndices.find(i => i.yahooSymbol === meta.symbol);
-            if (!idx) continue;
-
-            const price: number = typeof meta.regularMarketPrice === 'number'
-              ? meta.regularMarketPrice
-              : (parseFloat(meta.regularMarketPrice) || 0);
-            if (price === 0) continue;
-
-            const prevClose: number = typeof meta.chartPreviousClose === 'number'
-              ? meta.chartPreviousClose
-              : (typeof meta.previousClose === 'number' ? meta.previousClose : price);
-
-            const change: number = typeof meta.fulldayChange === 'number'
-              ? meta.fulldayChange
-              : (typeof meta.regularMarketChange === 'number' ? meta.regularMarketChange : (price - prevClose));
-
-            const changePercent: number = typeof meta.fulldayChangePercent === 'number'
-              ? meta.fulldayChangePercent
-              : (typeof meta.regularMarketChangePercent === 'number' ? meta.regularMarketChangePercent : (prevClose > 0 ? (change / prevClose) * 100 : 0));
-
-            const dayHigh: number = meta.regularMarketDayHigh ?? price;
-            const dayLow: number = meta.regularMarketDayLow ?? price;
-            
-            let open: number = meta.regularMarketOpen;
-            if (!open) {
-              const closes = sparkObj.response[0].indicators?.quote?.[0]?.close;
-              if (closes && Array.isArray(closes) && closes.length > 0) {
-                open = closes.find((c: any) => c !== null) ?? price;
-              } else {
-                open = price;
-              }
-            }
-
-            const atDayHigh = dayHigh > 0 && price > 0 && price >= dayHigh;
-            const atDayLow = dayLow > 0 && price > 0 && price <= dayLow;
-
-            const indexData: StockData = {
-              symbol: idx.displaySymbol,
-              name: idx.name,
-              price,
-              previousClose: prevClose,
-              open,
-              dayHigh,
-              dayLow,
-              change,
-              changePercent,
-              volume: meta.regularMarketVolume ?? 0,
-              sector: 'Index',
-              averageVolume: 0,
-              relativeVolume: 0,
-              volumeSpike: false,
-              indexName: 'INDEX',
-              lastUpdated: new Date().toISOString(),
-              atDayHigh,
-              atDayLow,
-              fiftyTwoWeekHigh: meta.fiftyTwoWeekHigh ?? 0,
-              fiftyTwoWeekLow: meta.fiftyTwoWeekLow ?? 0,
-              marketCap: 0
-            };
-            
-            results.push(indexData);
-            this.stockCache.set(indexData.symbol, indexData);
-            if (idx.aliases) {
-              for (const alias of idx.aliases) {
-                const aliasData = { ...indexData, symbol: alias };
-                this.stockCache.set(alias, aliasData);
-              }
             }
           }
         }
