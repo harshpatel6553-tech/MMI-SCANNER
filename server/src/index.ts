@@ -50,7 +50,7 @@ import {
 
 const PORT = parseInt(process.env.PORT || '5000', 10);
 const NIFTY50_POLL_INTERVAL = 3000; // 3 seconds
-const NIFTY500_POLL_INTERVAL = 10000; // 10 seconds
+const NIFTY500_POLL_INTERVAL = 3000; // 3 seconds
 
 const ALLOWED_ORIGINS = [
   'http://localhost:5173',

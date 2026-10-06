@@ -17,56 +17,30 @@ const yahooFinance = typeof yahooFinanceModule === 'function' ? new (yahooFinanc
 /** Number of concurrent requests per batch */
 const CONCURRENCY = 20;
 
-
-/**
- * Tolerance for detecting whether a stock is at its day high or low.
- * A price within 0.01% of the extreme is considered "at" the extreme.
- */
-const HIGH_LOW_TOLERANCE = 0.0001;
-
-/** User agent to mimic a browser */
 const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
-/**
- * Pauses execution for the given number of milliseconds.
- */
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-class StockService {
-  /** In-memory cache of the latest stock data, keyed by NSE symbol */
+export class StockService {
   private stockCache: Map<string, StockData> = new Map();
-
-  /** Timestamp of the last successful fetch per index */
   private lastFetchTime: Map<string, number> = new Map();
-
-  /** Name lookup map from original stock lists */
-  private nameMap: Map<string, string> = new Map();
+  private volumeHistory: Map<string, Array<{ timestamp: number; volume: number }>> = new Map();
   private averageVolumeMap: Map<string, number> = new Map();
-  private volumeHistory: Map<string, { timestamp: number, volume: number }[]> = new Map();
-  private hasFetchedAverageVolume = false;
+  private hasFetchedAverageVolume: boolean = false;
 
-  constructor() {
-    for (const s of NIFTY_50_STOCKS) {
-      this.nameMap.set(s.symbol, s.name);
-    }
-    for (const s of NIFTY_500_STOCKS) {
-      this.nameMap.set(s.symbol, s.name);
-    }
-  }
+  constructor() {}
 
   async fetchAverageVolumesInBackground() {
     if (this.hasFetchedAverageVolume) return;
     this.hasFetchedAverageVolume = true;
+    
+    logger.info('Starting background fetch of average volumes...');
     try {
       const allStocks = [...NIFTY_50_STOCKS, ...NIFTY_500_STOCKS];
+      const uniqueSymbols = Array.from(new Set(allStocks.map(s => s.symbol)));
       
-      // We will use v8/finance/chart to get historical volume, bypassing the broken yahoo-finance2 crumb
-      for (let i = 0; i < allStocks.length; i++) {
-        const symbol = allStocks[i].symbol;
+      for (const symbol of uniqueSymbols) {
         const yahooSymbol = symbol + '.NS';
-        
         try {
           const url = `https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}?range=10d&interval=1d`;
           const res = await fetch(url, { 
@@ -78,7 +52,6 @@ class StockService {
             const data = await res.json() as any;
             const volumes = data?.chart?.result?.[0]?.indicators?.quote?.[0]?.volume;
             if (volumes && Array.isArray(volumes) && volumes.length > 0) {
-              // Filter out nulls and zeros
               const validVolumes = volumes.filter((v: any) => typeof v === 'number' && v > 0);
               if (validVolumes.length > 0) {
                 const avgVol = validVolumes.reduce((a: number, b: number) => a + b, 0) / validVolumes.length;
@@ -90,17 +63,12 @@ class StockService {
           // Silent catch to not spam logs
         }
         
-        // Significant delay to prevent IP ban on startup
         await sleep(2000);
       }
       logger.info('Finished background fetch of average volumes via v8 API.');
     } catch (err) {
-      logger.error('Background avg volume fetch failed: ' + err);
+      logger.error('Background volume fetch failed: ' + (err instanceof Error ? err.message : String(err)));
     }
-  }
-
-  public preloadStock(stock: StockData): void {
-    this.stockCache.set(stock.symbol, stock);
   }
 
   async fetchQuotes(
@@ -114,7 +82,6 @@ class StockService {
     const results: StockData[] = [];
     
     try {
-      // 1. Create a map of Yahoo symbol -> Base Stock
       const yahooToStockMap = new Map();
       const yahooSymbols = stocks.map(s => {
         const ySym = s.symbol + '.NS';
@@ -122,146 +89,198 @@ class StockService {
         return ySym;
       });
 
-      // 2. Yahoo Spark API limits to 20 symbols per request. We will chunk them and fire them in PARALLEL.
-      const CHUNK_SIZE = 20;
-      const chunks = [];
-      for (let i = 0; i < yahooSymbols.length; i += CHUNK_SIZE) {
-        chunks.push(yahooSymbols.slice(i, i + CHUNK_SIZE));
-      }
-
-      const fetchPromises = chunks.map(chunk => {
-        const symbolsStr = chunk.join(',');
-        const url = `https://query1.finance.yahoo.com/v7/finance/spark?symbols=${encodeURIComponent(symbolsStr)}&range=1d&interval=1m&cb=${Date.now()}`;
-        return fetch(url, {
-          headers: {
-            'User-Agent': USER_AGENT,
-            'Accept': 'application/json'
-          },
-          signal: AbortSignal.timeout(6000)
-        }).then(async res => {
-          if (!res.ok) {
-            logger.warn(`[WARNING] Yahoo Spark chunk failed with HTTP ${res.status}. Falling back to individual requests...`);
-            const fallbackPromises = chunk.map(sym => {
-              const indivUrl = `https://query1.finance.yahoo.com/v7/finance/spark?symbols=${encodeURIComponent(sym)}&range=1d&interval=1m&cb=${Date.now()}`;
-              return fetch(indivUrl, { headers: { 'User-Agent': USER_AGENT, 'Accept': 'application/json' }, signal: AbortSignal.timeout(3000) })
-                .then(r => r.ok ? r.json() : null)
-                .then(data => data?.spark?.result?.[0] || null)
-                .catch(() => null);
-            });
-            const fallbackResults = await Promise.all(fallbackPromises);
-            return fallbackResults.filter(r => r !== null);
-          }
-          const data = await res.json() as any;
-          return data?.spark?.result || [];
-        }).catch(err => {
-          logger.error(`[CRITICAL] Yahoo Spark chunk error: ${err.message}`);
-          return [];
-        });
-      });
-
-      const chunkedResults = await Promise.all(fetchPromises);
-      
       let allSparkResults: any[] = [];
-      for (const res of chunkedResults) {
-        allSparkResults = allSparkResults.concat(res);
-      }
-
-      for (const sparkObj of allSparkResults) {
-        if (!sparkObj || !sparkObj.response || !sparkObj.response[0] || !sparkObj.response[0].meta) continue;
-        const meta = sparkObj.response[0].meta;
-        const baseStock = yahooToStockMap.get(meta.symbol);
-        if (!baseStock) continue;
-
-        const price = meta.regularMarketPrice ?? 0;
-        if (price === 0) continue;
-
-        const dayHigh = meta.regularMarketDayHigh ?? price;
-        const dayLow = meta.regularMarketDayLow ?? price;
+      try {
+        const quotes = await yahooFinance.quote(yahooSymbols, { return: 'array' }) as any[];
         
-        let openPrice = meta.regularMarketOpen;
-        if (!openPrice) {
-          const closes = sparkObj.response[0].indicators?.quote?.[0]?.close;
-          if (closes && Array.isArray(closes) && closes.length > 0) {
-            openPrice = closes.find((c: number | null) => c !== null) ?? price;
-          } else {
-            openPrice = price;
+        for (const q of quotes) {
+          const baseStock = yahooToStockMap.get(q.symbol);
+          if (!baseStock) continue;
+
+          const price = q.regularMarketPrice ?? 0;
+          if (price === 0) continue;
+
+          const dayHigh = q.regularMarketDayHigh ?? price;
+          const dayLow = q.regularMarketDayLow ?? price;
+          const openPrice = q.regularMarketOpen ?? price;
+          const volume = q.regularMarketVolume ?? 0;
+          const prevClose = q.regularMarketPreviousClose ?? price;
+          
+          const change = price - prevClose;
+          const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
+
+          const atDayHigh = dayHigh > 0 && price > 0 && price >= dayHigh;
+          const atDayLow = dayLow > 0 && price > 0 && price <= dayLow;
+
+          const fullDayAvgVol = q.averageDailyVolume10Day || q.averageDailyVolume3Month || volume || 1;
+
+          const nowMs = Date.now();
+          const ONE_HOUR_MS = 60 * 60 * 1000;
+          
+          let history = this.volumeHistory.get(baseStock.symbol);
+          if (!history) {
+            history = [];
+            this.volumeHistory.set(baseStock.symbol, history);
           }
+          history.push({ timestamp: nowMs, volume });
+          const oneHourAgoMs = nowMs - ONE_HOUR_MS;
+          while (history.length > 0 && history[0].timestamp < oneHourAgoMs) {
+            history.shift();
+          }
+          let volumeSpike = false;
+          if (history.length >= 2) {
+            const oldestVol = history[0].volume;
+            const newestVol = history[history.length - 1].volume;
+            const hourVolume = newestVol - oldestVol;
+            const hourlyAvgVol = fullDayAvgVol / 6.25; 
+            const hourlyRelativeVol = hourlyAvgVol > 0 ? hourVolume / hourlyAvgVol : 0;
+            if (hourlyRelativeVol >= 1.5) volumeSpike = true;
+          }
+
+          const relativeVolume = fullDayAvgVol > 0 ? volume / fullDayAvgVol : 0;
+          if (relativeVolume >= 2.0) {
+             volumeSpike = true;
+          }
+
+          const stockData: StockData = {
+            symbol: baseStock.symbol,
+            name: baseStock.name,
+            price,
+            previousClose: prevClose,
+            open: openPrice,
+            dayHigh,
+            dayLow,
+            change,
+            changePercent,
+            volume,
+            sector: SECTOR_MAP[baseStock.symbol] || 'Others',
+            averageVolume: fullDayAvgVol,
+            relativeVolume,
+            volumeSpike,
+            indexName,
+            lastUpdated: new Date().toISOString(),
+            atDayHigh,
+            atDayLow,
+            fiftyTwoWeekHigh: q.fiftyTwoWeekHigh ?? 0,
+            fiftyTwoWeekLow: q.fiftyTwoWeekLow ?? 0,
+            marketCap: q.marketCap ?? 0
+          };
+
+          results.push(stockData);
+          this.stockCache.set(stockData.symbol, stockData);
+        }
+        
+      } catch (err: any) {
+        logger.error('yahoo-finance2 failed (possibly crumb issue). Falling back to /spark: ' + err.message);
+        
+        const CHUNK_SIZE = 20;
+        const chunks = [];
+        for (let i = 0; i < yahooSymbols.length; i += CHUNK_SIZE) {
+          chunks.push(yahooSymbols.slice(i, i + CHUNK_SIZE));
         }
 
-        const volume = meta.regularMarketVolume ?? 0;
-        const prevClose = meta.previousClose ?? meta.chartPreviousClose ?? price;
-        
-        const change = price - prevClose;
-        const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
+        const fetchPromises = chunks.map(chunk => {
+          const symbolsStr = chunk.join(',');
+          const url = `https://query1.finance.yahoo.com/v7/finance/spark?symbols=${encodeURIComponent(symbolsStr)}&range=1d&interval=1m&cb=${Date.now()}`;
+          return fetch(url, {
+            headers: { 'User-Agent': USER_AGENT, 'Accept': 'application/json' },
+            signal: AbortSignal.timeout(6000)
+          }).then(async res => {
+            if (!res.ok) {
+              const fallbackPromises = chunk.map(sym => {
+                const indivUrl = `https://query1.finance.yahoo.com/v7/finance/spark?symbols=${encodeURIComponent(sym)}&range=1d&interval=1m&cb=${Date.now()}`;
+                return fetch(indivUrl, { headers: { 'User-Agent': USER_AGENT, 'Accept': 'application/json' }, signal: AbortSignal.timeout(3000) })
+                  .then(r => r.ok ? r.json() : null)
+                  .then(data => data?.spark?.result?.[0] || null)
+                  .catch(() => null);
+              });
+              const fallbackResults = await Promise.all(fallbackPromises);
+              return fallbackResults.filter(r => r !== null);
+            }
+            const data = await res.json() as any;
+            return data?.spark?.result || [];
+          }).catch(err => {
+            return [];
+          });
+        });
 
-        const atDayHigh = dayHigh > 0 && price > 0 && price >= dayHigh;
-        const atDayLow = dayLow > 0 && price > 0 && price <= dayLow;
-
-        const fullDayAvgVol = this.averageVolumeMap.get(baseStock.symbol) || volume || 1;
-
-        // --- ROLLING 1-HOUR VOLUME SPIKE LOGIC ---
-        const nowMs = Date.now();
-        const ONE_HOUR_MS = 60 * 60 * 1000;
-        
-        let history = this.volumeHistory.get(baseStock.symbol);
-        if (!history) {
-          history = [];
-          this.volumeHistory.set(baseStock.symbol, history);
+        const chunkedResults = await Promise.all(fetchPromises);
+        for (const res of chunkedResults) {
+          allSparkResults = allSparkResults.concat(res);
         }
-        
-        history.push({ timestamp: nowMs, volume });
-        
-        // Remove entries older than 1 hour
-        const cutoffTime = nowMs - ONE_HOUR_MS;
-        while (history.length > 0 && history[0].timestamp < cutoffTime) {
-          history.shift();
+
+        for (const sparkObj of allSparkResults) {
+          if (!sparkObj || !sparkObj.response || !sparkObj.response[0] || !sparkObj.response[0].meta) continue;
+          const meta = sparkObj.response[0].meta;
+          const baseStock = yahooToStockMap.get(meta.symbol);
+          if (!baseStock) continue;
+
+          const price = meta.regularMarketPrice ?? 0;
+          if (price === 0) continue;
+
+          const dayHigh = meta.regularMarketDayHigh ?? price;
+          const dayLow = meta.regularMarketDayLow ?? price;
+          
+          let openPrice = meta.regularMarketOpen;
+          if (!openPrice) {
+            const closes = sparkObj.response[0].indicators?.quote?.[0]?.close;
+            if (closes && Array.isArray(closes) && closes.length > 0) {
+              openPrice = closes.find((c: any) => c !== null) ?? price;
+            } else {
+              openPrice = price;
+            }
+          }
+
+          const volume = meta.regularMarketVolume ?? 0;
+          const prevClose = meta.previousClose ?? meta.chartPreviousClose ?? price;
+          
+          const change = price - prevClose;
+          const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
+
+          const atDayHigh = dayHigh > 0 && price > 0 && price >= dayHigh;
+          const atDayLow = dayLow > 0 && price > 0 && price <= dayLow;
+
+          const fullDayAvgVol = this.averageVolumeMap.get(baseStock.symbol) || volume || 1;
+
+          let history = this.volumeHistory.get(baseStock.symbol);
+          if (!history) {
+            history = [];
+            this.volumeHistory.set(baseStock.symbol, history);
+          }
+          history.push({ timestamp: Date.now(), volume });
+          
+          let volumeSpike = false;
+          
+          const stockData: StockData = {
+            symbol: baseStock.symbol,
+            name: baseStock.name,
+            price,
+            previousClose: prevClose,
+            open: openPrice,
+            dayHigh,
+            dayLow,
+            change,
+            changePercent,
+            volume,
+            sector: SECTOR_MAP[baseStock.symbol] || 'Others',
+            averageVolume: fullDayAvgVol,
+            relativeVolume: 1,
+            volumeSpike,
+            indexName,
+            lastUpdated: new Date().toISOString(),
+            atDayHigh,
+            atDayLow,
+            fiftyTwoWeekHigh: meta.fiftyTwoWeekHigh ?? 0,
+            fiftyTwoWeekLow: meta.fiftyTwoWeekLow ?? 0,
+            marketCap: meta.marketCap ?? 0
+          };
+
+          results.push(stockData);
+          this.stockCache.set(stockData.symbol, stockData);
         }
-
-        const volumeWindowAgo = history[0].volume;
-        const volumeTradedInWindow = volume - volumeWindowAgo;
-        const averageHourlyVolume = fullDayAvgVol / 6.25;
-        const relativeVolume = averageHourlyVolume > 1 ? volumeTradedInWindow / averageHourlyVolume : 0;
-        const volumeSpike = relativeVolume >= 3.0 && volumeTradedInWindow > 0;
-
-        const stockData: StockData = {
-          symbol: baseStock.symbol,
-          name: this.nameMap.get(baseStock.symbol) || baseStock.name,
-          price,
-          previousClose: prevClose,
-          open: openPrice,
-          dayHigh,
-          dayLow,
-          change,
-          changePercent,
-          volume,
-          sector: SECTOR_MAP[baseStock.symbol] || 'Others',
-          averageVolume: fullDayAvgVol,
-          relativeVolume,
-          volumeSpike,
-          indexName,
-          lastUpdated: new Date().toISOString(),
-          atDayHigh,
-          atDayLow,
-          fiftyTwoWeekHigh: meta.fiftyTwoWeekHigh ?? 0,
-          fiftyTwoWeekLow: meta.fiftyTwoWeekLow ?? 0,
-          marketCap: meta.marketCap ?? 0,
-          ...(technicalService.getTechnicals(baseStock.symbol) || { macdWeeklyBuy: false, rsiDaily: 50, emaCrossDaily: false }),
-        };
-
-        results.push(stockData);
-        this.stockCache.set(stockData.symbol, stockData);
       }
     } catch (err: any) {
-      logger.error(`Bulk fetch failed: ${err.message}`);
-    }
-
-    // STRICT AUDIT: Check if any requested stocks were missed by the API
-    const fetchedSymbols = new Set(results.map(r => r.symbol));
-    const missingStocks = stocks.filter(s => !fetchedSymbols.has(s.symbol));
-    
-    if (missingStocks.length > 0) {
-      const missingSymbols = missingStocks.map(s => s.symbol).join(', ');
-      logger.error(`[CRITICAL] Yahoo Finance completely missed ${missingStocks.length} stocks: ${missingSymbols}`);
+      logger.error('Bulk fetch failed: ' + err.message);
     }
 
     this.lastFetchTime.set(indexName, Date.now());
@@ -280,10 +299,6 @@ class StockService {
     return this.fetchQuotes(additionalStocks, 'NIFTY500');
   }
 
-  /**
-   * Fetches real-time index quotes exclusively from Yahoo Finance Spark API.
-   * Uses chartPreviousClose and fulldayChange directly from Yahoo Finance metadata.
-   */
   async fetchIndices(): Promise<StockData[]> {
     const yahooIndices: { yahooSymbol: string; displaySymbol: string; name: string; aliases?: string[] }[] = [
       { yahooSymbol: '^NSEI',      displaySymbol: 'NIFTY 50',          name: 'NIFTY 50' },
@@ -308,58 +323,27 @@ class StockService {
     ];
 
     const results: StockData[] = [];
+    const symbolsStr = yahooIndices.map(i => i.yahooSymbol).join(',');
 
     try {
-      const symbolsStr = yahooIndices.map(i => i.yahooSymbol).join(',');
-      const url = `https://query1.finance.yahoo.com/v7/finance/spark?symbols=${encodeURIComponent(symbolsStr)}&range=1d&interval=1m&cb=${Date.now()}`;
-      const res = await fetch(url, {
-        headers: {
-          'User-Agent': USER_AGENT,
-          'Accept': 'application/json',
-        },
-        signal: AbortSignal.timeout(6000),
-      });
-
-      if (res.ok) {
-        const data = (await res.json()) as any;
-        const sparkResults = data?.spark?.result || [];
-
-        for (const sparkObj of sparkResults) {
-          const meta = sparkObj.response?.[0]?.meta;
-          if (!meta) continue;
-
-          const idx = yahooIndices.find(i => i.yahooSymbol === meta.symbol);
+      try {
+        const quotes = await yahooFinance.quote(yahooIndices.map(i => i.yahooSymbol), { return: 'array' }) as any[];
+        
+        for (const q of quotes) {
+          const idx = yahooIndices.find(i => i.yahooSymbol === q.symbol);
           if (!idx) continue;
 
-          const price: number = typeof meta.regularMarketPrice === 'number'
-            ? meta.regularMarketPrice
-            : (parseFloat(meta.regularMarketPrice) || 0);
+          const price = q.regularMarketPrice ?? 0;
           if (price === 0) continue;
 
-          const prevClose: number = typeof meta.chartPreviousClose === 'number'
-            ? meta.chartPreviousClose
-            : (typeof meta.previousClose === 'number' ? meta.previousClose : price);
-
-          const change: number = typeof meta.fulldayChange === 'number'
-            ? meta.fulldayChange
-            : (typeof meta.regularMarketChange === 'number' ? meta.regularMarketChange : (price - prevClose));
-
-          const changePercent: number = typeof meta.fulldayChangePercent === 'number'
-            ? meta.fulldayChangePercent
-            : (typeof meta.regularMarketChangePercent === 'number' ? meta.regularMarketChangePercent : (prevClose > 0 ? (change / prevClose) * 100 : 0));
-
-          const dayHigh: number = meta.regularMarketDayHigh ?? price;
-          const dayLow: number = meta.regularMarketDayLow ?? price;
+          const prevClose = q.regularMarketPreviousClose ?? price;
+          const change = price - prevClose;
+          const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
           
-          let open: number = meta.regularMarketOpen;
-          if (!open) {
-            const closes = sparkObj.response[0].indicators?.quote?.[0]?.close;
-            if (closes && Array.isArray(closes) && closes.length > 0) {
-              open = closes.find((c: number | null) => c !== null) ?? price;
-            } else {
-              open = price;
-            }
-          }
+          const dayHigh = q.regularMarketDayHigh ?? price;
+          const dayLow = q.regularMarketDayLow ?? price;
+          const open = q.regularMarketOpen ?? price;
+          
           const atDayHigh = dayHigh > 0 && price > 0 && price >= dayHigh;
           const atDayLow = dayLow > 0 && price > 0 && price <= dayLow;
 
@@ -373,7 +357,7 @@ class StockService {
             dayLow,
             change,
             changePercent,
-            volume: meta.regularMarketVolume ?? 0,
+            volume: q.regularMarketVolume ?? 0,
             sector: 'Index',
             averageVolume: 0,
             relativeVolume: 0,
@@ -382,26 +366,110 @@ class StockService {
             lastUpdated: new Date().toISOString(),
             atDayHigh,
             atDayLow,
-            fiftyTwoWeekHigh: meta.fiftyTwoWeekHigh ?? 0,
-            fiftyTwoWeekLow: meta.fiftyTwoWeekLow ?? 0,
-            marketCap: 0,
+            fiftyTwoWeekHigh: q.fiftyTwoWeekHigh ?? 0,
+            fiftyTwoWeekLow: q.fiftyTwoWeekLow ?? 0,
+            marketCap: 0
           };
-
+          
           results.push(indexData);
-          this.stockCache.set(idx.displaySymbol, indexData);
-
+          this.stockCache.set(indexData.symbol, indexData);
           if (idx.aliases) {
             for (const alias of idx.aliases) {
               const aliasData = { ...indexData, symbol: alias };
-              results.push(aliasData);
               this.stockCache.set(alias, aliasData);
             }
           }
         }
-        logger.info(`📊 Fetched ${results.length} indices exclusively from Yahoo Finance`);
+      } catch (err: any) {
+        logger.error('yahoo-finance2 failed for indices. Falling back to /spark: ' + err.message);
+        
+        const url = `https://query1.finance.yahoo.com/v7/finance/spark?symbols=${encodeURIComponent(symbolsStr)}&range=1d&interval=1m&cb=${Date.now()}`;
+        const res = await fetch(url, {
+          headers: { 'User-Agent': USER_AGENT, 'Accept': 'application/json' },
+          signal: AbortSignal.timeout(6000),
+        });
+
+        if (res.ok) {
+          const data = (await res.json()) as any;
+          const sparkResults = data?.spark?.result || [];
+
+          for (const sparkObj of sparkResults) {
+            const meta = sparkObj.response?.[0]?.meta;
+            if (!meta) continue;
+
+            const idx = yahooIndices.find(i => i.yahooSymbol === meta.symbol);
+            if (!idx) continue;
+
+            const price: number = typeof meta.regularMarketPrice === 'number'
+              ? meta.regularMarketPrice
+              : (parseFloat(meta.regularMarketPrice) || 0);
+            if (price === 0) continue;
+
+            const prevClose: number = typeof meta.chartPreviousClose === 'number'
+              ? meta.chartPreviousClose
+              : (typeof meta.previousClose === 'number' ? meta.previousClose : price);
+
+            const change: number = typeof meta.fulldayChange === 'number'
+              ? meta.fulldayChange
+              : (typeof meta.regularMarketChange === 'number' ? meta.regularMarketChange : (price - prevClose));
+
+            const changePercent: number = typeof meta.fulldayChangePercent === 'number'
+              ? meta.fulldayChangePercent
+              : (typeof meta.regularMarketChangePercent === 'number' ? meta.regularMarketChangePercent : (prevClose > 0 ? (change / prevClose) * 100 : 0));
+
+            const dayHigh: number = meta.regularMarketDayHigh ?? price;
+            const dayLow: number = meta.regularMarketDayLow ?? price;
+            
+            let open: number = meta.regularMarketOpen;
+            if (!open) {
+              const closes = sparkObj.response[0].indicators?.quote?.[0]?.close;
+              if (closes && Array.isArray(closes) && closes.length > 0) {
+                open = closes.find((c: any) => c !== null) ?? price;
+              } else {
+                open = price;
+              }
+            }
+
+            const atDayHigh = dayHigh > 0 && price > 0 && price >= dayHigh;
+            const atDayLow = dayLow > 0 && price > 0 && price <= dayLow;
+
+            const indexData: StockData = {
+              symbol: idx.displaySymbol,
+              name: idx.name,
+              price,
+              previousClose: prevClose,
+              open,
+              dayHigh,
+              dayLow,
+              change,
+              changePercent,
+              volume: meta.regularMarketVolume ?? 0,
+              sector: 'Index',
+              averageVolume: 0,
+              relativeVolume: 0,
+              volumeSpike: false,
+              indexName: 'INDEX',
+              lastUpdated: new Date().toISOString(),
+              atDayHigh,
+              atDayLow,
+              fiftyTwoWeekHigh: meta.fiftyTwoWeekHigh ?? 0,
+              fiftyTwoWeekLow: meta.fiftyTwoWeekLow ?? 0,
+              marketCap: 0
+            };
+            
+            results.push(indexData);
+            this.stockCache.set(indexData.symbol, indexData);
+            if (idx.aliases) {
+              for (const alias of idx.aliases) {
+                const aliasData = { ...indexData, symbol: alias };
+                this.stockCache.set(alias, aliasData);
+              }
+            }
+          }
+        }
       }
     } catch (err: any) {
-      logger.error(`Yahoo Finance indices fetch failed: ${err.message}`);
+      logger.error('Yahoo Finance indices fetch failed: ' + err.message);
     }
 
     return results;
