@@ -234,8 +234,8 @@ export class StockService {
           const volume = meta.regularMarketVolume ?? 0;
           const prevClose = meta.previousClose ?? meta.chartPreviousClose ?? price;
           
-          const change = q.regularMarketChange ?? (price - prevClose);
-          const changePercent = q.regularMarketChangePercent ?? (prevClose > 0 ? (change / prevClose) * 100 : 0);
+          const change = typeof meta.regularMarketChange === 'number' ? meta.regularMarketChange : (typeof meta.fulldayChange === 'number' ? meta.fulldayChange : (price - prevClose));
+          const changePercent = typeof meta.regularMarketChangePercent === 'number' ? meta.regularMarketChangePercent : (typeof meta.fulldayChangePercent === 'number' ? meta.fulldayChangePercent : (prevClose > 0 ? (change / prevClose) * 100 : 0));
 
           const atDayHigh = dayHigh > 0 && price > 0 && price >= dayHigh;
           const atDayLow = dayLow > 0 && price > 0 && price <= dayLow;
