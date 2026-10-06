@@ -53,7 +53,7 @@ class AlertService {
 
       const prev = this.previousHighLowState.get(stock.symbol)!;
       let triggeredAlert = false;
-      const SIGNIFICANCE_THRESHOLD = 0.001; // 0.1% movement required for subsequent alerts
+      const SIGNIFICANCE_THRESHOLD = 0.0; // Restored to 0 to catch every micro-tick
 
       // ── 1. DAY HIGH ────────────────────────────────────────────────
       // Triggers if:
