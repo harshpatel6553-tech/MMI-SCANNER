@@ -17,6 +17,12 @@ export function TechnicalScanner() {
   const { allStocks, priceFlash } = useStocks({ index: 'ALL', priceMin: 0, priceMax: 0, volumeMin: 0, search: '' }, 'symbol', 'asc');
   const { setSelectedStock } = useDashboard();
 
+  const tabCounts = useMemo(() => ({
+    macd: allStocks.filter(s => s.macdWeeklyBuy).length,
+    rsi: allStocks.filter(s => s.rsiDaily !== undefined).length,
+    ema: allStocks.filter(s => s.emaCrossDaily).length,
+  }), [allStocks]);
+
   const filteredStocks = useMemo(() => {
     let result = [...allStocks];
     if (activeTab === 'MACD') {
@@ -44,7 +50,7 @@ export function TechnicalScanner() {
           style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
         >
           <Activity size={16} /> MACD Weekly Buy
-          {activeTab === 'MACD' && <span className="badge-pill up" style={{ fontSize: 10, padding: '1px 6px' }}>{filteredStocks.length}</span>}
+          <span className="badge-pill up" style={{ fontSize: 10, padding: '1px 6px' }}>{tabCounts.macd}</span>
         </div>
         <div 
           onClick={() => setActiveTab('RSI')}
@@ -52,7 +58,7 @@ export function TechnicalScanner() {
           style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
         >
           <TrendingUp size={16} /> RSI (14) Momentum
-          {activeTab === 'RSI' && <span className="badge-pill cyan" style={{ fontSize: 10, padding: '1px 6px' }}>{filteredStocks.length}</span>}
+          <span className="badge-pill cyan" style={{ fontSize: 10, padding: '1px 6px' }}>{tabCounts.rsi}</span>
         </div>
         <div 
           onClick={() => setActiveTab('EMACROSS')}
@@ -60,7 +66,7 @@ export function TechnicalScanner() {
           style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
         >
           <ArrowLeftRight size={16} /> EMA Bullish Cross (13, 34)
-          {activeTab === 'EMACROSS' && <span className="badge-pill up" style={{ fontSize: 10, padding: '1px 6px' }}>{filteredStocks.length}</span>}
+          <span className="badge-pill up" style={{ fontSize: 10, padding: '1px 6px' }}>{tabCounts.ema}</span>
         </div>
       </div>
 
@@ -69,7 +75,7 @@ export function TechnicalScanner() {
         <div className="card-head" style={{padding: '16px 20px'}}>
           <span className="card-title">
             {activeTab === 'MACD' && `MACD Weekly Buy Signals (${filteredStocks.length})`}
-            {activeTab === 'RSI' && `RSI Screener (Sorted by Oversold)`}
+            {activeTab === 'RSI' && `RSI Momentum Screener (Sorted by Oversold, ${filteredStocks.length})`}
             {activeTab === 'EMACROSS' && `Daily EMA (13, 34) Bullish Crossovers (${filteredStocks.length})`}
           </span>
         </div>

@@ -28,7 +28,16 @@ export class StockService {
   private averageVolumeMap: Map<string, number> = new Map();
   private hasFetchedAverageVolume: boolean = false;
 
-  constructor() {}
+  constructor() {
+    technicalService.onUpdate((symbol, tech) => {
+      const stock = this.stockCache.get(symbol);
+      if (stock) {
+        stock.macdWeeklyBuy = tech.macdWeeklyBuy;
+        stock.rsiDaily = tech.rsiDaily;
+        stock.emaCrossDaily = tech.emaCrossDaily;
+      }
+    });
+  }
 
   async fetchAverageVolumesInBackground() {
     if (this.hasFetchedAverageVolume) return;
@@ -142,6 +151,8 @@ export class StockService {
              volumeSpike = true;
           }
 
+          const tech = technicalService.getTechnicals(baseStock.symbol);
+
           const stockData: StockData = {
             symbol: baseStock.symbol,
             name: baseStock.name,
@@ -163,7 +174,10 @@ export class StockService {
             atDayLow,
             fiftyTwoWeekHigh: q.fiftyTwoWeekHigh ?? 0,
             fiftyTwoWeekLow: q.fiftyTwoWeekLow ?? 0,
-            marketCap: q.marketCap ?? 0
+            marketCap: q.marketCap ?? 0,
+            macdWeeklyBuy: tech?.macdWeeklyBuy ?? false,
+            rsiDaily: tech?.rsiDaily,
+            emaCrossDaily: tech?.emaCrossDaily ?? false,
           };
 
           results.push(stockData);
@@ -251,6 +265,8 @@ export class StockService {
           
           let volumeSpike = false;
           
+          const tech = technicalService.getTechnicals(baseStock.symbol);
+
           const stockData: StockData = {
             symbol: baseStock.symbol,
             name: baseStock.name,
@@ -272,7 +288,10 @@ export class StockService {
             atDayLow,
             fiftyTwoWeekHigh: meta.fiftyTwoWeekHigh ?? 0,
             fiftyTwoWeekLow: meta.fiftyTwoWeekLow ?? 0,
-            marketCap: meta.marketCap ?? 0
+            marketCap: meta.marketCap ?? 0,
+            macdWeeklyBuy: tech?.macdWeeklyBuy ?? false,
+            rsiDaily: tech?.rsiDaily,
+            emaCrossDaily: tech?.emaCrossDaily ?? false,
           };
 
           results.push(stockData);
