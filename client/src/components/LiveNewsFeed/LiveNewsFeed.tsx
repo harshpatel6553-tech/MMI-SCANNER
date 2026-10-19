@@ -10,7 +10,7 @@ export interface LiveNewsFeedProps {
 export function LiveNewsFeed({ onStockClick }: LiveNewsFeedProps) {
   const { news, loading, error } = useNews();
   const { allStocks } = useStocks({ index: 'ALL', priceMin: 0, priceMax: 0, volumeMin: 0, search: '' }, 'volume', 'desc');
-  const [filter, setFilter] = useState<'ALL' | 'BULLISH' | 'BEARISH' | 'BLOCK DEAL'>('ALL');
+  const [filter, setFilter] = useState<'ALL' | 'REDBOX & YATIN' | 'BULLISH' | 'BEARISH' | 'BLOCK DEAL'>('ALL');
   const [search, setSearch] = useState('');
 
   const formatTime = (dateStr: string) => {
@@ -48,20 +48,30 @@ export function LiveNewsFeed({ onStockClick }: LiveNewsFeedProps) {
   const bankNifty = allStocks.find(s => s.symbol === 'BANKNIFTY' || s.symbol === 'BANK NIFTY') || { changePercent: 0.0 };
 
   const counts = useMemo(() => {
-    let bullish = 0, bearish = 0, block = 0;
+    let bullish = 0, bearish = 0, block = 0, exclusive = 0;
     news.forEach(n => {
       const s = n.sentiment?.toLowerCase();
+      const src = n.source?.toLowerCase() || '';
+      if (src.includes('redbox') || src.includes('yatin')) exclusive++;
       if (s === 'bullish') bullish++;
       if (s === 'bearish') bearish++;
       if (n.isPromoterAction) block++;
     });
-    return { ALL: news.length, BULLISH: bullish, BEARISH: bearish, 'BLOCK DEAL': block };
+    return {
+      ALL: news.length,
+      'REDBOX & YATIN': exclusive,
+      BULLISH: bullish,
+      BEARISH: bearish,
+      'BLOCK DEAL': block
+    };
   }, [news]);
 
   const filteredNews = useMemo(() => {
     return news.filter(n => {
       // Filter tab
       const s = n.sentiment?.toLowerCase();
+      const src = n.source?.toLowerCase() || '';
+      if (filter === 'REDBOX & YATIN' && !src.includes('redbox') && !src.includes('yatin')) return false;
       if (filter === 'BULLISH' && s !== 'bullish') return false;
       if (filter === 'BEARISH' && s !== 'bearish') return false;
       if (filter === 'BLOCK DEAL' && !n.isPromoterAction) return false;
@@ -109,7 +119,7 @@ export function LiveNewsFeed({ onStockClick }: LiveNewsFeedProps) {
   return (
     <div className="live-news-page">
       <div className="toolbar">
-        {(['ALL', 'BULLISH', 'BEARISH', 'BLOCK DEAL'] as const).map(tab => (
+        {(['ALL', 'REDBOX & YATIN', 'BULLISH', 'BEARISH', 'BLOCK DEAL'] as const).map(tab => (
           <button 
             key={tab} 
             className={`filter-pill ${filter === tab ? 'active' : ''}`}
@@ -202,6 +212,22 @@ export function LiveNewsFeed({ onStockClick }: LiveNewsFeedProps) {
                 </a>
               );
             })}
+            {filteredNews.length === 0 && (
+              <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--ink-muted)' }}>
+                {filter === 'REDBOX & YATIN' ? (
+                  <div style={{ maxWidth: '480px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--amber, #f59e0b)' }}>
+                      ⚠️ No live tweets from @RedboxIndia or @yatinmota
+                    </div>
+                    <div style={{ fontSize: '13px', lineHeight: '1.5', color: 'var(--text-secondary, #94a3b8)' }}>
+                      The Twitter/X API key has run out of credits or is blocked. To restore live tweets from Redbox & Yatin Mota, please recharge your <code>twitterapi.io</code> key or update your API key in server configuration.
+                    </div>
+                  </div>
+                ) : (
+                  'No news matching current filters.'
+                )}
+              </div>
+            )}
           </div>
         </main>
 

@@ -147,7 +147,7 @@ class NewsService extends EventEmitter {
             logger.info(`Fetched ${tweets.length} real-time tweets for ${username} via twitterService!`);
             return tweets.map((t: any) => {
                const text = t.text || t.full_text || t.content?.itemContent?.tweet_results?.result?.legacy?.full_text || '';
-               const date = t.created_at || t.content?.itemContent?.tweet_results?.result?.legacy?.created_at || new Date().toISOString();
+               const date = t.createdAt || t.created_at || t.content?.itemContent?.tweet_results?.result?.legacy?.created_at || new Date().toISOString();
                return {
                  full_text: text,
                  created_at: date,
@@ -166,10 +166,14 @@ class NewsService extends EventEmitter {
       const results = await Promise.all(fetchPromises);
       allFetchedTweets = results.flat();
 
-      // If Twitter returned 0 tweets, fall back to Google News Market Wire RSS so feed is never blank!
+      // If Twitter returned 0 tweets, check if fallback is allowed
       if (allFetchedTweets.length === 0) {
-        logger.info('Pulling live Market Wire RSS as fallback...');
-        allFetchedTweets = await this.fetchRssNews();
+        if (process.env.DISABLE_NEWS_FALLBACK === 'true') {
+          logger.info('Twitter returned 0 tweets and DISABLE_NEWS_FALLBACK is enabled. Keeping feed exclusive.');
+        } else {
+          logger.info('Pulling live Market Wire RSS as fallback...');
+          allFetchedTweets = await this.fetchRssNews();
+        }
       }
       
       // Sort all fetched items by date descending (newest first)
