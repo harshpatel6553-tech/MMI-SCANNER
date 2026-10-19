@@ -19,7 +19,7 @@ export interface NewsItem {
 class NewsService extends EventEmitter {
   private newsCache: NewsItem[] = [];
   private isPolling = false;
-  private readonly POLL_INTERVAL = 10 * 1000; // 10 seconds for ultra-low latency real-time flash
+  private readonly POLL_INTERVAL = 25 * 1000; // 25 seconds for reliable real-time updates without rate limits
 
   constructor() {
     super();

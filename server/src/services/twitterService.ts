@@ -1,3 +1,4 @@
+import { XMLParser } from 'fast-xml-parser';
 import logger from '../utils/logger.js';
 import { configService } from '../services/configService.js';
 
@@ -5,6 +6,9 @@ const RAPIDAPI_HOST = 'twitter-x-api8.p.rapidapi.com';
 
 class TwitterService {
   private readonly DEFAULT_RAPIDAPI_KEY = 'edd35e9e16msh30e58d06cb73f85p1109d5jsn72745dbe1e48';
+  private xmlParser = new XMLParser();
+  private rssCache = new Map<string, { data: any; timestamp: number }>();
+  private readonly RSS_CACHE_TTL_MS = 20 * 1000; // 20s cache to prevent hammering
 
   private get TWITTERAPI_IO_KEY(): string | undefined {
     const envKey = process.env.TWITTERAPI_KEY || process.env.TWITTERAPI_IO_KEY;
@@ -32,6 +36,85 @@ class TwitterService {
     ['yatinmota', '1933369219']
   ]); // caches username -> userId
   private readonly CACHE_TTL_MS = 0; // Caching disabled: always fetch fresh data 
+
+  /**
+   * Open-Source RSS fetcher (Fixupx / FixTweet)
+   * 100% Free, NO API keys required, NO monthly limits, real-time live tweets.
+   */
+  async getTweetsFromRss(username: string): Promise<any> {
+    const cached = this.rssCache.get(username);
+    if (cached && Date.now() - cached.timestamp < this.RSS_CACHE_TTL_MS) {
+      return cached.data;
+    }
+
+    const endpoints = [
+      `https://fixupx.com/${encodeURIComponent(username)}/feed.xml`,
+      `https://fxtwitter.com/${encodeURIComponent(username)}/feed.xml`
+    ];
+
+    for (const url of endpoints) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+        const response = await fetch(url, {
+          method: 'GET',
+          signal: controller.signal,
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+            'Accept': 'application/rss+xml, application/xml, text/xml;q=0.9, */*;q=0.8'
+          }
+        });
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          continue;
+        }
+
+        const xml = await response.text();
+        if (!xml || !xml.includes('<rss')) {
+          continue;
+        }
+
+        const parsed = this.xmlParser.parse(xml);
+        const rawItems = parsed?.rss?.channel?.item || [];
+        const items = Array.isArray(rawItems) ? rawItems : [rawItems];
+
+        if (items.length === 0) {
+          continue;
+        }
+
+        const tweets = items.map((item: any) => {
+          const link = item.link || item.guid || '';
+          const idMatch = String(link).match(/status\/(\d+)/);
+          const id_str = idMatch ? idMatch[1] : '';
+          const text = item.title || item.description || '';
+          return {
+            id: id_str,
+            id_str: id_str,
+            text: text,
+            full_text: text,
+            created_at: item.pubDate ? new Date(item.pubDate).toISOString() : new Date().toISOString(),
+            link: link,
+            _sourceAccount: username
+          };
+        }).filter((t: any) => t.full_text && t.full_text.length > 0);
+
+        if (tweets.length > 0) {
+          const result = { tweets };
+          this.rssCache.set(username, { data: result, timestamp: Date.now() });
+          logger.info(`✨ Open-Source Engine: Fetched ${tweets.length} real-time tweets for @${username}`);
+          return result;
+        }
+      } catch (err: any) {
+        if (err.name !== 'AbortError') {
+          logger.warn(`RSS attempt failed for ${username} on ${url}: ${err.message || err}`);
+        }
+      }
+    }
+
+    return null;
+  }
 
   /**
    * Fetch from twitterapi.io directly when a new1_ key is provided
@@ -170,10 +253,19 @@ class TwitterService {
   }
 
   /**
-   * Unified method that resolves tweets by username from either twitterapi.io or RapidAPI.
+   * Unified method:
+   * 1. Prioritizes 100% Free Open-Source RSS engine (FixTweet/Fixupx) - NO limit, NO API keys
+   * 2. Falls back to twitterapi.io if key is configured
+   * 3. Falls back to RapidAPI if key is configured
    */
   async getTweetsByUsername(username: string): Promise<any> {
-    // 1. If twitterapi.io key is configured, prioritize it
+    // 1. Open-Source Engine (Fixupx / FixTweet RSS) - Zero limits, zero cost, real-time
+    const rssResult = await this.getTweetsFromRss(username);
+    if (rssResult && rssResult.tweets && rssResult.tweets.length > 0) {
+      return rssResult;
+    }
+
+    // 2. If twitterapi.io key is configured and RSS had an issue, try twitterapi.io
     if (this.TWITTERAPI_IO_KEY) {
       const ioResult = await this.getTweetsFromTwitterApiIo(username);
       if (ioResult && !ioResult.error) {
@@ -181,7 +273,7 @@ class TwitterService {
       }
     }
 
-    // 2. Otherwise fall back to RapidAPI
+    // 3. Otherwise fall back to RapidAPI
     const userId = await this.getUserId(username);
     if (userId) {
       return this.getUserTweets(userId);
