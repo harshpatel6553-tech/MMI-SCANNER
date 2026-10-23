@@ -387,6 +387,39 @@ const RANGE_TO_YAHOO: Record<string, string> = {
   '6M': '6mo', 'YTD': 'ytd', '1Y': '1y', 'ALL': 'max',
 };
 
+const INDEX_TO_YAHOO: Record<string, string> = {
+  'SENSEX': '^BSESN',
+  'BSE SENSEX': '^BSESN',
+  '^BSESN': '^BSESN',
+  'NIFTY 50': '^NSEI',
+  'NIFTY50': '^NSEI',
+  'NIFTY': '^NSEI',
+  '^NSEI': '^NSEI',
+  'BANKNIFTY': '^NSEBANK',
+  'BANK NIFTY': '^NSEBANK',
+  'NIFTY BANK': '^NSEBANK',
+  '^NSEBANK': '^NSEBANK',
+  'NIFTY 500': '^CRSLDX',
+  'NIFTY500': '^CRSLDX',
+  'NIFTY IT': '^CNXIT',
+  'INDIA VIX': '^INDIAVIX',
+  'INDIAVIX': '^INDIAVIX',
+  'NIFTY 100': '^CNX100',
+  'NIFTY 200': '^CNX200',
+  'NIFTY MIDCAP 50': '^NSEMDCP50',
+  'NIFTY AUTO': '^CNXAUTO',
+  'NIFTY ENERGY': '^CNXENERGY',
+  'NIFTY FMCG': '^CNXFMCG',
+  'NIFTY METAL': '^CNXMETAL',
+  'NIFTY PHARMA': '^CNXPHARMA',
+  'NIFTY REALTY': '^CNXREALTY',
+  'NIFTY INFRA': '^CNXINFRA',
+  'NIFTY PSU BANK': '^CNXPSUBANK',
+  'NIFTY FIN SERVICE': '^CNXFIN',
+  'NIFTY FINANCIAL SERVICES': '^CNXFIN',
+  'NIFTY PSE': '^CNXPSE',
+};
+
 async function queryYahooCandles(sym: string, interval: string, range: string): Promise<any[] | null> {
   const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=${interval}&range=${range}&includePrePost=false`;
   try {
@@ -439,17 +472,27 @@ router.get('/chart/:symbol', async (req: Request, res: Response): Promise<void> 
   }
 
   try {
-    // 1. Try primary NSE symbol
-    let candles = await queryYahooCandles(`${rawSymbol}.NS`, tfConfig.interval, range);
+    let candles: any[] | null = null;
+    const mappedIndex = INDEX_TO_YAHOO[rawSymbol] || INDEX_TO_YAHOO[rawSymbol.replace('^', '')];
 
-    // 2. If empty and range was tight, retry with wider range
-    if ((!candles || candles.length === 0) && range !== '5d' && range !== '1y' && range !== 'max') {
-      candles = await queryYahooCandles(`${rawSymbol}.NS`, tfConfig.interval, '5d');
-    }
+    if (mappedIndex) {
+      candles = await queryYahooCandles(mappedIndex, tfConfig.interval, range);
+      if ((!candles || candles.length === 0) && range !== '5d' && range !== '1y' && range !== 'max') {
+        candles = await queryYahooCandles(mappedIndex, tfConfig.interval, '5d');
+      }
+    } else {
+      // 1. Try primary NSE symbol
+      candles = await queryYahooCandles(`${rawSymbol}.NS`, tfConfig.interval, range);
 
-    // 3. If still empty, try BSE symbol
-    if (!candles || candles.length === 0) {
-      candles = await queryYahooCandles(`${rawSymbol}.BO`, tfConfig.interval, range);
+      // 2. If empty and range was tight, retry with wider range
+      if ((!candles || candles.length === 0) && range !== '5d' && range !== '1y' && range !== 'max') {
+        candles = await queryYahooCandles(`${rawSymbol}.NS`, tfConfig.interval, '5d');
+      }
+
+      // 3. If still empty, try BSE symbol
+      if (!candles || candles.length === 0) {
+        candles = await queryYahooCandles(`${rawSymbol}.BO`, tfConfig.interval, range);
+      }
     }
 
     // 4. If still empty or failed, fallback to live cached quote
@@ -497,7 +540,9 @@ router.get('/chart/:symbol', async (req: Request, res: Response): Promise<void> 
  */
 router.get('/quote/:symbol', async (req: Request, res: Response): Promise<void> => {
   const rawSymbol = (req.params.symbol as string).toUpperCase();
-  const yfSymbol  = rawSymbol.endsWith('.NS') ? rawSymbol : `${rawSymbol}.NS`;
+  const cleanSymbol = rawSymbol.replace('.NS', '').replace('.BO', '');
+  const mappedIndex = INDEX_TO_YAHOO[cleanSymbol] || INDEX_TO_YAHOO[rawSymbol];
+  const yfSymbol = mappedIndex || (rawSymbol.endsWith('.NS') ? rawSymbol : `${rawSymbol}.NS`);
 
   const url = `https://query1.finance.yahoo.com/v7/finance/spark?symbols=${encodeURIComponent(yfSymbol)}&range=1d&interval=1m&cb=${Date.now()}`;
 

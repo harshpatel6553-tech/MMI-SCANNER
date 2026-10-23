@@ -4,25 +4,29 @@ import type { StockData } from '../types';
 
 export function useIndices(allStocks: StockData[]) {
   const [indices, setIndices] = useState<Map<string, StockData>>(new Map());
-  const [flashes, setFlashes] = useState<{ nifty?: 'up' | 'down'; bank?: 'up' | 'down' }>({});
+  const [flashes, setFlashes] = useState<{ nifty?: 'up' | 'down'; bank?: 'up' | 'down'; sensex?: 'up' | 'down' }>({});
   const prevNiftyPrice = useRef<number | null>(null);
   const prevBankPrice = useRef<number | null>(null);
-  const timers = useRef<{ nifty?: ReturnType<typeof setTimeout>; bank?: ReturnType<typeof setTimeout> }>({});
+  const prevSensexPrice = useRef<number | null>(null);
+  const timers = useRef<{ nifty?: ReturnType<typeof setTimeout>; bank?: ReturnType<typeof setTimeout>; sensex?: ReturnType<typeof setTimeout> }>({});
   const { socket } = useSocketContext();
 
   const updateIndices = (items: StockData[]) => {
     let niftyItem: StockData | undefined;
     let bankItem: StockData | undefined;
+    let sensexItem: StockData | undefined;
 
     for (const item of items) {
       if (item.symbol === 'NIFTY 50' || item.name === 'NIFTY 50') {
         niftyItem = item;
       } else if (item.symbol === 'BANKNIFTY' || item.symbol === 'BANK NIFTY' || item.name === 'Bank NIFTY') {
         bankItem = item;
+      } else if (item.symbol === 'SENSEX' || item.name?.includes('SENSEX')) {
+        sensexItem = item;
       }
     }
 
-    if (!niftyItem && !bankItem) return;
+    if (!niftyItem && !bankItem && !sensexItem) return;
 
     // Detect live price movement for pulse animations
     if (niftyItem && prevNiftyPrice.current !== null && niftyItem.price !== prevNiftyPrice.current) {
@@ -41,6 +45,14 @@ export function useIndices(allStocks: StockData[]) {
     }
     if (bankItem) prevBankPrice.current = bankItem.price;
 
+    if (sensexItem && prevSensexPrice.current !== null && sensexItem.price !== prevSensexPrice.current) {
+      const dir = sensexItem.price > prevSensexPrice.current ? 'up' : 'down';
+      setFlashes(f => ({ ...f, sensex: dir }));
+      if (timers.current.sensex) clearTimeout(timers.current.sensex);
+      timers.current.sensex = setTimeout(() => setFlashes(f => ({ ...f, sensex: undefined })), 800);
+    }
+    if (sensexItem) prevSensexPrice.current = sensexItem.price;
+
     setIndices(prev => {
       const next = new Map(prev);
       if (niftyItem) next.set('NIFTY 50', niftyItem);
@@ -48,6 +60,7 @@ export function useIndices(allStocks: StockData[]) {
         next.set('BANKNIFTY', bankItem);
         next.set('BANK NIFTY', bankItem);
       }
+      if (sensexItem) next.set('SENSEX', sensexItem);
       return next;
     });
   };
@@ -98,6 +111,7 @@ export function useIndices(allStocks: StockData[]) {
       clearInterval(interval);
       if (timers.current.nifty) clearTimeout(timers.current.nifty);
       if (timers.current.bank) clearTimeout(timers.current.bank);
+      if (timers.current.sensex) clearTimeout(timers.current.sensex);
     };
   }, []);
 
@@ -110,10 +124,12 @@ export function useIndices(allStocks: StockData[]) {
 
   const nifty50 = indices.get('NIFTY 50');
   const bankNifty = indices.get('BANKNIFTY') || indices.get('BANK NIFTY');
+  const sensex = indices.get('SENSEX');
 
   return {
     nifty50,
     bankNifty,
+    sensex,
     flashes,
     allIndices: Array.from(indices.values()),
   };

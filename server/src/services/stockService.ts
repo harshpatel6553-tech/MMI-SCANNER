@@ -106,20 +106,32 @@ export class StockService {
           const baseStock = yahooToStockMap.get(q.symbol);
           if (!baseStock) continue;
 
-          const price = q.regularMarketPrice ?? 0;
+          const existing = this.stockCache.get(baseStock.symbol);
+          const price = q.regularMarketPrice ?? (existing?.price || 0);
           if (price === 0) continue;
 
-          const dayHigh = q.regularMarketDayHigh ?? price;
-          const dayLow = q.regularMarketDayLow ?? price;
-          const openPrice = q.regularMarketOpen ?? price;
-          const volume = q.regularMarketVolume ?? 0;
-          const prevClose = q.regularMarketPreviousClose ?? price;
+          const rawHigh = q.regularMarketDayHigh ?? 0;
+          const rawLow = q.regularMarketDayLow ?? 0;
+
+          let dayHigh = rawHigh > 0 ? rawHigh : (existing?.dayHigh && existing.dayHigh > 0 ? existing.dayHigh : price);
+          let dayLow = rawLow > 0 ? rawLow : (existing?.dayLow && existing.dayLow > 0 ? existing.dayLow : price);
+
+          if (price > dayHigh) dayHigh = price;
+          if (existing?.dayHigh && existing.dayHigh > dayHigh) dayHigh = existing.dayHigh;
+
+          if (price > 0 && price < dayLow) dayLow = price;
+          if (existing?.dayLow && existing.dayLow > 0 && existing.dayLow < dayLow) dayLow = existing.dayLow;
+
+          const openPrice = q.regularMarketOpen ?? (existing?.open || price);
+          const volume = q.regularMarketVolume ?? (existing?.volume || 0);
+          const prevClose = q.regularMarketPreviousClose ?? (existing?.previousClose || price);
           
           const change = q.regularMarketChange ?? (price - prevClose);
           const changePercent = q.regularMarketChangePercent ?? (prevClose > 0 ? (change / prevClose) * 100 : 0);
 
-          const atDayHigh = dayHigh > 0 && price > 0 && price >= dayHigh;
-          const atDayLow = dayLow > 0 && price > 0 && price <= dayLow;
+          const hasSpread = dayHigh > dayLow && (dayHigh - dayLow) > 0.05;
+          const atDayHigh = hasSpread && price >= dayHigh;
+          const atDayLow = hasSpread && price <= dayLow;
 
           const fullDayAvgVol = q.averageDailyVolume10Day || q.averageDailyVolume3Month || volume || 1;
 
@@ -229,30 +241,41 @@ export class StockService {
           const baseStock = yahooToStockMap.get(meta.symbol);
           if (!baseStock) continue;
 
-          const price = meta.regularMarketPrice ?? 0;
+          const existing = this.stockCache.get(baseStock.symbol);
+          const price = meta.regularMarketPrice ?? (existing?.price || 0);
           if (price === 0) continue;
 
-          const dayHigh = meta.regularMarketDayHigh ?? price;
-          const dayLow = meta.regularMarketDayLow ?? price;
+          const rawHigh = meta.regularMarketDayHigh ?? 0;
+          const rawLow = meta.regularMarketDayLow ?? 0;
+
+          let dayHigh = rawHigh > 0 ? rawHigh : (existing?.dayHigh && existing.dayHigh > 0 ? existing.dayHigh : price);
+          let dayLow = rawLow > 0 ? rawLow : (existing?.dayLow && existing.dayLow > 0 ? existing.dayLow : price);
+
+          if (price > dayHigh) dayHigh = price;
+          if (existing?.dayHigh && existing.dayHigh > dayHigh) dayHigh = existing.dayHigh;
+
+          if (price > 0 && price < dayLow) dayLow = price;
+          if (existing?.dayLow && existing.dayLow > 0 && existing.dayLow < dayLow) dayLow = existing.dayLow;
           
           let openPrice = meta.regularMarketOpen;
           if (!openPrice) {
             const closes = sparkObj.response[0].indicators?.quote?.[0]?.close;
             if (closes && Array.isArray(closes) && closes.length > 0) {
-              openPrice = closes.find((c: any) => c !== null) ?? price;
+              openPrice = closes.find((c: any) => c !== null) ?? (existing?.open || price);
             } else {
-              openPrice = price;
+              openPrice = existing?.open || price;
             }
           }
 
-          const volume = meta.regularMarketVolume ?? 0;
-          const prevClose = meta.previousClose ?? meta.chartPreviousClose ?? price;
+          const volume = meta.regularMarketVolume ?? (existing?.volume || 0);
+          const prevClose = meta.previousClose ?? meta.chartPreviousClose ?? (existing?.previousClose || price);
           
           const change = typeof meta.regularMarketChange === 'number' ? meta.regularMarketChange : (typeof meta.fulldayChange === 'number' ? meta.fulldayChange : (price - prevClose));
           const changePercent = typeof meta.regularMarketChangePercent === 'number' ? meta.regularMarketChangePercent : (typeof meta.fulldayChangePercent === 'number' ? meta.fulldayChangePercent : (prevClose > 0 ? (change / prevClose) * 100 : 0));
 
-          const atDayHigh = dayHigh > 0 && price > 0 && price >= dayHigh;
-          const atDayLow = dayLow > 0 && price > 0 && price <= dayLow;
+          const hasSpread = dayHigh > dayLow && (dayHigh - dayLow) > 0.05;
+          const atDayHigh = hasSpread && price >= dayHigh;
+          const atDayLow = hasSpread && price <= dayLow;
 
           const fullDayAvgVol = this.averageVolumeMap.get(baseStock.symbol) || volume || 1;
 
@@ -318,6 +341,53 @@ export class StockService {
     return this.fetchQuotes(additionalStocks, 'NIFTY500');
   }
 
+  async fetchOfficialBseSensex(): Promise<{
+    price: number;
+    previousClose: number;
+    open: number;
+    dayHigh: number;
+    dayLow: number;
+    change: number;
+    changePercent: number;
+  } | null> {
+    try {
+      const url = 'https://api.bseindia.com/RealTimeBseIndiaAPI/api/GetSensexData/w';
+      const res = await fetch(url, {
+        headers: {
+          'User-Agent': USER_AGENT,
+          'Accept': 'application/json, text/plain, */*',
+          'Referer': 'https://www.bseindia.com/',
+        },
+        signal: AbortSignal.timeout(3500),
+      });
+      if (!res.ok) return null;
+      const data = await res.json() as any[];
+      if (!Array.isArray(data) || data.length === 0) return null;
+      const s = data[0];
+      const parseNum = (v: any) => parseFloat(String(v || '').replace(/,/g, '')) || 0;
+      const price = parseNum(s.ltp);
+      if (price <= 0) return null;
+      const prevClose = parseNum(s.Prev_Close) || price;
+      const change = parseNum(s.chg) || (price - prevClose);
+      const changePercent = parseNum(s.perchg) || (prevClose > 0 ? (change / prevClose) * 100 : 0);
+      const open = parseNum(s.I_open) || price;
+      const dayHigh = parseNum(s.High) || price;
+      const dayLow = parseNum(s.Low) || price;
+
+      return {
+        price,
+        previousClose: prevClose,
+        open,
+        dayHigh,
+        dayLow,
+        change,
+        changePercent,
+      };
+    } catch {
+      return null;
+    }
+  }
+
   async fetchIndices(): Promise<StockData[]> {
     const yahooIndices: { yahooSymbol: string; displaySymbol: string; name: string; aliases?: string[] }[] = [
       { yahooSymbol: '^NSEI',      displaySymbol: 'NIFTY 50',          name: 'NIFTY 50' },
@@ -345,26 +415,45 @@ export class StockService {
     const symbolsStr = yahooIndices.map(i => i.yahooSymbol).join(',');
 
     try {
+      // Concurrently fetch official BSE Sensex data for guaranteed accuracy
+      const bseSensexPromise = this.fetchOfficialBseSensex().catch(() => null);
+
       try {
-        const quotes = await yahooFinance.quote(yahooIndices.map(i => i.yahooSymbol), { return: 'array' }) as any[];
+        const [quotes, bseSensex] = await Promise.all([
+          yahooFinance.quote(yahooIndices.map(i => i.yahooSymbol), { return: 'array' }) as Promise<any[]>,
+          bseSensexPromise,
+        ]);
         
         for (const q of quotes) {
           const idx = yahooIndices.find(i => i.yahooSymbol === q.symbol);
           if (!idx) continue;
 
-          const price = q.regularMarketPrice ?? 0;
+          const isSensex = idx.displaySymbol === 'SENSEX';
+          const existing = this.stockCache.get(idx.displaySymbol);
+
+          let price = (isSensex && bseSensex) ? bseSensex.price : (q.regularMarketPrice ?? (existing?.price || 0));
           if (price === 0) continue;
 
-          const prevClose = q.regularMarketPreviousClose ?? price;
-          const change = q.regularMarketChange ?? (price - prevClose);
-          const changePercent = q.regularMarketChangePercent ?? (prevClose > 0 ? (change / prevClose) * 100 : 0);
+          const prevClose = (isSensex && bseSensex) ? bseSensex.previousClose : (q.regularMarketPreviousClose ?? (existing?.previousClose || price));
+          const change = (isSensex && bseSensex) ? bseSensex.change : (q.regularMarketChange ?? (price - prevClose));
+          const changePercent = (isSensex && bseSensex) ? bseSensex.changePercent : (q.regularMarketChangePercent ?? (prevClose > 0 ? (change / prevClose) * 100 : 0));
+          const open = (isSensex && bseSensex) ? bseSensex.open : (q.regularMarketOpen ?? (existing?.open || price));
           
-          const dayHigh = q.regularMarketDayHigh ?? price;
-          const dayLow = q.regularMarketDayLow ?? price;
-          const open = q.regularMarketOpen ?? price;
-          
-          const atDayHigh = dayHigh > 0 && price > 0 && price >= dayHigh;
-          const atDayLow = dayLow > 0 && price > 0 && price <= dayLow;
+          const rawHigh = (isSensex && bseSensex) ? bseSensex.dayHigh : (q.regularMarketDayHigh ?? 0);
+          const rawLow = (isSensex && bseSensex) ? bseSensex.dayLow : (q.regularMarketDayLow ?? 0);
+
+          let dayHigh = rawHigh > 0 ? rawHigh : (existing?.dayHigh && existing.dayHigh > 0 ? existing.dayHigh : price);
+          let dayLow = rawLow > 0 ? rawLow : (existing?.dayLow && existing.dayLow > 0 ? existing.dayLow : price);
+
+          if (price > dayHigh) dayHigh = price;
+          if (existing?.dayHigh && existing.dayHigh > dayHigh) dayHigh = existing.dayHigh;
+
+          if (price > 0 && price < dayLow) dayLow = price;
+          if (existing?.dayLow && existing.dayLow > 0 && existing.dayLow < dayLow) dayLow = existing.dayLow;
+
+          const hasSpread = dayHigh > dayLow && (dayHigh - dayLow) > 0.05;
+          const atDayHigh = hasSpread && price >= dayHigh;
+          const atDayLow = hasSpread && price <= dayLow;
 
           const indexData: StockData = {
             symbol: idx.displaySymbol,
@@ -376,7 +465,7 @@ export class StockService {
             dayLow,
             change,
             changePercent,
-            volume: q.regularMarketVolume ?? 0,
+            volume: q.regularMarketVolume ?? (existing?.volume || 0),
             sector: 'Index',
             averageVolume: 0,
             relativeVolume: 0,
@@ -385,8 +474,8 @@ export class StockService {
             lastUpdated: new Date().toISOString(),
             atDayHigh,
             atDayLow,
-            fiftyTwoWeekHigh: q.fiftyTwoWeekHigh ?? 0,
-            fiftyTwoWeekLow: q.fiftyTwoWeekLow ?? 0,
+            fiftyTwoWeekHigh: q.fiftyTwoWeekHigh ?? (existing?.fiftyTwoWeekHigh || 0),
+            fiftyTwoWeekLow: q.fiftyTwoWeekLow ?? (existing?.fiftyTwoWeekLow || 0),
             marketCap: 0
           };
           
@@ -402,6 +491,7 @@ export class StockService {
       } catch (err: any) {
         logger.error('yahoo-finance2 failed for indices. Falling back to /spark: ' + err.message);
         
+        const bseSensex = await bseSensexPromise;
         const url = `https://query1.finance.yahoo.com/v7/finance/spark?symbols=${encodeURIComponent(symbolsStr)}&range=1d&interval=1m&cb=${Date.now()}`;
         const res = await fetch(url, {
           headers: { 'User-Agent': USER_AGENT, 'Accept': 'application/json' },
@@ -419,38 +509,59 @@ export class StockService {
             const idx = yahooIndices.find(i => i.yahooSymbol === meta.symbol);
             if (!idx) continue;
 
-            const price: number = typeof meta.regularMarketPrice === 'number'
-              ? meta.regularMarketPrice
-              : (parseFloat(meta.regularMarketPrice) || 0);
+            const isSensex = idx.displaySymbol === 'SENSEX';
+            const existing = this.stockCache.get(idx.displaySymbol);
+
+            const price: number = (isSensex && bseSensex)
+              ? bseSensex.price
+              : (typeof meta.regularMarketPrice === 'number'
+                ? meta.regularMarketPrice
+                : (parseFloat(meta.regularMarketPrice) || (existing?.price || 0)));
             if (price === 0) continue;
 
-            const prevClose: number = typeof meta.chartPreviousClose === 'number'
-              ? meta.chartPreviousClose
-              : (typeof meta.previousClose === 'number' ? meta.previousClose : price);
+            const prevClose: number = (isSensex && bseSensex)
+              ? bseSensex.previousClose
+              : (typeof meta.chartPreviousClose === 'number'
+                ? meta.chartPreviousClose
+                : (typeof meta.previousClose === 'number' ? meta.previousClose : (existing?.previousClose || price)));
 
-            const change: number = typeof meta.fulldayChange === 'number'
-              ? meta.fulldayChange
-              : (typeof meta.regularMarketChange === 'number' ? meta.regularMarketChange : (price - prevClose));
+            const change: number = (isSensex && bseSensex)
+              ? bseSensex.change
+              : (typeof meta.fulldayChange === 'number'
+                ? meta.fulldayChange
+                : (typeof meta.regularMarketChange === 'number' ? meta.regularMarketChange : (price - prevClose)));
 
-            const changePercent: number = typeof meta.fulldayChangePercent === 'number'
-              ? meta.fulldayChangePercent
-              : (typeof meta.regularMarketChangePercent === 'number' ? meta.regularMarketChangePercent : (prevClose > 0 ? (change / prevClose) * 100 : 0));
+            const changePercent: number = (isSensex && bseSensex)
+              ? bseSensex.changePercent
+              : (typeof meta.fulldayChangePercent === 'number'
+                ? meta.fulldayChangePercent
+                : (typeof meta.regularMarketChangePercent === 'number' ? meta.regularMarketChangePercent : (prevClose > 0 ? (change / prevClose) * 100 : 0)));
 
-            const dayHigh: number = meta.regularMarketDayHigh ?? price;
-            const dayLow: number = meta.regularMarketDayLow ?? price;
+            const rawHigh: number = (isSensex && bseSensex) ? bseSensex.dayHigh : (meta.regularMarketDayHigh ?? 0);
+            const rawLow: number = (isSensex && bseSensex) ? bseSensex.dayLow : (meta.regularMarketDayLow ?? 0);
+
+            let dayHigh = rawHigh > 0 ? rawHigh : (existing?.dayHigh && existing.dayHigh > 0 ? existing.dayHigh : price);
+            let dayLow = rawLow > 0 ? rawLow : (existing?.dayLow && existing.dayLow > 0 ? existing.dayLow : price);
+
+            if (price > dayHigh) dayHigh = price;
+            if (existing?.dayHigh && existing.dayHigh > dayHigh) dayHigh = existing.dayHigh;
+
+            if (price > 0 && price < dayLow) dayLow = price;
+            if (existing?.dayLow && existing.dayLow > 0 && existing.dayLow < dayLow) dayLow = existing.dayLow;
             
-            let open: number = meta.regularMarketOpen;
+            let open: number = (isSensex && bseSensex) ? bseSensex.open : meta.regularMarketOpen;
             if (!open) {
               const closes = sparkObj.response[0].indicators?.quote?.[0]?.close;
               if (closes && Array.isArray(closes) && closes.length > 0) {
-                open = closes.find((c: any) => c !== null) ?? price;
+                open = closes.find((c: any) => c !== null) ?? (existing?.open || price);
               } else {
-                open = price;
+                open = existing?.open || price;
               }
             }
 
-            const atDayHigh = dayHigh > 0 && price > 0 && price >= dayHigh;
-            const atDayLow = dayLow > 0 && price > 0 && price <= dayLow;
+            const hasSpread = dayHigh > dayLow && (dayHigh - dayLow) > 0.05;
+            const atDayHigh = hasSpread && price >= dayHigh;
+            const atDayLow = hasSpread && price <= dayLow;
 
             const indexData: StockData = {
               symbol: idx.displaySymbol,
@@ -462,7 +573,7 @@ export class StockService {
               dayLow,
               change,
               changePercent,
-              volume: meta.regularMarketVolume ?? 0,
+              volume: meta.regularMarketVolume ?? (existing?.volume || 0),
               sector: 'Index',
               averageVolume: 0,
               relativeVolume: 0,
@@ -471,8 +582,8 @@ export class StockService {
               lastUpdated: new Date().toISOString(),
               atDayHigh,
               atDayLow,
-              fiftyTwoWeekHigh: meta.fiftyTwoWeekHigh ?? 0,
-              fiftyTwoWeekLow: meta.fiftyTwoWeekLow ?? 0,
+              fiftyTwoWeekHigh: meta.fiftyTwoWeekHigh ?? (existing?.fiftyTwoWeekHigh || 0),
+              fiftyTwoWeekLow: meta.fiftyTwoWeekLow ?? (existing?.fiftyTwoWeekLow || 0),
               marketCap: 0
             };
             

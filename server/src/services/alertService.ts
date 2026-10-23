@@ -22,6 +22,7 @@ interface HighLowState {
 class AlertService {
   private previousHighLowState: Map<string, HighLowState> = new Map();
   private inMemoryAlerts: StockAlert[] = [];
+  private currentTradingDay: string = '';
 
   private generateDeterministicUUID(input: string): string {
     const hash = crypto.createHash('sha256').update(input).digest('hex');
@@ -30,9 +31,18 @@ class AlertService {
 
   checkAndGenerateAlerts(stocks: StockData[]): StockAlert[] {
     const newAlerts: StockAlert[] = [];
-    const now = new Date().toISOString();
-    const dayTimestamp = now.substring(0, 10);
+    const now = new Date();
+    const nowIso = now.toISOString();
+    const dayTimestamp = nowIso.substring(0, 10);
     const currentMs = Date.now();
+
+    // Auto-reset high/low memory state at calendar trading day boundary in Indian Standard Time (IST)
+    const istDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(now);
+    if (this.currentTradingDay !== istDate) {
+      logger.info(`🌅 New trading day detected (${istDate}, prev was '${this.currentTradingDay || 'none'}'). Resetting Alert Service high/low memory state.`);
+      this.currentTradingDay = istDate;
+      this.previousHighLowState.clear();
+    }
 
     for (const stock of stocks) {
       const isIndex = stock.indexName === 'INDEX';
@@ -77,7 +87,7 @@ class AlertService {
             price: alertPrice,
             change: stock.change,
             changePercent: stock.changePercent,
-            createdAt: now,
+            createdAt: nowIso,
           });
           triggeredAlert = true;
           logger.info(`🚀 DAY HIGH: ${stock.symbol} @ ₹${alertPrice.toFixed(2)} (high: ₹${stock.dayHigh.toFixed(2)})`);
@@ -107,7 +117,7 @@ class AlertService {
             price: alertPrice,
             change: stock.change,
             changePercent: stock.changePercent,
-            createdAt: now,
+            createdAt: nowIso,
           });
           triggeredAlert = true;
           logger.info(`📉 DAY LOW: ${stock.symbol} @ ₹${alertPrice.toFixed(2)} (low: ₹${stock.dayLow.toFixed(2)})`);
@@ -125,19 +135,24 @@ class AlertService {
           price: stock.price,
           change: stock.change,
           changePercent: stock.changePercent,
-          createdAt: now,
+          createdAt: nowIso,
         });
         logger.info(`⚡ VOLUME SPIKE: ${stock.symbol} ${stock.relativeVolume.toFixed(1)}x average`);
       }
 
       // ── Update state ───────────────────────────────────────────────
+      const updatedHigh = Math.max(prev.highValue, stock.dayHigh, stock.price);
+      const updatedLow = prev.lowValue === 0
+        ? (stock.dayLow > 0 ? stock.dayLow : stock.price)
+        : (stock.dayLow > 0 ? Math.min(prev.lowValue, stock.dayLow, stock.price) : Math.min(prev.lowValue, stock.price));
+
       this.previousHighLowState.set(stock.symbol, {
         atHigh: stock.atDayHigh,
         atLow: stock.atDayLow,
-        highValue: prev.highValue, // Do not chase dayHigh, let the alert logic update it
-        lowValue: prev.lowValue,   // Do not chase dayLow, let the alert logic update it
+        highValue: updatedHigh,
+        lowValue: updatedLow,
         maxPriceSeenToday: Math.max(prev.maxPriceSeenToday, stock.price),
-        minPriceSeenToday: isNaN(prev.minPriceSeenToday) ? stock.price : Math.min(prev.minPriceSeenToday, stock.price),
+        minPriceSeenToday: isNaN(prev.minPriceSeenToday) || prev.minPriceSeenToday === 0 ? stock.price : Math.min(prev.minPriceSeenToday, stock.price),
         volumeSpiked: stock.volumeSpike || prev.volumeSpiked,
       });
     }

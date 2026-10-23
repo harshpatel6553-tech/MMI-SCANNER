@@ -7,10 +7,11 @@ import { TrendingUp, TrendingDown, Activity } from 'lucide-react';
 interface HeaderIndicesProps {
   nifty50?: StockData;
   bankNifty?: StockData;
-  flashes?: { nifty?: 'up' | 'down'; bank?: 'up' | 'down' };
+  sensex?: StockData;
+  flashes?: { nifty?: 'up' | 'down'; bank?: 'up' | 'down'; sensex?: 'up' | 'down' };
 }
 
-export function HeaderIndices({ nifty50, bankNifty, flashes }: HeaderIndicesProps) {
+export function HeaderIndices({ nifty50, bankNifty, sensex, flashes }: HeaderIndicesProps) {
   const { setChartSymbol, setActiveTab } = useDashboard();
 
   // Format helper for Indian Rupee numbers (e.g. 23,449.25)
@@ -24,6 +25,7 @@ export function HeaderIndices({ nifty50, bankNifty, flashes }: HeaderIndicesProp
 
   const niftyUp = (nifty50?.change ?? 0) >= 0;
   const bankUp = (bankNifty?.change ?? 0) >= 0;
+  const sensexUp = (sensex?.change ?? 0) >= 0;
 
   return (
     <div className="header-indices-wrapper">
@@ -96,6 +98,43 @@ export function HeaderIndices({ nifty50, bankNifty, flashes }: HeaderIndicesProp
             </span>
             <span className="index-chip-pct">
               ({bankNifty ? `${bankUp ? '+' : ''}${bankNifty.changePercent.toFixed(2)}` : '0.00'}%)
+            </span>
+          </span>
+        </div>
+      </div>
+
+      {/* ── SENSEX INDEX CHIP ── */}
+      <div
+        className={`header-index-chip ${sensexUp ? 'is-up' : 'is-down'} ${flashes?.sensex ? `flash-${flashes.sensex}` : ''}`}
+        onClick={() => {
+          audioAlerts.playClickHaptic();
+          setChartSymbol('SENSEX');
+          setActiveTab('Charts');
+        }}
+        title={`SENSEX: High ₹${sensex?.dayHigh?.toFixed(2) || '---'} | Low ₹${sensex?.dayLow?.toFixed(2) || '---'} · Click to view Chart`}
+      >
+        <div className="index-chip-head">
+          <span className="index-chip-icon">
+            <Activity size={12} className={sensexUp ? 'text-up' : 'text-down'} />
+          </span>
+          <span className="index-chip-name">SENSEX</span>
+          <span className="index-chip-market-tag">
+            <span className="live-pulse-dot" /> BSE
+          </span>
+        </div>
+
+        <div className="index-chip-body">
+          <span className={`index-chip-price num tabular-nums ${flashes?.sensex ? `price-${flashes.sensex}` : ''}`}>
+            {sensex ? formatIndexPrice(sensex.price) : '---'}
+          </span>
+          
+          <span className={`index-chip-badge num tabular-nums ${sensexUp ? 'up' : 'down'}`}>
+            {sensexUp ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
+            <span>
+              {sensex ? `${sensexUp ? '+' : ''}${sensex.change.toFixed(2)}` : '0.00'}
+            </span>
+            <span className="index-chip-pct">
+              ({sensex ? `${sensexUp ? '+' : ''}${sensex.changePercent.toFixed(2)}` : '0.00'}%)
             </span>
           </span>
         </div>

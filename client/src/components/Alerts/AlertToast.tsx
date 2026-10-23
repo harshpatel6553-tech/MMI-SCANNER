@@ -42,7 +42,8 @@ function getIcon(alertType: StockAlert['alertType']): React.ReactNode {
 }
 
 function isIndexSymbol(symbol: string): boolean {
-  return symbol.includes('NIFTY') || symbol === 'BANKNIFTY';
+  const s = symbol.toUpperCase();
+  return s.includes('NIFTY') || s.includes('BANKNIFTY') || s.includes('SENSEX') || s.includes('INDIA VIX');
 }
 
 function getToastLabel(alertType: StockAlert['alertType']): string {
