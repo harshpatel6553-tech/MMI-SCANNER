@@ -341,6 +341,55 @@ export class StockService {
     return this.fetchQuotes(additionalStocks, 'NIFTY500');
   }
 
+  async fetchMoneycontrolSensex(): Promise<{
+    price: number;
+    previousClose: number;
+    open: number;
+    dayHigh: number;
+    dayLow: number;
+    change: number;
+    changePercent: number;
+  } | null> {
+    try {
+      const res = await fetch('https://www.moneycontrol.com/indian-indices/sensex-4.html', {
+        headers: {
+          'User-Agent': USER_AGENT,
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        },
+        signal: AbortSignal.timeout(3000),
+      });
+      if (!res.ok) return null;
+      const html = await res.text();
+      const parse = (id: string) => {
+        const m = html.match(new RegExp(`id="${id}"[^>]*>([^<]+)`));
+        return m ? parseFloat(m[1].replace(/,/g, '')) || 0 : 0;
+      };
+      const price = parse('sp_val');
+      if (price <= 0) return null;
+      const dayHigh = parse('sp_high') || price;
+      const dayLow = parse('sp_low') || price;
+      const open = parse('sp_open') || price;
+      
+      const prevCloseMatch = html.match(/Previous Close[^<]*<\/span>\s*<span[^>]*class="value"[^>]*>([^<]+)/i) 
+        || html.match(/Prev\. Close[^<]*<\/div>\s*<div[^>]*>([^<]+)/i);
+      const prevClose = prevCloseMatch ? parseFloat(prevCloseMatch[1].replace(/,/g, '')) || 73249.39 : 73249.39;
+      const change = price - prevClose;
+      const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
+
+      return {
+        price,
+        previousClose: prevClose,
+        open,
+        dayHigh,
+        dayLow,
+        change,
+        changePercent,
+      };
+    } catch {
+      return null;
+    }
+  }
+
   async fetchOfficialBseSensex(): Promise<{
     price: number;
     previousClose: number;
@@ -360,13 +409,13 @@ export class StockService {
         },
         signal: AbortSignal.timeout(3500),
       });
-      if (!res.ok) return null;
+      if (!res.ok) return await this.fetchMoneycontrolSensex();
       const data = await res.json() as any[];
-      if (!Array.isArray(data) || data.length === 0) return null;
+      if (!Array.isArray(data) || data.length === 0) return await this.fetchMoneycontrolSensex();
       const s = data[0];
       const parseNum = (v: any) => parseFloat(String(v || '').replace(/,/g, '')) || 0;
       const price = parseNum(s.ltp);
-      if (price <= 0) return null;
+      if (price <= 0) return await this.fetchMoneycontrolSensex();
       const prevClose = parseNum(s.Prev_Close) || price;
       const change = parseNum(s.chg) || (price - prevClose);
       const changePercent = parseNum(s.perchg) || (prevClose > 0 ? (change / prevClose) * 100 : 0);
@@ -384,7 +433,7 @@ export class StockService {
         changePercent,
       };
     } catch {
-      return null;
+      return await this.fetchMoneycontrolSensex();
     }
   }
 
