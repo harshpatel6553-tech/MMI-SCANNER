@@ -103,12 +103,11 @@ export function useAlerts() {
         return [toast, ...prev].slice(0, 6);
       });
 
-      // Deduplicate history: merge rapid successive alerts for the same symbol within 30 seconds
+      // Record all genuine alerts in history, deduplicating only exact duplicate price entries
       setAlertHistory(prev => {
-        const alertTime = new Date(alert.createdAt).getTime();
         const index = prev.findIndex(a =>
           a.id === alert.id ||
-          (a.symbol === alert.symbol && a.alertType === alert.alertType && Math.abs(alertTime - new Date(a.createdAt).getTime()) < 30000)
+          (a.symbol === alert.symbol && a.alertType === alert.alertType && a.price === alert.price)
         );
         if (index >= 0) {
           const next = [...prev];
