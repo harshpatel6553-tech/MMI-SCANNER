@@ -112,6 +112,8 @@ export interface ServerToClientEvents {
   'stocks:update:full': (data: StockData[]) => void;
   /** Partial update containing only changed full stocks */
   'stocks:update:partial': (data: StockData[]) => void;
+  /** Dedicated real-time index stream (NIFTY 50, BANK NIFTY, SENSEX) */
+  'indices:update': (data: StockData[]) => void;
   /** Partial delta update containing only changed stocks */
   'stocks:update:delta': (data: Partial<StockData>[]) => void;
   /** New price alert notification */

@@ -75,10 +75,12 @@ export function useIndices(allStocks: StockData[]) {
 
     socket.on('stocks:update:full', handleSocketUpdate);
     socket.on('stocks:update:partial', handleSocketUpdate);
+    socket.on('indices:update', handleSocketUpdate);
 
     return () => {
       socket.off('stocks:update:full', handleSocketUpdate);
       socket.off('stocks:update:partial', handleSocketUpdate);
+      socket.off('indices:update', handleSocketUpdate);
     };
   }, [socket]);
 

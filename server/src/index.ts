@@ -303,10 +303,15 @@ async function upsertStocksToSupabase(
 /** Track interval IDs for graceful shutdown */
 let nifty50Interval: ReturnType<typeof setInterval> | null = null;
 let nifty500Interval: ReturnType<typeof setInterval> | null = null;
+let indicesInterval: ReturnType<typeof setInterval> | null = null;
 
 /** Guard against overlapping poll cycles */
 let isNifty50Polling = false;
 let isNifty500Polling = false;
+let isIndicesPolling = false;
+let lastNifty50PollStart = 0;
+let lastNifty500PollStart = 0;
+let lastIndicesPollStart = 0;
 
 /**
  * Execute a single Nifty 50 polling cycle.
@@ -314,8 +319,13 @@ let isNifty500Polling = false;
  */
 async function pollNifty50(isInitial = false): Promise<void> {
   if (isNifty50Polling) {
-    logger.debug('Nifty 50 poll skipped — previous cycle still running');
-    return;
+    if (Date.now() - lastNifty50PollStart > 12000) {
+      logger.warn('⚠️ Nifty 50 poll exceeded 12s. Releasing watchdog lock.');
+      isNifty50Polling = false;
+    } else {
+      logger.debug('Nifty 50 poll skipped — previous cycle still running');
+      return;
+    }
   }
   
   if (!isInitial && !isMarketOpen()) {
@@ -327,6 +337,7 @@ async function pollNifty50(isInitial = false): Promise<void> {
   }
 
   isNifty50Polling = true;
+  lastNifty50PollStart = Date.now();
   const startTime = Date.now();
 
   try {
@@ -367,8 +378,13 @@ async function pollNifty50(isInitial = false): Promise<void> {
  */
 async function pollNifty500(isInitial = false): Promise<void> {
   if (isNifty500Polling) {
-    logger.debug('Nifty 500 poll skipped — previous cycle still running');
-    return;
+    if (Date.now() - lastNifty500PollStart > 20000) {
+      logger.warn('⚠️ Nifty 500 poll exceeded 20s. Releasing watchdog lock.');
+      isNifty500Polling = false;
+    } else {
+      logger.debug('Nifty 500 poll skipped — previous cycle still running');
+      return;
+    }
   }
   
   if (!isInitial && !isMarketOpen()) {
@@ -380,6 +396,7 @@ async function pollNifty500(isInitial = false): Promise<void> {
   }
 
   isNifty500Polling = true;
+  lastNifty500PollStart = Date.now();
   const startTime = Date.now();
 
   try {
@@ -409,6 +426,47 @@ async function pollNifty500(isInitial = false): Promise<void> {
   }
 }
 
+/**
+ * Dedicated ultra-fast polling loop for Indices (NIFTY 50, BANK NIFTY, SENSEX, etc.).
+ * Runs independently every 3 seconds to guarantee instant header telemetry updates.
+ */
+async function pollIndices(isInitial = false): Promise<void> {
+  if (isIndicesPolling) {
+    if (Date.now() - lastIndicesPollStart > 8000) {
+      isIndicesPolling = false;
+    } else {
+      return;
+    }
+  }
+
+  if (!isInitial && !isMarketOpen()) {
+    return;
+  }
+
+  isIndicesPolling = true;
+  lastIndicesPollStart = Date.now();
+
+  try {
+    const indices = await stockService.fetchIndices();
+    if (indices && indices.length > 0) {
+      const indexAlerts = alertService.checkAndGenerateAlerts(indices);
+      // Emit real-time index update directly to all connected sockets
+      io.emit('stocks:update:partial', indices);
+      io.emit('indices:update', indices);
+
+      if (indexAlerts.length > 0) {
+        for (const alert of indexAlerts) {
+          io.emit('alert:new', alert);
+        }
+      }
+    }
+  } catch (err: any) {
+    logger.error(`Indices poll error: ${err.message}`);
+  } finally {
+    isIndicesPolling = false;
+  }
+}
+
 // ── Graceful Shutdown ──────────────────────────────────────────
 
 /**
@@ -425,6 +483,10 @@ function shutdown(): void {
   if (nifty500Interval) {
     clearInterval(nifty500Interval);
     nifty500Interval = null;
+  }
+  if (indicesInterval) {
+    clearInterval(indicesInterval);
+    indicesInterval = null;
   }
 
   // Close Socket.IO
@@ -507,6 +569,9 @@ async function startServer(): Promise<void> {
     });
 
     // Initial fetch — run immediately
+    logger.info('🔄 Starting initial indices data fetch...');
+    await pollIndices(true);
+
     logger.info('🔄 Starting initial Nifty 50 data fetch...');
     await pollNifty50(true);
 
@@ -517,8 +582,9 @@ async function startServer(): Promise<void> {
     // Start polling intervals
     nifty50Interval = setInterval(pollNifty50, NIFTY50_POLL_INTERVAL);
     nifty500Interval = setInterval(pollNifty500, NIFTY500_POLL_INTERVAL);
+    indicesInterval = setInterval(pollIndices, 3000);
 
-    logger.info('✅ Polling loops started');
+    logger.info('✅ Polling loops started (Nifty 50, Nifty 500 & Indices)');
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     logger.error(`Failed to start server: ${message}`);

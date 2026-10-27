@@ -125,7 +125,13 @@ export class StockService {
 
       let allSparkResults: any[] = [];
       try {
-        const quotes = await yahooFinance.quote(yahooSymbols, { return: 'array' }) as any[];
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('yahooFinance.quote timed out after 4000ms')), 4000)
+        );
+        const quotes = await Promise.race([
+          yahooFinance.quote(yahooSymbols, { return: 'array' }) as Promise<any[]>,
+          timeoutPromise
+        ]);
         
         for (const q of quotes) {
           const baseStock = yahooToStockMap.get(q.symbol);
@@ -492,87 +498,17 @@ export class StockService {
       // Concurrently fetch official BSE Sensex data for guaranteed accuracy
       const bseSensexPromise = this.fetchOfficialBseSensex().catch(() => null);
 
+      // Primary strategy: Ultra-fast /spark endpoint with 4000ms timeout (never hangs)
+      let sparkSuccess = false;
       try {
-        const [quotes, bseSensex] = await Promise.all([
-          yahooFinance.quote(yahooIndices.map(i => i.yahooSymbol), { return: 'array' }) as Promise<any[]>,
+        const url = `https://query1.finance.yahoo.com/v7/finance/spark?symbols=${encodeURIComponent(symbolsStr)}&range=1d&interval=1m&cb=${Date.now()}`;
+        const [res, bseSensex] = await Promise.all([
+          fetch(url, {
+            headers: { 'User-Agent': USER_AGENT, 'Accept': 'application/json' },
+            signal: AbortSignal.timeout(4000),
+          }),
           bseSensexPromise,
         ]);
-        
-        for (const q of quotes) {
-          const idx = yahooIndices.find(i => i.yahooSymbol === q.symbol);
-          if (!idx) continue;
-
-          const isSensex = idx.displaySymbol === 'SENSEX';
-          const existing = this.stockCache.get(idx.displaySymbol);
-
-          let price = (isSensex && bseSensex) ? bseSensex.price : (q.regularMarketPrice ?? (existing?.price || 0));
-          if (price === 0) continue;
-
-          const prevClose = (isSensex && bseSensex)
-            ? bseSensex.previousClose
-            : this.getOrLockPrevClose(idx.displaySymbol, q.regularMarketPreviousClose, existing?.previousClose, price);
-          const change = (isSensex && bseSensex) ? bseSensex.change : Number((price - prevClose).toFixed(2));
-          const changePercent = (isSensex && bseSensex) ? bseSensex.changePercent : (prevClose > 0 ? Number(((change / prevClose) * 100).toFixed(2)) : 0);
-          const open = (isSensex && bseSensex) ? bseSensex.open : (q.regularMarketOpen ?? (existing?.open || price));
-          
-          const rawHigh = (isSensex && bseSensex) ? bseSensex.dayHigh : (q.regularMarketDayHigh ?? 0);
-          const rawLow = (isSensex && bseSensex) ? bseSensex.dayLow : (q.regularMarketDayLow ?? 0);
-
-          let dayHigh = rawHigh > 0 ? rawHigh : (existing?.dayHigh && existing.dayHigh > 0 ? existing.dayHigh : price);
-          let dayLow = rawLow > 0 ? rawLow : (existing?.dayLow && existing.dayLow > 0 ? existing.dayLow : price);
-
-          if (price > dayHigh) dayHigh = price;
-          if (existing?.dayHigh && existing.dayHigh > dayHigh) dayHigh = existing.dayHigh;
-
-          if (price > 0 && price < dayLow) dayLow = price;
-          if (existing?.dayLow && existing.dayLow > 0 && existing.dayLow < dayLow) dayLow = existing.dayLow;
-
-          const hasSpread = dayHigh > dayLow && (dayHigh - dayLow) > 0.05;
-          const atDayHigh = hasSpread && price >= dayHigh;
-          const atDayLow = hasSpread && price <= dayLow;
-
-          const indexData: StockData = {
-            symbol: idx.displaySymbol,
-            name: idx.name,
-            price,
-            previousClose: prevClose,
-            open,
-            dayHigh,
-            dayLow,
-            change,
-            changePercent,
-            volume: q.regularMarketVolume ?? (existing?.volume || 0),
-            sector: 'Index',
-            averageVolume: 0,
-            relativeVolume: 0,
-            volumeSpike: false,
-            indexName: 'INDEX',
-            lastUpdated: new Date().toISOString(),
-            atDayHigh,
-            atDayLow,
-            fiftyTwoWeekHigh: q.fiftyTwoWeekHigh ?? (existing?.fiftyTwoWeekHigh || 0),
-            fiftyTwoWeekLow: q.fiftyTwoWeekLow ?? (existing?.fiftyTwoWeekLow || 0),
-            marketCap: 0
-          };
-          
-          results.push(indexData);
-          this.stockCache.set(indexData.symbol, indexData);
-          if (idx.aliases) {
-            for (const alias of idx.aliases) {
-              const aliasData = { ...indexData, symbol: alias };
-              this.stockCache.set(alias, aliasData);
-            }
-          }
-        }
-      } catch (err: any) {
-        logger.error('yahoo-finance2 failed for indices. Falling back to /spark: ' + err.message);
-        
-        const bseSensex = await bseSensexPromise;
-        const url = `https://query1.finance.yahoo.com/v7/finance/spark?symbols=${encodeURIComponent(symbolsStr)}&range=1d&interval=1m&cb=${Date.now()}`;
-        const res = await fetch(url, {
-          headers: { 'User-Agent': USER_AGENT, 'Accept': 'application/json' },
-          signal: AbortSignal.timeout(6000),
-        });
 
         if (res.ok) {
           const data = (await res.json()) as any;
@@ -613,7 +549,7 @@ export class StockService {
 
             if (price > 0 && price < dayLow) dayLow = price;
             if (existing?.dayLow && existing.dayLow > 0 && existing.dayLow < dayLow) dayLow = existing.dayLow;
-            
+
             let open: number = (isSensex && bseSensex) ? bseSensex.open : meta.regularMarketOpen;
             if (!open) {
               const closes = sparkObj.response[0].indicators?.quote?.[0]?.close;
@@ -651,7 +587,7 @@ export class StockService {
               fiftyTwoWeekLow: meta.fiftyTwoWeekLow ?? (existing?.fiftyTwoWeekLow || 0),
               marketCap: 0
             };
-            
+
             results.push(indexData);
             this.stockCache.set(indexData.symbol, indexData);
             if (idx.aliases) {
@@ -661,10 +597,94 @@ export class StockService {
               }
             }
           }
+          sparkSuccess = results.length > 0;
+        }
+      } catch (sparkErr: any) {
+        logger.warn('/spark fetch for indices failed, falling back to quote: ' + sparkErr.message);
+      }
+
+      // Fallback strategy if /spark returned empty
+      if (!sparkSuccess) {
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('yahooFinance.quote timed out after 4000ms')), 4000)
+        );
+        const [quotes, bseSensex] = await Promise.all([
+          Promise.race([
+            yahooFinance.quote(yahooIndices.map(i => i.yahooSymbol), { return: 'array' }) as Promise<any[]>,
+            timeoutPromise,
+          ]),
+          bseSensexPromise,
+        ]);
+
+        for (const q of quotes) {
+          const idx = yahooIndices.find(i => i.yahooSymbol === q.symbol);
+          if (!idx) continue;
+
+          const isSensex = idx.displaySymbol === 'SENSEX';
+          const existing = this.stockCache.get(idx.displaySymbol);
+
+          let price = (isSensex && bseSensex) ? bseSensex.price : (q.regularMarketPrice ?? (existing?.price || 0));
+          if (price === 0) continue;
+
+          const prevClose = (isSensex && bseSensex)
+            ? bseSensex.previousClose
+            : this.getOrLockPrevClose(idx.displaySymbol, q.regularMarketPreviousClose, existing?.previousClose, price);
+          const change = (isSensex && bseSensex) ? bseSensex.change : Number((price - prevClose).toFixed(2));
+          const changePercent = (isSensex && bseSensex) ? bseSensex.changePercent : (prevClose > 0 ? Number(((change / prevClose) * 100).toFixed(2)) : 0);
+          const open = (isSensex && bseSensex) ? bseSensex.open : (q.regularMarketOpen ?? (existing?.open || price));
+
+          const rawHigh = (isSensex && bseSensex) ? bseSensex.dayHigh : (q.regularMarketDayHigh ?? 0);
+          const rawLow = (isSensex && bseSensex) ? bseSensex.dayLow : (q.regularMarketDayLow ?? 0);
+
+          let dayHigh = rawHigh > 0 ? rawHigh : (existing?.dayHigh && existing.dayHigh > 0 ? existing.dayHigh : price);
+          let dayLow = rawLow > 0 ? rawLow : (existing?.dayLow && existing.dayLow > 0 ? existing.dayLow : price);
+
+          if (price > dayHigh) dayHigh = price;
+          if (existing?.dayHigh && existing.dayHigh > dayHigh) dayHigh = existing.dayHigh;
+
+          if (price > 0 && price < dayLow) dayLow = price;
+          if (existing?.dayLow && existing.dayLow > 0 && existing.dayLow < dayLow) dayLow = existing.dayLow;
+
+          const hasSpread = dayHigh > dayLow && (dayHigh - dayLow) > 0.05;
+          const atDayHigh = hasSpread && price >= dayHigh;
+          const atDayLow = hasSpread && price <= dayLow;
+
+          const indexData: StockData = {
+            symbol: idx.displaySymbol,
+            name: idx.name,
+            price,
+            previousClose: prevClose,
+            open,
+            dayHigh,
+            dayLow,
+            change,
+            changePercent,
+            volume: q.regularMarketVolume ?? (existing?.volume || 0),
+            sector: 'Index',
+            averageVolume: 0,
+            relativeVolume: 0,
+            volumeSpike: false,
+            indexName: 'INDEX',
+            lastUpdated: new Date().toISOString(),
+            atDayHigh,
+            atDayLow,
+            fiftyTwoWeekHigh: q.fiftyTwoWeekHigh ?? (existing?.fiftyTwoWeekHigh || 0),
+            fiftyTwoWeekLow: q.fiftyTwoWeekLow ?? (existing?.fiftyTwoWeekLow || 0),
+            marketCap: 0
+          };
+
+          results.push(indexData);
+          this.stockCache.set(indexData.symbol, indexData);
+          if (idx.aliases) {
+            for (const alias of idx.aliases) {
+              const aliasData = { ...indexData, symbol: alias };
+              this.stockCache.set(alias, aliasData);
+            }
+          }
         }
       }
     } catch (err: any) {
-      logger.error('Yahoo Finance indices fetch failed: ' + err.message);
+      logger.error('Indices fetch failed: ' + err.message);
     }
 
     return results;

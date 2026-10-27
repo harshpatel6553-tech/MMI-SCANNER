@@ -12,6 +12,26 @@ import type { StockData } from '../types/index.js';
 import logger from '../utils/logger.js';
 
 const router = Router();
+let lastIndexFetchTime = 0;
+
+/**
+ * GET /api/stocks/indices
+ * Direct endpoint to get fresh real-time indices data
+ */
+router.get('/indices', async (_req: Request, res: Response): Promise<void> => {
+  try {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    const now = Date.now();
+    if (now - lastIndexFetchTime > 2500) {
+      lastIndexFetchTime = now;
+      await stockService.fetchIndices().catch(() => {});
+    }
+    const indices = stockService.getCachedStocks().filter((s) => s.indexName === 'INDEX');
+    res.json({ success: true, count: indices.length, data: indices });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
 /** Valid sort fields for the stock listing endpoint */
 type SortField = 'symbol' | 'price' | 'change' | 'changePercent' | 'volume';
@@ -43,12 +63,12 @@ router.get(['/', '/stocks'], async (req: Request, res: Response): Promise<void> 
     // ── Index filter ───────────────────────────────────────────
     const indexFilter = (req.query.index as string)?.toUpperCase();
     if (indexFilter === 'INDEX') {
-      let indexStocks = stocks.filter((s) => s.indexName === 'INDEX');
-      if (indexStocks.length === 0) {
-        await stockService.fetchIndices();
-        indexStocks = stockService.getCachedStocks().filter((s) => s.indexName === 'INDEX');
+      const now = Date.now();
+      if (now - lastIndexFetchTime > 2500) {
+        lastIndexFetchTime = now;
+        await stockService.fetchIndices().catch(() => {});
       }
-      stocks = indexStocks;
+      stocks = stockService.getCachedStocks().filter((s) => s.indexName === 'INDEX');
     } else if (indexFilter && indexFilter !== 'ALL') {
       stocks = stocks.filter((s) => s.indexName === indexFilter);
     }
