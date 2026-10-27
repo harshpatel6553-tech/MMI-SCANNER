@@ -103,11 +103,12 @@ export function useAlerts() {
         return [toast, ...prev].slice(0, 6);
       });
 
-      // Record all genuine alerts in history, deduplicating only exact duplicate price entries
+      // Update alert history: if the same stock triggered the same alert type within 60s, update it with the latest price instead of stacking double cards
       setAlertHistory(prev => {
+        const alertTime = new Date(alert.createdAt).getTime();
         const index = prev.findIndex(a =>
           a.id === alert.id ||
-          (a.symbol === alert.symbol && a.alertType === alert.alertType && a.price === alert.price)
+          (a.symbol === alert.symbol && a.alertType === alert.alertType && Math.abs(alertTime - new Date(a.createdAt).getTime()) < 60000)
         );
         if (index >= 0) {
           const next = [...prev];

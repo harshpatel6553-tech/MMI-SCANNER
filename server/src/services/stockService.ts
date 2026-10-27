@@ -27,6 +27,31 @@ export class StockService {
   private volumeHistory: Map<string, Array<{ timestamp: number; volume: number }>> = new Map();
   private averageVolumeMap: Map<string, number> = new Map();
   private hasFetchedAverageVolume: boolean = false;
+  private lockedPrevCloseMap: Map<string, number> = new Map();
+  private currentTradingDay: string = '';
+
+  private checkTradingDayReset(): void {
+    const now = new Date();
+    const istDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(now);
+    if (this.currentTradingDay !== istDate) {
+      logger.info(`🌅 New trading day detected in StockService (${istDate}). Resetting locked previousClose state.`);
+      this.currentTradingDay = istDate;
+      this.lockedPrevCloseMap.clear();
+    }
+  }
+
+  private getOrLockPrevClose(symbol: string, candidateA?: number, candidateB?: number, fallbackPrice: number = 0): number {
+    this.checkTradingDayReset();
+    const existing = this.lockedPrevCloseMap.get(symbol);
+    if (existing && existing > 0) {
+      return existing;
+    }
+    const valid = (candidateA && candidateA > 0) ? candidateA : ((candidateB && candidateB > 0) ? candidateB : fallbackPrice);
+    if (valid > 0) {
+      this.lockedPrevCloseMap.set(symbol, valid);
+    }
+    return valid;
+  }
 
   constructor() {
     technicalService.onUpdate((symbol, tech) => {
@@ -124,10 +149,10 @@ export class StockService {
 
           const openPrice = q.regularMarketOpen ?? (existing?.open || price);
           const volume = q.regularMarketVolume ?? (existing?.volume || 0);
-          const prevClose = q.regularMarketPreviousClose ?? (existing?.previousClose || price);
+          const prevClose = this.getOrLockPrevClose(baseStock.symbol, q.regularMarketPreviousClose, existing?.previousClose, price);
           
-          const change = q.regularMarketChange ?? (price - prevClose);
-          const changePercent = q.regularMarketChangePercent ?? (prevClose > 0 ? (change / prevClose) * 100 : 0);
+          const change = Number((price - prevClose).toFixed(2));
+          const changePercent = prevClose > 0 ? Number(((change / prevClose) * 100).toFixed(2)) : 0;
 
           const hasSpread = dayHigh > dayLow && (dayHigh - dayLow) > 0.05;
           const atDayHigh = hasSpread && price >= dayHigh;
@@ -268,10 +293,10 @@ export class StockService {
           }
 
           const volume = meta.regularMarketVolume ?? (existing?.volume || 0);
-          const prevClose = meta.previousClose ?? meta.chartPreviousClose ?? (existing?.previousClose || price);
+          const prevClose = this.getOrLockPrevClose(baseStock.symbol, meta.previousClose || meta.chartPreviousClose, existing?.previousClose, price);
           
-          const change = typeof meta.regularMarketChange === 'number' ? meta.regularMarketChange : (typeof meta.fulldayChange === 'number' ? meta.fulldayChange : (price - prevClose));
-          const changePercent = typeof meta.regularMarketChangePercent === 'number' ? meta.regularMarketChangePercent : (typeof meta.fulldayChangePercent === 'number' ? meta.fulldayChangePercent : (prevClose > 0 ? (change / prevClose) * 100 : 0));
+          const change = Number((price - prevClose).toFixed(2));
+          const changePercent = prevClose > 0 ? Number(((change / prevClose) * 100).toFixed(2)) : 0;
 
           const hasSpread = dayHigh > dayLow && (dayHigh - dayLow) > 0.05;
           const atDayHigh = hasSpread && price >= dayHigh;
@@ -483,9 +508,11 @@ export class StockService {
           let price = (isSensex && bseSensex) ? bseSensex.price : (q.regularMarketPrice ?? (existing?.price || 0));
           if (price === 0) continue;
 
-          const prevClose = (isSensex && bseSensex) ? bseSensex.previousClose : (q.regularMarketPreviousClose ?? (existing?.previousClose || price));
-          const change = (isSensex && bseSensex) ? bseSensex.change : (q.regularMarketChange ?? (price - prevClose));
-          const changePercent = (isSensex && bseSensex) ? bseSensex.changePercent : (q.regularMarketChangePercent ?? (prevClose > 0 ? (change / prevClose) * 100 : 0));
+          const prevClose = (isSensex && bseSensex)
+            ? bseSensex.previousClose
+            : this.getOrLockPrevClose(idx.displaySymbol, q.regularMarketPreviousClose, existing?.previousClose, price);
+          const change = (isSensex && bseSensex) ? bseSensex.change : Number((price - prevClose).toFixed(2));
+          const changePercent = (isSensex && bseSensex) ? bseSensex.changePercent : (prevClose > 0 ? Number(((change / prevClose) * 100).toFixed(2)) : 0);
           const open = (isSensex && bseSensex) ? bseSensex.open : (q.regularMarketOpen ?? (existing?.open || price));
           
           const rawHigh = (isSensex && bseSensex) ? bseSensex.dayHigh : (q.regularMarketDayHigh ?? 0);
@@ -570,21 +597,10 @@ export class StockService {
 
             const prevClose: number = (isSensex && bseSensex)
               ? bseSensex.previousClose
-              : (typeof meta.chartPreviousClose === 'number'
-                ? meta.chartPreviousClose
-                : (typeof meta.previousClose === 'number' ? meta.previousClose : (existing?.previousClose || price)));
+              : this.getOrLockPrevClose(idx.displaySymbol, meta.previousClose || meta.chartPreviousClose, existing?.previousClose, price);
 
-            const change: number = (isSensex && bseSensex)
-              ? bseSensex.change
-              : (typeof meta.fulldayChange === 'number'
-                ? meta.fulldayChange
-                : (typeof meta.regularMarketChange === 'number' ? meta.regularMarketChange : (price - prevClose)));
-
-            const changePercent: number = (isSensex && bseSensex)
-              ? bseSensex.changePercent
-              : (typeof meta.fulldayChangePercent === 'number'
-                ? meta.fulldayChangePercent
-                : (typeof meta.regularMarketChangePercent === 'number' ? meta.regularMarketChangePercent : (prevClose > 0 ? (change / prevClose) * 100 : 0)));
+            const change: number = (isSensex && bseSensex) ? bseSensex.change : Number((price - prevClose).toFixed(2));
+            const changePercent: number = (isSensex && bseSensex) ? bseSensex.changePercent : (prevClose > 0 ? Number(((change / prevClose) * 100).toFixed(2)) : 0);
 
             const rawHigh: number = (isSensex && bseSensex) ? bseSensex.dayHigh : (meta.regularMarketDayHigh ?? 0);
             const rawLow: number = (isSensex && bseSensex) ? bseSensex.dayLow : (meta.regularMarketDayLow ?? 0);

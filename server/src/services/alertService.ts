@@ -88,18 +88,22 @@ class AlertService {
       if (isAtDayHigh && isNewHigh) {
         const alreadyInBatch = newAlerts.some(a => a.symbol === stock.symbol && a.alertType === 'DAY_HIGH');
         if (!alreadyInBatch) {
+          const prevClose = stock.previousClose > 0 ? stock.previousClose : (stock.price - stock.change);
+          const alertChange = prevClose > 0 ? Number((alertPriceHigh - prevClose).toFixed(2)) : stock.change;
+          const alertChangePercent = prevClose > 0 ? Number(((alertChange / prevClose) * 100).toFixed(2)) : stock.changePercent;
+
           newAlerts.push({
             id: this.generateDeterministicUUID(`${stock.symbol}_DAY_HIGH_${dayTimestamp}_${currentMs}`),
             symbol: stock.symbol,
             name: stock.name,
             alertType: 'DAY_HIGH',
             price: alertPriceHigh,
-            change: stock.change,
-            changePercent: stock.changePercent,
+            change: alertChange,
+            changePercent: alertChangePercent,
             createdAt: nowIso,
           });
           triggeredAlert = true;
-          logger.info(`🚀 DAY HIGH: ${stock.symbol} @ ₹${alertPriceHigh.toFixed(2)} (prev high: ₹${prev.highValue.toFixed(2)})`);
+          logger.info(`🚀 DAY HIGH: ${stock.symbol} @ ₹${alertPriceHigh.toFixed(2)} (+${alertChangePercent}%)`);
 
           // Update unified high immediately to guarantee no duplicate alert for this price
           prev.highValue = alertPriceHigh;
@@ -119,18 +123,22 @@ class AlertService {
       if (isAtDayLow && isNewLow && !triggeredAlert) {
         const alreadyInBatch = newAlerts.some(a => a.symbol === stock.symbol && a.alertType === 'DAY_LOW');
         if (!alreadyInBatch) {
+          const prevClose = stock.previousClose > 0 ? stock.previousClose : (stock.price - stock.change);
+          const alertChange = prevClose > 0 ? Number((alertPriceLow - prevClose).toFixed(2)) : stock.change;
+          const alertChangePercent = prevClose > 0 ? Number(((alertChange / prevClose) * 100).toFixed(2)) : stock.changePercent;
+
           newAlerts.push({
             id: this.generateDeterministicUUID(`${stock.symbol}_DAY_LOW_${dayTimestamp}_${currentMs}`),
             symbol: stock.symbol,
             name: stock.name,
             alertType: 'DAY_LOW',
             price: alertPriceLow,
-            change: stock.change,
-            changePercent: stock.changePercent,
+            change: alertChange,
+            changePercent: alertChangePercent,
             createdAt: nowIso,
           });
           triggeredAlert = true;
-          logger.info(`📉 DAY LOW: ${stock.symbol} @ ₹${alertPriceLow.toFixed(2)} (prev low: ₹${prev.lowValue.toFixed(2)})`);
+          logger.info(`📉 DAY LOW: ${stock.symbol} @ ₹${alertPriceLow.toFixed(2)} (${alertChangePercent}%)`);
 
           // Update unified low immediately to guarantee no duplicate alert for this price
           prev.lowValue = alertPriceLow;
@@ -182,7 +190,21 @@ class AlertService {
     }
 
     if (newAlerts.length > 0) {
-      this.inMemoryAlerts = [...newAlerts, ...this.inMemoryAlerts].slice(0, 1000);
+      for (const alert of newAlerts) {
+        const alertTime = new Date(alert.createdAt).getTime();
+        // Update in-place if an alert for the same stock & alertType was recorded within 60s
+        const existingIdx = this.inMemoryAlerts.findIndex(a =>
+          a.symbol === alert.symbol &&
+          a.alertType === alert.alertType &&
+          Math.abs(alertTime - new Date(a.createdAt).getTime()) < 60000
+        );
+        if (existingIdx >= 0) {
+          this.inMemoryAlerts[existingIdx] = alert;
+        } else {
+          this.inMemoryAlerts.unshift(alert);
+        }
+      }
+      this.inMemoryAlerts = this.inMemoryAlerts.slice(0, 1000);
     }
 
     return newAlerts;
