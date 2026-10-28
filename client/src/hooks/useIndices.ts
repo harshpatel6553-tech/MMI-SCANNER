@@ -12,11 +12,20 @@ export function useIndices(allStocks: StockData[]) {
   const { socket } = useSocketContext();
 
   const updateIndices = (items: StockData[]) => {
+    const now = Date.now();
     let niftyItem: StockData | undefined;
     let bankItem: StockData | undefined;
     let sensexItem: StockData | undefined;
 
     for (const item of items) {
+      // Discard stale data older than 5 minutes
+      if (item.lastUpdated) {
+        const itemTime = new Date(item.lastUpdated).getTime();
+        if (!isNaN(itemTime) && now - itemTime > 300000) {
+          continue;
+        }
+      }
+
       if (item.symbol === 'NIFTY 50' || item.name === 'NIFTY 50') {
         niftyItem = item;
       } else if (item.symbol === 'BANKNIFTY' || item.symbol === 'BANK NIFTY' || item.name === 'Bank NIFTY') {
@@ -84,10 +93,47 @@ export function useIndices(allStocks: StockData[]) {
     };
   }, [socket]);
 
-  // 2. Initial fetch & fast fallback polling from backend REST API with cache-buster
+  // 2. Initial fetch & fast fallback polling (Priority 1: Vercel /api/indices, Priority 2: Backend REST)
   useEffect(() => {
     let isMounted = true;
     const fetchIndices = async () => {
+      // Priority 1: Direct Vercel Serverless API (/api/indices) — real-time quotes, 0ms lag
+      try {
+        const vRes = await fetch(`/api/indices?_t=${Date.now()}`, {
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache' },
+        });
+        if (vRes.ok) {
+          const json = await vRes.json();
+          if (json.success && Array.isArray(json.data) && json.data.length > 0 && isMounted) {
+            updateIndices(json.data);
+            return;
+          }
+        }
+      } catch {
+        // Fallback to backend REST endpoints
+      }
+
+      // Priority 2: Backend /api/stocks/indices
+      try {
+        const backendUrl = import.meta.env.VITE_SOCKET_URL || 'https://35.226.242.164.sslip.io';
+        const baseUrl = backendUrl.endsWith('/') ? backendUrl.slice(0, -1) : backendUrl;
+        const res = await fetch(`${baseUrl}/api/stocks/indices?_t=${Date.now()}`, {
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache' },
+        });
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && Array.isArray(json.data) && isMounted) {
+            updateIndices(json.data);
+            return;
+          }
+        }
+      } catch {
+        // Fallback to query param
+      }
+
+      // Priority 3: Backend /api/stocks?index=INDEX
       try {
         const backendUrl = import.meta.env.VITE_SOCKET_URL || 'https://35.226.242.164.sslip.io';
         const baseUrl = backendUrl.endsWith('/') ? backendUrl.slice(0, -1) : backendUrl;
