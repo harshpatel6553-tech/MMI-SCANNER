@@ -24,12 +24,40 @@ export function useNews() {
   const { socket } = useSocketContext();
   const isWarmingUp = useRef(false);
 
+  // Helper to merge items preserving untruncated full titles
+  const mergeNewsPreservingFullText = (incoming: NewsItem[], current: NewsItem[]): NewsItem[] => {
+    return incoming.map(inc => {
+      const existing = current.find(c => c.id === inc.id || (c.link && c.link === inc.link));
+      if (existing && existing.title && existing.title.length > inc.title.length) {
+        return { ...inc, title: existing.title };
+      }
+      return inc;
+    });
+  };
+
   const fetchNews = useCallback(async () => {
     try {
+      // Priority 1: Vercel serverless /api/news (auto-deployed, 100% untruncated full tweets)
+      try {
+        const vRes = await fetch(`/api/news?_t=${Date.now()}`);
+        if (vRes.ok) {
+          const vData = await vRes.json();
+          if (vData.success && Array.isArray(vData.data) && vData.data.length > 0) {
+            setNews(prev => mergeNewsPreservingFullText(vData.data, prev));
+            setError(null);
+            isWarmingUp.current = false;
+            return;
+          }
+        }
+      } catch {
+        // Fallback to backend server API
+      }
+
+      // Priority 2: Backend server /api/news
       const response = await fetch(`${API_URL}/news`);
       const data = await response.json();
       if (data.success) {
-        setNews(data.data);
+        setNews(prev => mergeNewsPreservingFullText(data.data, prev));
         setError(null);
         if (data.data.length > 0) {
           isWarmingUp.current = false;
@@ -78,7 +106,7 @@ export function useNews() {
     };
 
     const handleSnapshot = (fullNews: NewsItem[]) => {
-      setNews(fullNews);
+      setNews(prev => mergeNewsPreservingFullText(fullNews, prev));
       setLoading(false);
       isWarmingUp.current = fullNews.length === 0;
     };

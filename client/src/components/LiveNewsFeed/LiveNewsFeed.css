@@ -246,6 +246,9 @@
   line-height: 1.55;
   color: var(--text-1);
   font-weight: 500;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
 }
 
 .news-footer {

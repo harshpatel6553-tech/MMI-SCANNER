@@ -37,6 +37,36 @@ class TwitterService {
   ]); // caches username -> userId
   private readonly CACHE_TTL_MS = 0; // Caching disabled: always fetch fresh data 
 
+  private extractFullTweetText(item: any): string {
+    let rawDesc = item.description || '';
+    if (typeof rawDesc !== 'string') rawDesc = String(rawDesc || '');
+
+    // Strip HTML and clean entities from RSS description to get untruncated tweet text
+    let clean = rawDesc
+      .replace(/<img[^>]*>/gi, '')
+      .replace(/<br\s*[\/]?>/gi, ' ')
+      .replace(/<\/p>/gi, ' ')
+      .replace(/<blockquote[^>]*>([\s\S]*?)<\/blockquote>/gi, ' ')
+      .replace(/<[^>]+>/g, '')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    const title = typeof item.title === 'string' ? item.title.trim() : '';
+    // If clean description is available, it has the untruncated full tweet text
+    if (clean && clean.length > 0) {
+      if (title.length > clean.length && !title.endsWith('…') && !title.endsWith('...')) {
+        return title;
+      }
+      return clean;
+    }
+    return title;
+  }
+
   /**
    * Open-Source RSS fetcher (Fixupx / FixTweet)
    * 100% Free, NO API keys required, NO monthly limits, real-time live tweets.
@@ -88,7 +118,7 @@ class TwitterService {
           const link = item.link || item.guid || '';
           const idMatch = String(link).match(/status\/(\d+)/);
           const id_str = idMatch ? idMatch[1] : '';
-          const text = item.title || item.description || '';
+          const text = this.extractFullTweetText(item);
           return {
             id: id_str,
             id_str: id_str,
