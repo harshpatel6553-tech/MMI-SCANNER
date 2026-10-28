@@ -7,7 +7,7 @@ const xmlParser = new XMLParser({
 
 let newsCache = [];
 let lastFetchTime = 0;
-const CACHE_TTL_MS = 10000; // 10s memory cache
+const CACHE_TTL_MS = 2500; // 2.5s local memory cache to prevent spamming upstream
 
 function extractFullTweetText(item) {
   let rawDesc = item.description || item['content:encoded'] || '';
@@ -69,7 +69,7 @@ function extractAffectedStocks(title) {
     'ITC', 'KOTAKBANK', 'LT', 'AXISBANK', 'HINDUNILVR', 'BAJFINANCE', 'MARUTI',
     'TATASTEEL', 'WIPRO', 'TITAN', 'TATAMOTORS', 'ADANIENT', 'ADANIPORTS',
     'TECHM', 'KPITTECH', 'CRAFTSMAN', 'ASIANPAINT', 'ZOMATO', 'PAYTM', 'JIOFIN',
-    'VEDL', 'HAL', 'BEL', 'BSE', 'CDSL', 'IRCTC', 'SUZLON'
+    'VEDL', 'HAL', 'BEL', 'BSE', 'CDSL', 'IRCTC', 'SUZLON', 'CHOLAFIN'
   ];
 
   const tUpper = title.toUpperCase();
@@ -86,11 +86,16 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', '*');
+  // Disable all CDN and browser caching so live breaking news appears immediately
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.setHeader('Surrogate-Control', 'no-store');
+
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  // Return from in-memory cache if fresh
+  // Return from quick in-memory cache if freshly fetched within 2.5s
   if (Date.now() - lastFetchTime < CACHE_TTL_MS && newsCache.length > 0) {
-    res.setHeader('Cache-Control', 's-maxage=10, stale-while-revalidate=20');
     return res.status(200).json({
       success: true,
       data: newsCache,
@@ -116,7 +121,7 @@ export default async function handler(req, res) {
               'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
               'Accept': 'application/rss+xml, application/xml, text/xml;q=0.9, */*;q=0.8'
             },
-            signal: AbortSignal.timeout(6000)
+            signal: AbortSignal.timeout(5000)
           });
 
           if (!upstream.ok) continue;
@@ -165,7 +170,6 @@ export default async function handler(req, res) {
       lastFetchTime = Date.now();
     }
 
-    res.setHeader('Cache-Control', 's-maxage=10, stale-while-revalidate=20');
     return res.status(200).json({
       success: true,
       data: newsCache,

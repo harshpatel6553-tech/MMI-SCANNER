@@ -191,7 +191,7 @@ class NewsService extends EventEmitter {
         const blockDealRegex = /\b(Block Deal|Bulk Deal|Stake Sale|Promoter|Pledge|OFS|Acquisition|Buyback)\b/i;
         
         const titleHashStr = cleanTitle.replace(/[^a-zA-Z0-9]/g, '').substring(0, 50).toLowerCase();
-        const deterministicId = 'msg-' + Buffer.from(titleHashStr + item._sourceAccount).toString('hex');
+        const deterministicId = item.id_str ? 	weet- : 'msg-' + Buffer.from(titleHashStr + item._sourceAccount).toString('hex');
         
         return {
           id: deterministicId,
