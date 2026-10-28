@@ -50,7 +50,7 @@ function computeQuickSentiment(title) {
   if (/\b(surge|jumps?|rall(?:y|ies)|gains?|beats?|rises?|profit up|record high|bullish|buy|upgrade|positive|expansion|orders? won|contract won|strong growth)\b/i.test(title)) {
     return 'Bullish';
   }
-  if (/\b(plunges?|falls?|drops?|slumps?|miss(?:es)?|loss|profit down|bearish|sell|downgrade|probe|fraud|penalty|crackdown|warning|cut)\b/i.test(title)) {
+  if (/\b(plunges?|falls?|drops?|slumps?|miss(?:es)?|loss|profit down|bearish|sell|downgrade|probe|fraud|penalty|crackdown|warning|cut|resign|resigns)\b/i.test(title)) {
     return 'Bearish';
   }
   return 'Neutral';
@@ -58,18 +58,48 @@ function computeQuickSentiment(title) {
 
 function extractAffectedStocks(title) {
   const matched = new Set();
-  const dollarMatches = title.match(/\$([A-Z0-9]+)/gi) || [];
-  for (const m of dollarMatches) {
-    const s = m.replace('$', '').toUpperCase();
-    if (s.length >= 3 && s.length <= 12) matched.add(s);
+
+  // 1. Redbox format: prefix ticker before colon (e.g. "BAJAJELEC: Q2...", "20MICRONS: Q2...", "VAKRANGEE: Q2...")
+  const prefixMatch = title.match(/^([A-Z0-9\-_]{2,14}):/i);
+  if (prefixMatch) {
+    matched.add(prefixMatch[1].toUpperCase());
   }
 
+  // 2. Match any $TICKER mentions (e.g. $TECHM, $KPITTECH, $UBL, $INOXWIND)
+  const dollarMatches = title.match(/\$([A-Z0-9\-_]+)/gi) || [];
+  for (const m of dollarMatches) {
+    const s = m.replace('$', '').toUpperCase();
+    if (s.length >= 2 && s.length <= 14) matched.add(s);
+  }
+
+  // 3. Known Company Name to Stock Symbol mappings
+  const NAME_MAPPINGS = [
+    { re: /\b(PVR|INOX|PVR INOX)\b/i, sym: 'PVRINOX' },
+    { re: /\b(BAJAJ ELECTRIC|BAJAJELEC)\b/i, sym: 'BAJAJELEC' },
+    { re: /\b(UNITED BREWERIES|KINGFISHER)\b/i, sym: 'UBL' },
+    { re: /\b(UNITED SPIRITS|MCDOWELL)\b/i, sym: 'UNITDSPR' },
+    { re: /\b(KPIT|KPIT TECH)\b/i, sym: 'KPITTECH' },
+    { re: /\b(CRAFTSMAN)\b/i, sym: 'CRAFTSMAN' },
+    { re: /\b(20MICRONS|20 MICRONS)\b/i, sym: '20MICRONS' },
+    { re: /\b(VAKRANGEE)\b/i, sym: 'VAKRANGEE' },
+    { re: /\b(WAAREE|WAAREE ENERGIES)\b/i, sym: 'WAAREEENER' },
+    { re: /\b(PRUDENT|PRUDENT CORP)\b/i, sym: 'PRUDENT' },
+    { re: /\b(CHOLAMANDALAM|CHOLAFIN)\b/i, sym: 'CHOLAFIN' },
+  ];
+
+  for (const map of NAME_MAPPINGS) {
+    if (map.re.test(title)) {
+      matched.add(map.sym);
+    }
+  }
+
+  // 4. Common symbols check
   const COMMON_SYMBOLS = [
     'RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK', 'SBIN', 'BHARTIARTL',
     'ITC', 'KOTAKBANK', 'LT', 'AXISBANK', 'HINDUNILVR', 'BAJFINANCE', 'MARUTI',
     'TATASTEEL', 'WIPRO', 'TITAN', 'TATAMOTORS', 'ADANIENT', 'ADANIPORTS',
-    'TECHM', 'KPITTECH', 'CRAFTSMAN', 'ASIANPAINT', 'ZOMATO', 'PAYTM', 'JIOFIN',
-    'VEDL', 'HAL', 'BEL', 'BSE', 'CDSL', 'IRCTC', 'SUZLON', 'CHOLAFIN'
+    'TECHM', 'ASIANPAINT', 'ZOMATO', 'PAYTM', 'JIOFIN', 'VEDL', 'HAL', 'BEL',
+    'BSE', 'CDSL', 'IRCTC', 'SUZLON'
   ];
 
   const tUpper = title.toUpperCase();

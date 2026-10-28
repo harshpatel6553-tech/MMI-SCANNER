@@ -17,6 +17,80 @@ export interface NewsItem {
 
 const API_URL = (import.meta.env.VITE_SOCKET_URL || window.location.origin) + '/api';
 
+/**
+ * Compares two news arrays to prevent unnecessary React re-renders.
+ * If IDs, titles, sentiments, and affected stock chips are identical, returns true.
+ */
+function areNewsListsEqual(a: NewsItem[], b: NewsItem[]): boolean {
+  if (a === b) return true;
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    const itemA = a[i];
+    const itemB = b[i];
+    if (itemA.id !== itemB.id) return false;
+    if (itemA.title !== itemB.title) return false;
+    if (itemA.sentiment !== itemB.sentiment) return false;
+    const stocksA = (itemA.affectedStocks || []).join(',');
+    const stocksB = (itemB.affectedStocks || []).join(',');
+    if (stocksA !== stocksB) return false;
+  }
+  return true;
+}
+
+/**
+ * Extracts a normalized key for stable cross-source matching
+ */
+function getTweetKey(item: NewsItem): string {
+  const tweetId = item.link?.match(/status\/(\d+)/)?.[1];
+  if (tweetId) return `t-${tweetId}`;
+  if (item.link) return `l-${item.link.toLowerCase()}`;
+  if (item.title) {
+    const cleanPrefix = item.title.replace(/[^a-zA-Z0-9]/g, '').substring(0, 30).toLowerCase();
+    if (cleanPrefix.length >= 12) return `p-${cleanPrefix}`;
+  }
+  return item.id;
+}
+
+/**
+ * Merges an incoming item with an existing item, strictly preserving:
+ * 1. Longer untruncated title
+ * 2. All affected stock chips (never deletes chips)
+ * 3. AI classified sentiment and insights
+ */
+function mergeNewsItem(incoming: NewsItem, existing?: NewsItem): NewsItem {
+  if (!existing) return incoming;
+
+  // Title: always keep the longer, non-cut title
+  const title = (existing.title && existing.title.length > (incoming.title?.length || 0))
+    ? existing.title
+    : incoming.title;
+
+  // Affected stock chips: combine and deduplicate symbols, NEVER delete chips!
+  const stockSet = new Set<string>();
+  (existing.affectedStocks || []).forEach(s => s && stockSet.add(s.toUpperCase()));
+  (incoming.affectedStocks || []).forEach(s => s && stockSet.add(s.toUpperCase()));
+  const affectedStocks = Array.from(stockSet);
+
+  // Sentiment: preserve non-neutral sentiment if incoming defaulted to Neutral
+  let sentiment = incoming.sentiment || existing.sentiment || 'Neutral';
+  if (sentiment === 'Neutral' && existing.sentiment && existing.sentiment !== 'Neutral') {
+    sentiment = existing.sentiment;
+  }
+
+  return {
+    ...existing,
+    ...incoming,
+    id: existing.id || incoming.id,
+    title,
+    affectedStocks,
+    sentiment,
+    isEarningsResult: incoming.isEarningsResult ?? existing.isEarningsResult,
+    isPromoterAction: incoming.isPromoterAction ?? existing.isPromoterAction,
+    reasoning: incoming.reasoning || existing.reasoning,
+    perspective: incoming.perspective || existing.perspective,
+  };
+}
+
 export function useNews() {
   const [news, setNews] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -24,82 +98,46 @@ export function useNews() {
   const { socket } = useSocketContext();
   const isWarmingUp = useRef(false);
 
-  // Permanent full title cache: once an untruncated full title is known, it can NEVER be downgraded to a cut-off version
-  const knownFullTitlesRef = useRef<Map<string, string>>(new Map());
+  // Permanent title cache so a full title is never downgraded
+  const fullTitleCacheRef = useRef<Map<string, string>>(new Map());
 
-  // Helper to extract a stable normalized key for any tweet (by tweet ID or text prefix)
-  const getTweetKeys = (item: NewsItem): string[] => {
-    const keys: string[] = [];
-    if (item.id) keys.push(item.id);
-    const tweetId = item.link?.match(/status\/(\d+)/)?.[1];
-    if (tweetId) keys.push(`tweet-${tweetId}`);
-    if (item.link) keys.push(item.link.toLowerCase());
-    if (item.title) {
-      const prefix = item.title.replace(/[^a-zA-Z0-9]/g, '').substring(0, 35).toLowerCase();
-      if (prefix.length >= 15) keys.push(`pfx-${prefix}`);
-    }
-    return keys;
-  };
-
-  // Process and protect incoming news items against title truncation
-  const protectNewsItem = useCallback((item: NewsItem): NewsItem => {
-    const keys = getTweetKeys(item);
-    const incomingTitle = item.title ? item.title.trim() : '';
-    const isTruncated = incomingTitle.endsWith('…') || incomingTitle.endsWith('...') || incomingTitle.endsWith('..');
-
-    // Check if we already know a longer, untruncated title for this tweet
-    let bestTitle = incomingTitle;
-    for (const key of keys) {
-      const known = knownFullTitlesRef.current.get(key);
-      if (known && known.length > bestTitle.length) {
-        bestTitle = known;
-      }
-    }
-
-    // If incoming is clean and untruncated and longer, save it to our permanent full title cache
-    if (!isTruncated && incomingTitle.length >= bestTitle.length) {
-      bestTitle = incomingTitle;
-      for (const key of keys) {
-        knownFullTitlesRef.current.set(key, bestTitle);
-      }
-    }
-
-    return {
-      ...item,
-      title: bestTitle
-    };
-  }, []);
-
-  // Merge and protect list of news items
-  const mergeAndProtectNews = useCallback((incoming: NewsItem[], current: NewsItem[]): NewsItem[] => {
-    const protectedIncoming = incoming.map(protectNewsItem);
-    const protectedCurrent = current.map(protectNewsItem);
-
+  // Master merge function that prevents UI flickering and preserves all chips & titles
+  const mergeLists = useCallback((incoming: NewsItem[], current: NewsItem[]): NewsItem[] => {
     const map = new Map<string, NewsItem>();
 
-    // Add current first
-    for (const item of protectedCurrent) {
-      const tweetId = item.link?.match(/status\/(\d+)/)?.[1];
-      const primaryKey = tweetId ? `tweet-${tweetId}` : item.id;
-      map.set(primaryKey, item);
-    }
-
-    // Overwrite with protected incoming (preserving full titles)
-    for (const item of protectedIncoming) {
-      const tweetId = item.link?.match(/status\/(\d+)/)?.[1];
-      const primaryKey = tweetId ? `tweet-${tweetId}` : item.id;
-      const existing = map.get(primaryKey);
-      if (existing && existing.title.length > item.title.length) {
-        map.set(primaryKey, { ...item, title: existing.title });
-      } else {
-        map.set(primaryKey, item);
+    // Index current items
+    for (const item of current) {
+      const key = getTweetKey(item);
+      map.set(key, item);
+      if (item.title && !item.title.endsWith('…') && !item.title.endsWith('...')) {
+        fullTitleCacheRef.current.set(key, item.title);
       }
     }
 
-    return Array.from(map.values()).sort(
-      (a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime()
-    ).slice(0, 100);
-  }, [protectNewsItem]);
+    // Merge incoming items
+    for (const inc of incoming) {
+      const key = getTweetKey(inc);
+      const existing = map.get(key);
+
+      // Restore cached full title if incoming is cut off
+      let itemToMerge = inc;
+      const cachedFullTitle = fullTitleCacheRef.current.get(key);
+      if (cachedFullTitle && cachedFullTitle.length > (inc.title?.length || 0)) {
+        itemToMerge = { ...inc, title: cachedFullTitle };
+      }
+
+      const merged = mergeNewsItem(itemToMerge, existing);
+      map.set(key, merged);
+
+      if (merged.title && !merged.title.endsWith('…') && !merged.title.endsWith('...')) {
+        fullTitleCacheRef.current.set(key, merged.title);
+      }
+    }
+
+    return Array.from(map.values())
+      .sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime())
+      .slice(0, 100);
+  }, []);
 
   const fetchNews = useCallback(async () => {
     try {
@@ -112,7 +150,10 @@ export function useNews() {
         if (vRes.ok) {
           const vData = await vRes.json();
           if (vData.success && Array.isArray(vData.data) && vData.data.length > 0) {
-            setNews(prev => mergeAndProtectNews(vData.data, prev));
+            setNews(prev => {
+              const next = mergeLists(vData.data, prev);
+              return areNewsListsEqual(prev, next) ? prev : next;
+            });
             setError(null);
             isWarmingUp.current = false;
             return;
@@ -126,7 +167,10 @@ export function useNews() {
       const response = await fetch(`${API_URL}/news?_t=${Date.now()}`);
       const data = await response.json();
       if (data.success) {
-        setNews(prev => mergeAndProtectNews(data.data, prev));
+        setNews(prev => {
+          const next = mergeLists(data.data, prev);
+          return areNewsListsEqual(prev, next) ? prev : next;
+        });
         setError(null);
         if (data.data.length > 0) {
           isWarmingUp.current = false;
@@ -141,17 +185,17 @@ export function useNews() {
     } finally {
       setLoading(false);
     }
-  }, [mergeAndProtectNews]);
+  }, [mergeLists]);
 
   useEffect(() => {
     let isMounted = true;
     fetchNews();
 
-    // Fast polling every 3 seconds so the news feed is always ultra-fresh
+    // Refresh every 4 seconds; if content hasn't changed, areNewsListsEqual prevents re-render
     const tickInterval = setInterval(() => {
       if (!isMounted) return;
       fetchNews();
-    }, 3000);
+    }, 4000);
 
     return () => {
       isMounted = false;
@@ -179,18 +223,23 @@ export function useNews() {
             isPromoterAction: alert.isPromoterAction
           };
 
-          // Immediately prepend to news state with 0ms delay!
-          setNews(prev => mergeAndProtectNews([newItem], prev));
+          setNews(prev => {
+            const next = mergeLists([newItem], prev);
+            return areNewsListsEqual(prev, next) ? prev : next;
+          });
         }
 
-        // Also trigger background fetch for full snapshot
+        // Trigger background sync
         fetchNews();
       }
     };
 
     const handleSnapshot = (fullNews: NewsItem[]) => {
       if (Array.isArray(fullNews) && fullNews.length > 0) {
-        setNews(prev => mergeAndProtectNews(fullNews, prev));
+        setNews(prev => {
+          const next = mergeLists(fullNews, prev);
+          return areNewsListsEqual(prev, next) ? prev : next;
+        });
         setLoading(false);
         isWarmingUp.current = false;
       }
@@ -206,7 +255,7 @@ export function useNews() {
       socket.off('alert:new', handleAlert);
       socket.off('news:snapshot', handleSnapshot);
     };
-  }, [socket, fetchNews, mergeAndProtectNews]);
+  }, [socket, fetchNews, mergeLists]);
 
   return { news, loading, error };
 }
