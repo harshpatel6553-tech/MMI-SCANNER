@@ -24,9 +24,9 @@ export default defineConfig({
                 const meta = json?.chart?.result?.[0]?.meta;
                 if (!meta) return null;
                 const price = meta.regularMarketPrice ?? 0;
-                const prevClose = meta.chartPreviousClose || meta.previousClose || price;
-                const change = Number((price - prevClose).toFixed(2));
-                const changePercent = prevClose ? Number(((change / prevClose) * 100).toFixed(2)) : 0;
+                const change = Number((meta.fulldayChange ?? meta.regularMarketChange ?? 0).toFixed(2));
+                const changePercent = Number((meta.fulldayChangePercent ?? meta.regularMarketChangePercent ?? 0).toFixed(2));
+                const prevClose = change !== 0 ? Number((price - change).toFixed(2)) : (meta.previousClose || meta.chartPreviousClose || price);
                 const dayHigh = meta.regularMarketDayHigh ?? price;
                 const dayLow = meta.regularMarketDayLow ?? price;
                 return {
