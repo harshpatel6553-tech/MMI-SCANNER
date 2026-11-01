@@ -325,11 +325,17 @@ export function AlertPanel({ alerts, onClearAll }: AlertPanelProps) {
                               <span className="alert-co-name">{alert.name}</span>
                             </div>
 
-                            {alert.details && (
-                              <span className="alert-details-sub">
-                                {alert.details}
-                              </span>
-                            )}
+                            <span 
+                              className="alert-details-sub"
+                              style={{ 
+                                fontSize: 11, 
+                                color: isHigh ? 'var(--up)' : isLow ? 'var(--down)' : 'var(--cyan)', 
+                                fontWeight: 600,
+                                marginTop: 2
+                              }}
+                            >
+                              {alert.details || (isHigh ? 'Cleared previous Day High · New Session Peak' : isLow ? 'Broke Day Low level · New Session Low' : 'High-velocity flow alert')}
+                            </span>
                           </div>
 
                           {isNews ? (
