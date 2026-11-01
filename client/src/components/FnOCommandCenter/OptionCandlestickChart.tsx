@@ -8,6 +8,7 @@ import {
 } from 'lightweight-charts';
 import { ExternalLink, Maximize2, TrendingUp, TrendingDown, RefreshCw } from 'lucide-react';
 import './OptionCandlestickChart.css';
+import { formatContracts, formatShares } from '../../utils/fnoUnits';
 
 interface Candle {
   time: any;
@@ -399,7 +400,7 @@ export const OptionCandlestickChart: React.FC<OptionCandlestickChartProps> = ({
       {/* Bottom Option Metrics Footer */}
       <div className="opt-chart-footer">
         <span>IV: <b>{iv}%</b></span>
-        <span>OI: <b>{((openInterest || 0) / 100000).toFixed(1)} L</b></span>
+        <span>OI: <b>{formatContracts(openInterest || 0, true)} ({formatShares(openInterest || 0, symbol || 'NIFTY', true)})</b></span>
         <span>Strike: <b>{strike}</b></span>
         <span className="delta-tag">Delta: <b>{type === 'CE' ? '+0.48' : '-0.48'}</b></span>
       </div>

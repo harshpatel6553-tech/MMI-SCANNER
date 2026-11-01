@@ -600,7 +600,7 @@
 .fnocc-oitip {
   position: absolute;
   z-index: 50;
-  width: 320px;
+  width: 360px;
   background: #0b1329;
   border: 1px solid rgba(56, 189, 248, 0.4);
   border-radius: 12px;
@@ -613,6 +613,37 @@
   animation: fadeInTip 0.15s ease-out;
   pointer-events: all;
   transition: top 0.12s ease-out;
+}
+
+.tt-lot-badge {
+  font-size: 10px;
+  background: rgba(56, 189, 248, 0.12);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.28);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.tt-row-main-col {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.tt-row-sub-shares {
+  font-size: 10.5px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.tt-row-metrics-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
 }
 
 @media (max-width: 768px) {

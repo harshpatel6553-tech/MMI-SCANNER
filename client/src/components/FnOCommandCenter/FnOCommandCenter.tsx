@@ -31,6 +31,13 @@ import './FnOCommandCenter.css';
 import { OptionCandlestickChart } from './OptionCandlestickChart';
 import { WhereSellersAre } from './WhereSellersAre';
 import { AnimatedNumber } from '../common/AnimatedNumber';
+import {
+  formatContracts,
+  formatShares,
+  getLotSize,
+  formatDualOI,
+  formatDualOIChange,
+} from '../../utils/fnoUnits';
 
 interface StrikeDetail {
   strikePrice: number;
@@ -134,7 +141,7 @@ export const FnOCommandCenter: React.FC = () => {
 
   // Floating Card state (from VolumeLens Image 1)
   const [hoveredStrikeRow, setHoveredStrikeRow] = useState<StrikeRow | null>(null);
-  const [pinnedStrike, setPinnedStrike] = useState<number | null>(null);
+  const [pinnedStrike, setPinnedStrike] = useState<number | null>(23050);
   const [activeOptionType, setActiveOptionType] = useState<'CE' | 'PE'>('CE');
   const [cardPosY, setCardPosY] = useState<number>(30);
 
@@ -297,11 +304,9 @@ export const FnOCommandCenter: React.FC = () => {
 
   const activeCardRow = useMemo(() => {
     if (hoveredStrikeRow) return hoveredStrikeRow;
-    if (pinnedStrike) {
-      return data?.strikes.find(s => s.strikePrice === pinnedStrike) || null;
-    }
-    return null;
-  }, [hoveredStrikeRow, pinnedStrike, data?.strikes]);
+    const targetStrike = pinnedStrike || data?.atmStrike || 23050;
+    return data?.strikes.find(s => s.strikePrice === targetStrike) || null;
+  }, [hoveredStrikeRow, pinnedStrike, data?.strikes, data?.atmStrike]);
 
   // ── Render Horizontal OI Profile Directly on Chart Canvas (from VolumeLens Image 1) ──
   const renderOIProfileCanvas = useCallback(() => {
@@ -350,7 +355,7 @@ export const FnOCommandCenter: React.FC = () => {
     ctx.font = '600 11px system-ui, -apple-system, sans-serif';
     ctx.fillStyle = '#64748b';
     ctx.textAlign = 'right';
-    ctx.fillText('OI as of Fri 30 Oct 15:30', right, 20);
+    ctx.fillText(`OI Profile (Lot: ${getLotSize(selectedSymbol)} sh) Fri 30 Oct 15:30`, right, 20);
     ctx.restore();
 
     // Max OI among visible strikes for width scaling
@@ -853,7 +858,9 @@ export const FnOCommandCenter: React.FC = () => {
             <AnimatedNumber value={ceiling.strike} duration={0.6} />
           </div>
           <div className="metric-sub text-rose-300 font-mono tabular-nums">
-            <span>{(ceiling.oi / 100000).toFixed(1)} L · +{(ceiling.oiChange / 100000).toFixed(1)} L added</span>
+            <span>
+              {formatContracts(ceiling.oi, true)} ({formatShares(ceiling.oi, selectedSymbol, true)}) · +{formatContracts(ceiling.oiChange, false)} added
+            </span>
           </div>
         </div>
 
@@ -869,7 +876,9 @@ export const FnOCommandCenter: React.FC = () => {
             <AnimatedNumber value={floor.strike} duration={0.6} />
           </div>
           <div className="metric-sub text-emerald-300 font-mono tabular-nums">
-            <span>{(floor.oi / 100000).toFixed(1)} L · +{(floor.oiChange / 100000).toFixed(1)} L added</span>
+            <span>
+              {formatContracts(floor.oi, true)} ({formatShares(floor.oi, selectedSymbol, true)}) · +{formatContracts(floor.oiChange, false)} added
+            </span>
           </div>
         </div>
 
@@ -1009,6 +1018,7 @@ export const FnOCommandCenter: React.FC = () => {
                         {activeCardRow.strikePrice === maxPain.strike && <span className="tt-tag pain">MAX PAIN</span>}
                       </div>
                       <span className="flex-1" />
+                      <span className="tt-lot-badge font-mono">Lot: {getLotSize(selectedSymbol)} sh</span>
                       <span className="tt-time-label">as of Fri 30 Oct 15:30</span>
                       {pinnedStrike && (
                         <button
@@ -1035,12 +1045,21 @@ export const FnOCommandCenter: React.FC = () => {
                       }}
                     >
                       <span className="fnocc-sq call" />
-                      <span className="tt-row-label">Call sellers</span>
-                      <b className="tt-row-val">{((activeCardRow.CE?.openInterest || 0) / 100000).toFixed(1)} L</b>
-                      <span className="tt-row-chg">
-                        {((activeCardRow.CE?.changeinOpenInterest || 0) >= 0 ? '+' : '')}
-                        {((activeCardRow.CE?.changeinOpenInterest || 0) / 100000).toFixed(1)} L last session
-                      </span>
+                      <div className="tt-row-main-col">
+                        <span className="tt-row-label">Call sellers</span>
+                        <span className="tt-row-sub-shares font-mono">
+                          {formatShares(activeCardRow.CE?.openInterest || 0, selectedSymbol, true)}
+                        </span>
+                      </div>
+                      <div className="tt-row-metrics-col">
+                        <b className="tt-row-val font-mono tabular-nums">
+                          {formatContracts(activeCardRow.CE?.openInterest || 0, true)}
+                        </b>
+                        <span className="tt-row-chg font-mono tabular-nums">
+                          {((activeCardRow.CE?.changeinOpenInterest || 0) >= 0 ? '+' : '')}
+                          {formatContracts(activeCardRow.CE?.changeinOpenInterest || 0, false)} ({((activeCardRow.CE?.pchangeinOpenInterest || 0) >= 0 ? '+' : '')}{(activeCardRow.CE?.pchangeinOpenInterest || 0).toFixed(1)}%) last session
+                        </span>
+                      </div>
                     </div>
 
                     {/* Put sellers row */}
@@ -1052,19 +1071,28 @@ export const FnOCommandCenter: React.FC = () => {
                       }}
                     >
                       <span className="fnocc-sq put" />
-                      <span className="tt-row-label">Put sellers</span>
-                      <b className="tt-row-val">{((activeCardRow.PE?.openInterest || 0) / 100000).toFixed(1)} L</b>
-                      <span className="tt-row-chg">
-                        {((activeCardRow.PE?.changeinOpenInterest || 0) >= 0 ? '+' : '')}
-                        {((activeCardRow.PE?.changeinOpenInterest || 0) / 100000).toFixed(1)} L last session
-                      </span>
+                      <div className="tt-row-main-col">
+                        <span className="tt-row-label">Put sellers</span>
+                        <span className="tt-row-sub-shares font-mono">
+                          {formatShares(activeCardRow.PE?.openInterest || 0, selectedSymbol, true)}
+                        </span>
+                      </div>
+                      <div className="tt-row-metrics-col">
+                        <b className="tt-row-val font-mono tabular-nums">
+                          {formatContracts(activeCardRow.PE?.openInterest || 0, true)}
+                        </b>
+                        <span className="tt-row-chg font-mono tabular-nums">
+                          {((activeCardRow.PE?.changeinOpenInterest || 0) >= 0 ? '+' : '')}
+                          {formatContracts(activeCardRow.PE?.changeinOpenInterest || 0, false)} ({((activeCardRow.PE?.pchangeinOpenInterest || 0) >= 0 ? '+' : '')}{(activeCardRow.PE?.pchangeinOpenInterest || 0).toFixed(1)}%) last session
+                        </span>
+                      </div>
                     </div>
 
                     {/* Footer Info */}
                     <div className="tt-f">
                       <div className="tt-f-line">
                         <span>Puts ÷ calls here</span>
-                        <b>
+                        <b className="font-mono tabular-nums">
                           {activeCardRow.CE?.openInterest
                             ? ((activeCardRow.PE?.openInterest || 0) / activeCardRow.CE.openInterest).toFixed(2)
                             : '0.00'}
@@ -1072,7 +1100,7 @@ export const FnOCommandCenter: React.FC = () => {
                       </div>
                       <div className="tt-f-line">
                         <span>Option price:</span>
-                        <span>
+                        <span className="font-mono tabular-nums">
                           CE <b>₹{(activeCardRow.CE?.lastPrice || 0).toFixed(2)}</b> • PE{' '}
                           <b>₹{(activeCardRow.PE?.lastPrice || 0).toFixed(2)}</b>
                         </span>
@@ -1208,7 +1236,9 @@ export const FnOCommandCenter: React.FC = () => {
               </div>
               <div className="fut-stat">
                 <span className="stat-label">Open positions</span>
-                <span className="stat-val">{(fut.openInterest / 100000).toFixed(1)} L ({fut.openInterestChangePct}%)</span>
+                <span className="stat-val font-mono tabular-nums">
+                  {formatContracts(Math.round(fut.openInterest / getLotSize(selectedSymbol)), true)} ({formatShares(Math.round(fut.openInterest / getLotSize(selectedSymbol)), selectedSymbol, true)}) ({fut.openInterestChangePct}%)
+                </span>
               </div>
               <div className="fut-buildup-tag">
                 <span className="buildup-pill">{fut.buildUp}</span>

@@ -1,17 +1,20 @@
 import React, { useState, useMemo } from 'react';
 import './WhereSellersAre.css';
+import { formatContracts, formatShares, getLotSize } from '../../utils/fnoUnits';
 
 interface StrikeRow {
   strikePrice: number;
   CE?: {
     openInterest?: number;
     changeinOpenInterest?: number;
+    pchangeinOpenInterest?: number;
     lastPrice?: number;
     totalTradedVolume?: number;
   };
   PE?: {
     openInterest?: number;
     changeinOpenInterest?: number;
+    pchangeinOpenInterest?: number;
     lastPrice?: number;
     totalTradedVolume?: number;
   };
@@ -157,13 +160,13 @@ export const WhereSellersAre: React.FC<WhereSellersAreProps> = ({
     return paddingTop + chartHeight - ratio * chartHeight;
   };
 
-  // Y-Axis Ticks
+  // Y-Axis Ticks (Formatted in Contracts / Lots)
   const yTicks = [
-    { val: maxVal, label: `${(maxVal / 100000).toFixed(1)} L` },
-    { val: maxVal * 0.75, label: `${((maxVal * 0.75) / 100000).toFixed(1)} L` },
-    { val: maxVal * 0.5, label: `${((maxVal * 0.5) / 100000).toFixed(1)} L` },
-    { val: maxVal * 0.25, label: `${((maxVal * 0.25) / 100000).toFixed(1)} L` },
-    { val: 0, label: '0.0 L' },
+    { val: maxVal, label: formatContracts(maxVal, false) },
+    { val: maxVal * 0.75, label: formatContracts(maxVal * 0.75, false) },
+    { val: maxVal * 0.5, label: formatContracts(maxVal * 0.5, false) },
+    { val: maxVal * 0.25, label: formatContracts(maxVal * 0.25, false) },
+    { val: 0, label: '0' },
   ];
 
   // Likely Range coordinates
@@ -384,7 +387,7 @@ export const WhereSellersAre: React.FC<WhereSellersAreProps> = ({
                       fontWeight="700"
                       fontFamily="system-ui, -apple-system, sans-serif"
                     >
-                      {((item.putVal || floor?.oi || 0) / 100000).toFixed(1)} L
+                      {formatContracts(item.putVal || floor?.oi || 0, true)}
                     </text>
                   </g>
                 )}
@@ -412,7 +415,7 @@ export const WhereSellersAre: React.FC<WhereSellersAreProps> = ({
                       fontWeight="700"
                       fontFamily="system-ui, -apple-system, sans-serif"
                     >
-                      {((item.callVal || ceiling?.oi || 0) / 100000).toFixed(1)} L
+                      {formatContracts(item.callVal || ceiling?.oi || 0, true)}
                     </text>
                   </g>
                 )}
@@ -483,23 +486,24 @@ export const WhereSellersAre: React.FC<WhereSellersAreProps> = ({
             <div className="ws-tt-header">
               <b>{hoveredStrike.strikePrice.toLocaleString()}</b>
               {hoveredStrike.strikePrice === atmStrike && <span className="tt-tag atm">ATM</span>}
+              <span className="ws-tt-lot font-mono">Lot: {getLotSize(symbol)} sh</span>
             </div>
             <div className="ws-tt-row call">
               <span className="dot red" />
               <span>Call sellers:</span>
-              <b>{((hoveredStrike.CE?.openInterest || 0) / 100000).toFixed(1)} L</b>
+              <b>{formatContracts(hoveredStrike.CE?.openInterest || 0, true)} ({formatShares(hoveredStrike.CE?.openInterest || 0, symbol, true)})</b>
               <span className="chg">
                 {((hoveredStrike.CE?.changeinOpenInterest || 0) >= 0 ? '+' : '')}
-                {((hoveredStrike.CE?.changeinOpenInterest || 0) / 100000).toFixed(1)} L
+                {formatContracts(hoveredStrike.CE?.changeinOpenInterest || 0, false)} ({((hoveredStrike.CE?.pchangeinOpenInterest || 0) >= 0 ? '+' : '')}{(hoveredStrike.CE?.pchangeinOpenInterest || 0).toFixed(1)}%)
               </span>
             </div>
             <div className="ws-tt-row put">
               <span className="dot green" />
               <span>Put sellers:</span>
-              <b>{((hoveredStrike.PE?.openInterest || 0) / 100000).toFixed(1)} L</b>
+              <b>{formatContracts(hoveredStrike.PE?.openInterest || 0, true)} ({formatShares(hoveredStrike.PE?.openInterest || 0, symbol, true)})</b>
               <span className="chg">
                 {((hoveredStrike.PE?.changeinOpenInterest || 0) >= 0 ? '+' : '')}
-                {((hoveredStrike.PE?.changeinOpenInterest || 0) / 100000).toFixed(1)} L
+                {formatContracts(hoveredStrike.PE?.changeinOpenInterest || 0, false)} ({((hoveredStrike.PE?.pchangeinOpenInterest || 0) >= 0 ? '+' : '')}{(hoveredStrike.PE?.pchangeinOpenInterest || 0).toFixed(1)}%)
               </span>
             </div>
             <div className="ws-tt-footer">

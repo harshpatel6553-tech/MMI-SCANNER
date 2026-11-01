@@ -105,9 +105,9 @@ class OptionChainService {
         strike: 23100,
         side: 'RESISTANCE (CALLS)',
         action: 'pulled',
-        contracts: '14.1L',
-        contractsNum: 1410000,
-        message: 'Big players removed 14.1L Call bets at 23,100 — Resistance Cleared (Bullish Breakout Signal).',
+        contracts: '14.1K contracts (3.5L shares)',
+        contractsNum: 14100,
+        message: 'Big players removed 14.1K Call contracts (3.5L shares) at 23,100 — Resistance Cleared (Bullish Breakout Signal).',
         impact: 'BULLISH',
       },
       {
@@ -118,9 +118,9 @@ class OptionChainService {
         strike: 23300,
         side: 'SUPPORT (PUTS)',
         action: 'pulled',
-        contracts: '1.0L',
-        contractsNum: 100000,
-        message: 'Big players removed 1.0L Put bets at 23,300 — Support Weakened (Downside Risk Warning).',
+        contracts: '4.0K contracts (1.0L shares)',
+        contractsNum: 4000,
+        message: 'Big players removed 4.0K Put contracts (1.0L shares) at 23,300 — Support Weakened (Downside Risk Warning).',
         impact: 'BEARISH',
       },
       {
@@ -131,9 +131,9 @@ class OptionChainService {
         strike: 23250,
         side: 'SUPPORT (PUTS)',
         action: 'pulled',
-        contracts: '30K',
-        contractsNum: 30000,
-        message: 'Big players removed 30K Put bets at 23,250 — Support Weakened (Defensive Caution).',
+        contracts: '1.2K contracts (30K shares)',
+        contractsNum: 1200,
+        message: 'Big players removed 1.2K Put contracts (30K shares) at 23,250 — Support Weakened (Defensive Caution).',
         impact: 'BEARISH',
       },
       {
@@ -144,9 +144,9 @@ class OptionChainService {
         strike: 23450,
         side: 'SUPPORT (PUTS)',
         action: 'placed',
-        contracts: '58K',
-        contractsNum: 58000,
-        message: 'Big players added 58K Put bets at 23,450 — Support Built (Downside Shielded).',
+        contracts: '2.3K contracts (58K shares)',
+        contractsNum: 2320,
+        message: 'Big players added 2.3K Put contracts (58K shares) at 23,450 — Support Built (Downside Shielded).',
         impact: 'BULLISH',
       },
       {
@@ -157,9 +157,9 @@ class OptionChainService {
         strike: 23000,
         side: 'SUPPORT (PUTS)',
         action: 'placed',
-        contracts: '1.2L',
-        contractsNum: 120000,
-        message: 'Big players added 1.2L Put bets at 23,000 — Strong Support Base Created (Bullish Base).',
+        contracts: '4.8K contracts (1.2L shares)',
+        contractsNum: 4800,
+        message: 'Big players added 4.8K Put contracts (1.2L shares) at 23,000 — Strong Support Base Created (Bullish Base).',
         impact: 'BULLISH',
       },
     ];
@@ -506,16 +506,22 @@ class OptionChainService {
         const ceDelta = (s.CE?.openInterest || 0) - prev.ceOI;
         const peDelta = (s.PE?.openInterest || 0) - prev.peOI;
 
-        // Big Call move threshold (e.g. 50,000+ contracts or significant change)
-        if (Math.abs(ceDelta) >= 50000) {
-          const action = ceDelta < 0 ? 'pulled' : 'placed';
-          const contractsFormatted = Math.abs(ceDelta) >= 100000 
-            ? `${(Math.abs(ceDelta) / 100000).toFixed(1)}L` 
-            : `${Math.round(Math.abs(ceDelta) / 1000)}K`;
+        const lot = symbol === 'BANKNIFTY' ? 15 : symbol === 'SENSEX' ? 10 : 25;
 
+        // Big Call move threshold (e.g. 5,000+ contracts or significant change)
+        if (Math.abs(ceDelta) >= 5000) {
           const isCeRemoved = ceDelta < 0;
           const ceActionText = isCeRemoved ? 'removed' : 'placed';
           const ceEffectText = isCeRemoved ? 'Resistance Cleared' : 'Resistance Built';
+          const contractsNum = Math.abs(ceDelta);
+          const sharesNum = contractsNum * lot;
+          const contractsStr = contractsNum >= 100000 
+            ? `${(contractsNum / 100000).toFixed(2)}L contracts` 
+            : `${(contractsNum / 1000).toFixed(1)}K contracts`;
+          const sharesStr = sharesNum >= 10000000
+            ? `${(sharesNum / 10000000).toFixed(2)}Cr shares`
+            : `${(sharesNum / 100000).toFixed(2)}L shares`;
+          const dualStr = `${contractsStr} (${sharesStr})`;
 
           this.alertsFeed.unshift({
             id: `alert-${Date.now()}-${s.strikePrice}-ce`,
@@ -525,21 +531,27 @@ class OptionChainService {
             strike: s.strikePrice,
             side: 'RESISTANCE (CALLS)',
             action: isCeRemoved ? 'pulled' : 'placed',
-            contracts: contractsFormatted,
-            contractsNum: Math.abs(ceDelta),
-            message: `Big players ${ceActionText} ${contractsFormatted} Call bets at the ${s.strikePrice} level (${ceEffectText}) - in 5 minutes.`,
+            contracts: dualStr,
+            contractsNum,
+            message: `Big players ${ceActionText} ${dualStr} at the ${s.strikePrice} level (${ceEffectText}) - in 5 minutes.`,
             impact: isCeRemoved ? 'BULLISH' : 'BEARISH',
           });
         }
 
-        // Big Put move threshold
-        if (Math.abs(peDelta) >= 50000) {
+        // Big Put move threshold (e.g. 5,000+ contracts)
+        if (Math.abs(peDelta) >= 5000) {
           const isPeAdded = peDelta > 0;
           const peActionText = isPeAdded ? 'placed' : 'removed';
           const peEffectText = isPeAdded ? 'Support Built' : 'Support Weakened';
-          const peContractsFormatted = Math.abs(peDelta) >= 100000 
-            ? `${(Math.abs(peDelta) / 100000).toFixed(1)}L` 
-            : `${Math.round(Math.abs(peDelta) / 1000)}K`;
+          const contractsNum = Math.abs(peDelta);
+          const sharesNum = contractsNum * lot;
+          const contractsStr = contractsNum >= 100000 
+            ? `${(contractsNum / 100000).toFixed(2)}L contracts` 
+            : `${(contractsNum / 1000).toFixed(1)}K contracts`;
+          const sharesStr = sharesNum >= 10000000
+            ? `${(sharesNum / 10000000).toFixed(2)}Cr shares`
+            : `${(sharesNum / 100000).toFixed(2)}L shares`;
+          const dualStr = `${contractsStr} (${sharesStr})`;
 
           this.alertsFeed.unshift({
             id: `alert-${Date.now()}-${s.strikePrice}-pe`,
@@ -549,9 +561,9 @@ class OptionChainService {
             strike: s.strikePrice,
             side: 'SUPPORT (PUTS)',
             action: isPeAdded ? 'placed' : 'pulled',
-            contracts: peContractsFormatted,
-            contractsNum: Math.abs(peDelta),
-            message: `Big players ${peActionText} ${peContractsFormatted} Put bets at the ${s.strikePrice} level (${peEffectText}) - in 5 minutes.`,
+            contracts: dualStr,
+            contractsNum,
+            message: `Big players ${peActionText} ${dualStr} at the ${s.strikePrice} level (${peEffectText}) - in 5 minutes.`,
             impact: isPeAdded ? 'BULLISH' : 'BEARISH',
           });
         }
@@ -732,9 +744,9 @@ class OptionChainService {
           strike: atmStrike + 500,
           side: 'RESISTANCE (CALLS)',
           action: 'pulled',
-          contracts: '82K',
-          contractsNum: 82000,
-          message: `Big players removed 82K Call bets at the ${atmStrike + 500} level (Resistance Cleared) - in 5 minutes.`,
+          contracts: '8.2K contracts (82K shares)',
+          contractsNum: 8200,
+          message: `Big players removed 8.2K Call contracts (82K shares) at the ${atmStrike + 500} level (Resistance Cleared) - in 5 minutes.`,
           impact: 'BULLISH',
         },
         {
@@ -745,9 +757,9 @@ class OptionChainService {
           strike: atmStrike - 500,
           side: 'SUPPORT (PUTS)',
           action: 'placed',
-          contracts: '1.1L',
-          contractsNum: 110000,
-          message: `Big players added 1.1L Put bets at the ${atmStrike - 500} level (Support Built) - in 5 minutes.`,
+          contracts: '11.0K contracts (1.1L shares)',
+          contractsNum: 11000,
+          message: `Big players added 11.0K Put contracts (1.1L shares) at the ${atmStrike - 500} level (Support Built) - in 5 minutes.`,
           impact: 'BULLISH',
         }
       ],

@@ -142,8 +142,17 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  min-width: 190px;
+  min-width: 260px;
   backdrop-filter: blur(8px);
+}
+
+.ws-tt-lot {
+  font-size: 10px;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.28);
+  padding: 1px 5px;
+  border-radius: 4px;
 }
 
 .ws-tt-header {
