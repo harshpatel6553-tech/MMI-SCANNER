@@ -8,43 +8,47 @@
    ============================================ */
 
 :root {
-  /* App Backgrounds - Deep Titanium OLED Void */
-  --bg-app: #03050a;
-  --bg-surface: #070b14;
-  --bg-surface-2: #0c1222;
-  --bg-surface-3: #121a30;
-  --bg-hover: #18233e;
+  /* App Backgrounds - Institutional Terminal Void */
+  --bg-app: #070B12;
+  --bg-surface: #101A2B;
+  --bg-surface-2: #0B1220;
+  --bg-surface-3: #142137;
+  --bg-hover: #182842;
 
   /* Borders & Hairlines - Machined Precision Refraction */
-  --border: rgba(255, 255, 255, 0.08);
-  --border-subtle: rgba(255, 255, 255, 0.04);
-  --border-soft: rgba(255, 255, 255, 0.06);
-  --border-glow: rgba(56, 189, 248, 0.35);
-  --border-focus: #38bdf8;
+  --border: #243249;
+  --border-subtle: rgba(36, 50, 73, 0.45);
+  --border-soft: rgba(36, 50, 73, 0.65);
+  --border-glow: rgba(40, 207, 255, 0.35);
+  --border-focus: #28CFFF;
 
   /* Typography */
-  --text-1: #ffffff;
-  --text-2: #cbd5e1;
-  --text-3: #94a3b8;
+  --text-1: #F1F5FC;
+  --text-2: #9BAAC0;
+  --text-3: #64748B;
   
-  /* Brand Accents - Electric Azure & Royal Indigo */
-  --amber: #38bdf8;
+  /* Brand Accents - Electric Cyan & Premium Gold */
+  --amber: #28CFFF;
   --amber-soft: #0284c7;
-  --amber-dim: rgba(56, 189, 248, 0.12);
-  --amber-glow: rgba(56, 189, 248, 0.35);
+  --amber-dim: rgba(40, 207, 255, 0.12);
+  --amber-glow: rgba(40, 207, 255, 0.35);
 
-  /* Semantic Colors - High Contrast Telemetry */
-  --up: #00f59b;
-  --up-dim: rgba(0, 245, 155, 0.12);
-  --up-glow: rgba(0, 245, 155, 0.35);
+  /* Semantic Colors - High Contrast Institutional Telemetry */
+  --up: #00D6A3;
+  --up-dim: rgba(0, 214, 163, 0.12);
+  --up-glow: rgba(0, 214, 163, 0.35);
   
-  --down: #ff2a5f;
-  --down-dim: rgba(255, 42, 95, 0.12);
-  --down-glow: rgba(255, 42, 95, 0.35);
+  --down: #FF4268;
+  --down-dim: rgba(255, 66, 104, 0.12);
+  --down-glow: rgba(255, 66, 104, 0.35);
 
-  --cyan: #38bdf8;
-  --cyan-dim: rgba(56, 189, 248, 0.12);
-  --cyan-glow: rgba(56, 189, 248, 0.3);
+  --cyan: #28CFFF;
+  --cyan-dim: rgba(40, 207, 255, 0.12);
+  --cyan-glow: rgba(40, 207, 255, 0.35);
+
+  --gold: #D4AF37;
+  --gold-dim: rgba(212, 175, 55, 0.12);
+  --gold-glow: rgba(212, 175, 55, 0.35);
 
   --purple: #818cf8;
   --purple-dim: rgba(129, 140, 248, 0.12);
@@ -57,24 +61,25 @@
   --radius-full: 9999px;
 
   /* Vanguard Double-Bezel (Doppelrand) Concentric Radii */
-  --radius-outer-lg: 28px;
-  --radius-inner-lg: calc(var(--radius-outer-lg) - 6px);
-  --radius-outer-md: 20px;
-  --radius-inner-md: calc(var(--radius-outer-md) - 5px);
-  --radius-outer-sm: 14px;
-  --radius-inner-sm: calc(var(--radius-outer-sm) - 4px);
+  --radius-outer-lg: 24px;
+  --radius-inner-lg: calc(var(--radius-outer-lg) - 5px);
+  --radius-outer-md: 18px;
+  --radius-inner-md: calc(var(--radius-outer-md) - 4px);
+  --radius-outer-sm: 12px;
+  --radius-inner-sm: calc(var(--radius-outer-sm) - 3px);
 
-  /* Font Families - Anti-Slop (No Inter, No Roboto, No Arial) */
-  --font-display: 'Cabinet Grotesk', 'Space Grotesk', system-ui, -apple-system, sans-serif;
-  --font-body: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  /* Font Families - Institutional Typography */
+  --font-display: 'Geist', 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
+  --font-body: 'Geist', 'Inter', 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'IBM Plex Mono', 'Geist Mono', 'JetBrains Mono', monospace;
   
-  /* Shadows with Colored Ambient Diffusion */
-  --shadow-sm: 0 2px 4px 0 rgba(0, 0, 0, 0.6);
-  --shadow-md: 0 10px 25px -5px rgba(0, 0, 0, 0.7), 0 8px 10px -6px rgba(0, 0, 0, 0.7);
-  --shadow-beast: 0 20px 40px -15px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  --shadow-glow-up: 0 0 25px rgba(16, 185, 129, 0.2);
-  --shadow-glow-down: 0 0 25px rgba(244, 63, 94, 0.2);
+  /* Shadows with Ambient Diffusion */
+  --shadow-sm: 0 2px 4px 0 rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 10px 25px -5px rgba(0, 0, 0, 0.6), 0 8px 10px -6px rgba(0, 0, 0, 0.6);
+  --shadow-beast: 0 20px 40px -15px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  --shadow-glow-up: 0 0 25px rgba(0, 214, 163, 0.2);
+  --shadow-glow-down: 0 0 25px rgba(255, 66, 104, 0.2);
+  --shadow-glow-cyan: 0 0 25px rgba(40, 207, 255, 0.2);
   
   /* Easings - Linear/Apple Tier Mass Spring Physics */
   --ease-agency: cubic-bezier(0.32, 0.72, 0, 1);
@@ -403,15 +408,15 @@ a {
     display: flex;
     flex-direction: column;
     justify-content: center;
-    background: linear-gradient(135deg, rgba(16, 23, 44, 0.75) 0%, rgba(10, 15, 29, 0.9) 100%);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 9px;
-    padding: 4px 10px;
-    min-width: 142px;
+    background: linear-gradient(135deg, rgba(16, 26, 43, 0.85) 0%, rgba(10, 16, 28, 0.95) 100%);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 3px 8px;
+    min-width: 122px;
     cursor: pointer;
     position: relative;
     overflow: hidden;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.09);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     user-select: none;
   }
@@ -575,7 +580,7 @@ a {
   .search-box span{font-size:12.5px;}
   .kbd{margin-left:auto; font-size:10px; font-family:var(--font-mono); background:var(--bg-hover); padding:1px 5px; border-radius:4px; color:var(--text-3);}
 
-  .topbar-right{flex:none; display:flex; align-items:center; gap:14px;}
+  .topbar-right{flex:none; display:flex; align-items:center; gap:8px;}
   .market-pill{
     display:flex; align-items:center; gap:6px; font-size:11.5px; font-weight:600;
     color:var(--up); background:var(--up-dim); padding:5px 10px; border-radius:20px;
@@ -1370,13 +1375,52 @@ a {
   gap: 8px;
   padding: 4px 12px;
   border-radius: 9999px;
-  background: rgba(0, 245, 155, 0.07);
-  border: 1px solid rgba(0, 245, 155, 0.22);
-  color: #00f59b;
+  background: rgba(0, 214, 163, 0.08);
+  border: 1px solid rgba(0, 214, 163, 0.25);
+  color: var(--up);
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.2em;
+}
+
+/* Institutional Alert Motion & Light Streak */
+@keyframes alertLightStreak {
+  0% { transform: translateX(-120%) skewX(-25deg); opacity: 0; }
+  15% { opacity: 0.85; }
+  60% { opacity: 0.4; }
+  100% { transform: translateX(250%) skewX(-25deg); opacity: 0; }
+}
+
+.alert-light-streak {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 35%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent 0%, rgba(40, 207, 255, 0.22) 50%, transparent 100%);
+  animation: alertLightStreak 3.2s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Directional Text Flash Transitions */
+@keyframes textTickUp {
+  0% { color: var(--up); text-shadow: 0 0 10px rgba(0, 214, 163, 0.6); }
+  100% { color: inherit; text-shadow: none; }
+}
+
+@keyframes textTickDown {
+  0% { color: var(--down); text-shadow: 0 0 10px rgba(255, 66, 104, 0.6); }
+  100% { color: inherit; text-shadow: none; }
+}
+
+.flash-up-text {
+  animation: textTickUp 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.flash-down-text {
+  animation: textTickDown 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @media (prefers-reduced-motion: reduce) {

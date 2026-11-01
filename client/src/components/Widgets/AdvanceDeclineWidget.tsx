@@ -2,6 +2,8 @@ import React from 'react';
 import { useStocks } from '../../hooks/useStocks';
 import { audioAlerts } from '../../utils/audioAlerts';
 import { Activity, TrendingUp, TrendingDown, Gauge } from 'lucide-react';
+import { AnimatedNumber } from '../common/AnimatedNumber';
+import { MarketBreadthRadar } from '../common/MarketBreadthRadar';
 
 export function AdvanceDeclineWidget() {
   const { stats } = useStocks({ index: 'ALL', priceMin: 0, priceMax: 0, volumeMin: 0, search: '' }, 'symbol', 'asc');
@@ -17,12 +19,12 @@ export function AdvanceDeclineWidget() {
     <div className="ad-hardware-shell" onMouseEnter={() => audioAlerts.playClickHaptic()}>
       <div className="ad-hardware-core">
         <div className="ad-head">
-          <div className="ad-title-group">
+          <div className="ad-title-group" style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <div className="ad-icon-badge">
               <Gauge size={18} strokeWidth={1.5} className="text-cyan-400" />
             </div>
             <div>
-              <div className="ad-title-text">
+              <div className="ad-title-text" style={{ fontFamily: 'var(--font-display)', letterSpacing: '-0.01em' }}>
                 MARKET BREADTH TELEMETRY
               </div>
               <div className="ad-sub-text">
@@ -31,7 +33,7 @@ export function AdvanceDeclineWidget() {
             </div>
           </div>
 
-          <div className="ad-badges-group">
+          <div className="ad-badges-group" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span className={`ad-bias-badge ${isBullish ? 'bull' : isNeutral ? 'neutral' : 'bear'}`}>
               {isBullish ? (
                 <>
@@ -50,7 +52,7 @@ export function AdvanceDeclineWidget() {
                 </>
               )}
             </span>
-            <span className="ad-ratio-pill num tabular-nums">
+            <span className="ad-ratio-pill num tabular-nums font-mono">
               A/D RATIO: {adRatio}
             </span>
           </div>
@@ -61,25 +63,29 @@ export function AdvanceDeclineWidget() {
           <div className="ad-bar-track">
             <div 
               className="ad-bar-segment bull"
-              style={{ width: `${gainerPct}%` }}
+              style={{ width: `${gainerPct}%`, transition: 'width 0.8s cubic-bezier(0.16, 1, 0.3, 1)' }}
             />
             <div 
               className="ad-bar-segment bear"
-              style={{ width: `${loserPct}%` }}
+              style={{ width: `${loserPct}%`, transition: 'width 0.8s cubic-bezier(0.16, 1, 0.3, 1)' }}
             />
           </div>
         </div>
 
-        <div className="ad-labels-row">
+        <div className="ad-labels-row font-mono">
           <span className="ad-label-item bull">
             <span className="glyph">▲</span>
-            <span><b className="num tabular-nums">{stats.gainers}</b> advancing ({gainerPct.toFixed(1)}%)</span>
+            <span>
+              <b className="num tabular-nums"><AnimatedNumber value={stats.gainers} duration={0.6} /></b> advancing ({gainerPct.toFixed(1)}%)
+            </span>
           </span>
           <span className="ad-label-center">
-            {stats.unchanged} flat / sideways
+            <AnimatedNumber value={stats.unchanged} duration={0.6} /> flat / sideways
           </span>
           <span className="ad-label-item bear">
-            <span><b className="num tabular-nums">{stats.losers}</b> declining ({loserPct.toFixed(1)}%)</span>
+            <span>
+              <b className="num tabular-nums"><AnimatedNumber value={stats.losers} duration={0.6} /></b> declining ({loserPct.toFixed(1)}%)
+            </span>
             <span className="glyph">▼</span>
           </span>
         </div>

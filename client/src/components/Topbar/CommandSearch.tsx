@@ -187,7 +187,7 @@ export const CommandSearch: FC<Props> = ({ items = DEFAULT_ITEMS }) => {
             />
         )}
       </AnimatePresence>
-      <div className="relative z-[10000] h-10 w-full max-w-[210px] xl:max-w-[240px]">
+      <div className="relative z-[10000] h-9 w-40 xl:w-52 flex-shrink-0">
         <AnimatePresence mode="popLayout">
           {!isOpen ? (
             <motion.button
@@ -205,7 +205,7 @@ export const CommandSearch: FC<Props> = ({ items = DEFAULT_ITEMS }) => {
                 transition={sharedTransition}
                 className="pr-8 text-sm font-medium"
               >
-                Search symbol...
+                Search...
               </motion.span>
               <motion.kbd
                 layoutId="search-shortcut"
@@ -248,7 +248,7 @@ export const CommandSearch: FC<Props> = ({ items = DEFAULT_ITEMS }) => {
                       transition={sharedTransition}
                       className="pointer-events-none absolute left-0 text-[15px] font-medium text-[var(--text-2)]"
                     >
-                      Search symbol...
+                      Search...
                     </motion.span>
                   )}
                 </div>

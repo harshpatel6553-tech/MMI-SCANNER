@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import type { StockAlert } from '../../types';
 import { formatPrice, formatTime } from '../../utils/formatters';
 import { useDashboard } from '../../contexts/DashboardContext';
@@ -266,87 +267,95 @@ export function AlertPanel({ alerts, onClearAll }: AlertPanelProps) {
                   <div className="empty-sub">No alerts match the "{filter}" filter. Live tape is broadcasting actively.</div>
                 </div>
               ) : (
-                filteredAlerts.map(alert => {
-                  const isHigh = alert.alertType === 'DAY_HIGH';
-                  const isLow = alert.alertType === 'DAY_LOW';
-                  const isNews = alert.alertType === 'NEWS';
-                  const isMilestone = alert.alertType === 'INDEX_MILESTONE';
-                  const isIdx = isIndexSymbol(alert.symbol) || isMilestone;
-                  
-                  const typeClass = isMilestone ? 'milestone' : isHigh ? 'high' : isLow ? 'low' : isNews ? 'news' : 'spike';
-                  const typeIcon: CyberIconName = isMilestone ? 'overview' : isHigh ? 'pulse_up' : isLow ? 'pulse_down' : isNews ? 'livenews' : 'spike';
-                  const typeText = isMilestone ? 'INDEX PEAK' : isHigh ? 'DAY HIGH' : isLow ? 'DAY LOW' : isNews ? 'NEWS ALPHA' : 'VOL SPIKE';
+                <AnimatePresence mode="popLayout">
+                  {filteredAlerts.map(alert => {
+                    const isHigh = alert.alertType === 'DAY_HIGH';
+                    const isLow = alert.alertType === 'DAY_LOW';
+                    const isNews = alert.alertType === 'NEWS';
+                    const isMilestone = alert.alertType === 'INDEX_MILESTONE';
+                    const isIdx = isIndexSymbol(alert.symbol) || isMilestone;
+                    
+                    const typeClass = isMilestone ? 'milestone' : isHigh ? 'high' : isLow ? 'low' : isNews ? 'news' : 'spike';
+                    const typeIcon: CyberIconName = isMilestone ? 'overview' : isHigh ? 'pulse_up' : isLow ? 'pulse_down' : isNews ? 'livenews' : 'spike';
+                    const typeText = isMilestone ? 'INDEX PEAK' : isHigh ? 'DAY HIGH' : isLow ? 'DAY LOW' : isNews ? 'NEWS ALPHA' : 'VOL SPIKE';
 
-                  return (
-                    <div 
-                      key={alert.id} 
-                      className={`alert-card ${typeClass}`}
-                      onClick={() => handleCardClick(alert.symbol)}
-                      title="Click to open interactive chart"
-                    >
-                      <div className="alert-top">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                          <StockLogo symbol={alert.symbol} name={alert.name} size={20} />
-                          <span className={`alert-badge ${typeClass}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                            <CyberIcon name={typeIcon} size={12} active={true} />
-                            <span>{typeText}</span>
-                          </span>
-                          {isIdx && (
-                            <span className="index-pill">NSE INDEX</span>
-                          )}
-                        </div>
-
-                        <div className="alert-card-meta">
-                          <span className="alert-time tabular-nums">{formatTime(alert.createdAt)}</span>
-                          
-                          {/* Quick Copy Ticker Button */}
-                          <button 
-                            className="btn-quick-copy"
-                            onClick={(e) => handleCopy(alert.symbol, alert.id, e)}
-                            title="Copy symbol to clipboard"
-                          >
-                            {copiedId === alert.id ? <Check size={12} color="#10b981" /> : <Copy size={12} />}
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="alert-bottom">
-                        <div className="alert-ticker-block">
-                          <div className="alert-sym-row">
-                            <span className="alert-sym">{alert.symbol}</span>
-                            <span className="alert-co-name">{alert.name}</span>
+                    return (
+                      <motion.div 
+                        key={alert.id} 
+                        initial={{ opacity: 0, x: 20, scale: 0.97 }}
+                        animate={{ opacity: 1, x: 0, scale: 1 }}
+                        exit={{ opacity: 0, x: -16, scale: 0.95 }}
+                        transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+                        className={`alert-card ${typeClass}`}
+                        onClick={() => handleCardClick(alert.symbol)}
+                        title="Click to open interactive chart"
+                        style={{ position: 'relative', overflow: 'hidden' }}
+                      >
+                        <div className="alert-light-streak" />
+                        <div className="alert-top">
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                            <StockLogo symbol={alert.symbol} name={alert.name} size={20} />
+                            <span className={`alert-badge ${typeClass}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                              <CyberIcon name={typeIcon} size={12} active={true} />
+                              <span>{typeText}</span>
+                            </span>
+                            {isIdx && (
+                              <span className="index-pill">NSE INDEX</span>
+                            )}
                           </div>
 
-                          {alert.details && (
-                            <span className="alert-details-sub">
-                              {alert.details}
-                            </span>
-                          )}
+                          <div className="alert-card-meta">
+                            <span className="alert-time tabular-nums">{formatTime(alert.createdAt)}</span>
+                            
+                            {/* Quick Copy Ticker Button */}
+                            <button 
+                              className="btn-quick-copy"
+                              onClick={(e) => handleCopy(alert.symbol, alert.id, e)}
+                              title="Copy symbol to clipboard"
+                            >
+                              {copiedId === alert.id ? <Check size={12} color="var(--up)" /> : <Copy size={12} />}
+                            </button>
+                          </div>
                         </div>
 
-                        {isNews ? (
-                          <span className="alert-news" title={alert.name}>{alert.name}</span>
-                        ) : (
-                          <div className="alert-numbers-block">
-                            <span className={`alert-price tabular-nums ${typeClass}`}>
-                              {formatPrice(alert.price)}
-                            </span>
-                            
-                            {alert.change !== undefined && alert.changePercent !== undefined && (
-                              <span className={`chg-badge tabular-nums ${alert.changePercent >= 0 ? 'up' : 'down'}`}>
-                                {alert.change >= 0 ? '+' : '−'}{Math.abs(alert.change).toFixed(1)} ({alert.changePercent >= 0 ? '+' : '−'}{Math.abs(alert.changePercent).toFixed(2)}%)
+                        <div className="alert-bottom">
+                          <div className="alert-ticker-block">
+                            <div className="alert-sym-row">
+                              <span className="alert-sym">{alert.symbol}</span>
+                              <span className="alert-co-name">{alert.name}</span>
+                            </div>
+
+                            {alert.details && (
+                              <span className="alert-details-sub">
+                                {alert.details}
                               </span>
                             )}
                           </div>
-                        )}
-                      </div>
 
-                      <div className="card-hover-action">
-                        <span>OPEN CHART <ExternalLink size={11} /></span>
-                      </div>
-                    </div>
-                  );
-                })
+                          {isNews ? (
+                            <span className="alert-news" title={alert.name}>{alert.name}</span>
+                          ) : (
+                            <div className="alert-numbers-block">
+                              <span className={`alert-price tabular-nums ${typeClass}`}>
+                                {formatPrice(alert.price)}
+                              </span>
+                              
+                              {alert.change !== undefined && alert.changePercent !== undefined && (
+                                <span className={`chg-badge tabular-nums ${alert.changePercent >= 0 ? 'up' : 'down'}`}>
+                                  {alert.change >= 0 ? '+' : '−'}{Math.abs(alert.change).toFixed(1)} ({alert.changePercent >= 0 ? '+' : '−'}{Math.abs(alert.changePercent).toFixed(2)}%)
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="card-hover-action">
+                          <span>OPEN CHART <ExternalLink size={11} /></span>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </AnimatePresence>
               )}
             </div>
 

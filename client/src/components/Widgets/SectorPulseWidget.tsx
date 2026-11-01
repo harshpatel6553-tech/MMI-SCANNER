@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { useStocks } from '../../hooks/useStocks';
 import { useDashboard } from '../../contexts/DashboardContext';
 import { audioAlerts } from '../../utils/audioAlerts';
-import { Radio, ArrowRight, BarChart2 } from 'lucide-react';
+import { Radio, ArrowRight } from 'lucide-react';
+import { AnimatedNumber } from '../common/AnimatedNumber';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export function SectorPulseWidget() {
   const [tab, setTab] = useState<'top' | 'bottom'>('top');
@@ -72,45 +74,59 @@ export function SectorPulseWidget() {
         </div>
 
         <div className="bento-list-body">
-          {displaySectors.map((s) => {
-            const up = s.v >= 0;
-            const gainerRatio = Math.round((s.gainers / (s.gainers + s.losers || 1)) * 100);
-            return (
-              <div 
-                className="sector-row-item" 
-                key={s.n} 
-                onClick={() => {
-                  audioAlerts.playClickHaptic();
-                  setActiveTab('Sectors');
-                }}
-                title={`Open ${s.n} sector breakdown`}
-              >
-                <div className="sector-info-col">
-                  <span className="sector-name-text">{s.n}</span>
-                  <div className="sector-ratio-track">
-                    <div 
-                      className="sector-ratio-fill bull" 
-                      style={{ width: `${gainerRatio}%` }} 
-                    />
-                    <div 
-                      className="sector-ratio-fill bear" 
-                      style={{ width: `${100 - gainerRatio}%` }} 
-                    />
-                  </div>
-                </div>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={tab}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.2 }}
+              style={{ display: 'flex', flexDirection: 'column', gap: 6 }}
+            >
+              {displaySectors.map((s, idx) => {
+                const up = s.v >= 0;
+                const gainerRatio = Math.round((s.gainers / (s.gainers + s.losers || 1)) * 100);
+                return (
+                  <motion.div 
+                    className="sector-row-item" 
+                    key={s.n}
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: idx * 0.04, duration: 0.25 }}
+                    onClick={() => {
+                      audioAlerts.playClickHaptic();
+                      setActiveTab('Sectors');
+                    }}
+                    title={`Open ${s.n} sector breakdown`}
+                  >
+                    <div className="sector-info-col">
+                      <span className="sector-name-text">{s.n}</span>
+                      <div className="sector-ratio-track">
+                        <div 
+                          className="sector-ratio-fill bull" 
+                          style={{ width: `${gainerRatio}%`, transition: 'width 0.6s ease' }} 
+                        />
+                        <div 
+                          className="sector-ratio-fill bear" 
+                          style={{ width: `${100 - gainerRatio}%`, transition: 'width 0.6s ease' }} 
+                        />
+                      </div>
+                    </div>
 
-                <div className="sector-breadth-split">
-                  <span className="breadth-up"><b className="num tabular-nums">{s.gainers}</b>▲</span>
-                  <span className="divider">/</span>
-                  <span className="breadth-down"><b className="num tabular-nums">{s.losers}</b>▼</span>
-                </div>
+                    <div className="sector-breadth-split font-mono tabular-nums">
+                      <span className="breadth-up"><b className="num tabular-nums"><AnimatedNumber value={s.gainers} duration={0.4} /></b>▲</span>
+                      <span className="divider">/</span>
+                      <span className="breadth-down"><b className="num tabular-nums"><AnimatedNumber value={s.losers} duration={0.4} /></b>▼</span>
+                    </div>
 
-                <div className={`sector-perf-pill num tabular-nums ${up ? 'bull' : 'bear'}`}>
-                  {up ? '+' : ''}{s.v.toFixed(2)}%
-                </div>
-              </div>
-            );
-          })}
+                    <div className={`sector-perf-pill num tabular-nums font-mono ${up ? 'bull' : 'bear'}`}>
+                      {up ? '+' : ''}{s.v.toFixed(2)}%
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </motion.div>
+          </AnimatePresence>
         </div>
       </div>
     </div>

@@ -4,6 +4,9 @@ import { useDashboard } from '../../contexts/DashboardContext';
 import { StockLogo } from '../common/StockLogo';
 import { audioAlerts } from '../../utils/audioAlerts';
 import { TrendingUp, TrendingDown, Flame } from 'lucide-react';
+import { LivePrice } from '../common/LivePrice';
+import { PriceChange } from '../common/PriceChange';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export function TopMoversWidget() {
   const [tab, setTab] = useState<'gainers' | 'losers'>('gainers');
@@ -53,48 +56,60 @@ export function TopMoversWidget() {
         </div>
 
         <div className="bento-list-body">
-          {top5.map((g) => {
-            const flash = priceFlash.get(g.symbol);
-            return (
-              <div 
-                className="mover-row-item" 
-                key={g.symbol}
-                onClick={() => {
-                  audioAlerts.playClickHaptic();
-                  setChartSymbol(g.symbol);
-                  setActiveTab('Charts');
-                }}
-                title={`Click to analyze ${g.symbol} chart`}
-              >
-                <div className="mover-identity-group">
-                  <StockLogo symbol={g.symbol} name={g.name} size={26} className="shrink-0" />
-                  <div className="mover-names-wrap">
-                    <span className="mover-sym-text">{g.symbol}</span>
-                    <span className="mover-company-text">{g.name}</span>
-                  </div>
-                </div>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={tab}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.2 }}
+              style={{ display: 'flex', flexDirection: 'column', gap: 6 }}
+            >
+              {top5.map((g, idx) => {
+                const flash = priceFlash.get(g.symbol);
+                return (
+                  <motion.div 
+                    className="mover-row-item" 
+                    key={g.symbol}
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: idx * 0.04, duration: 0.25 }}
+                    onClick={() => {
+                      audioAlerts.playClickHaptic();
+                      setChartSymbol(g.symbol);
+                      setActiveTab('Charts');
+                    }}
+                    title={`Click to analyze ${g.symbol} chart`}
+                  >
+                    <div className="mover-identity-group">
+                      <StockLogo symbol={g.symbol} name={g.name} size={26} className="shrink-0" />
+                      <div className="mover-names-wrap">
+                        <span className="mover-sym-text font-mono">{g.symbol}</span>
+                        <span className="mover-company-text">{g.name}</span>
+                      </div>
+                    </div>
 
-                <div className="mover-spark-wrap">
-                  <svg className="spark-svg" viewBox="0 0 54 22">
-                    {tab === 'gainers' ? (
-                      <polyline points="0,18 9,15 18,17 27,11 36,13 45,6 54,3" fill="none" stroke="#00f59b" strokeWidth="2" strokeLinecap="round" />
-                    ) : (
-                      <polyline points="0,4 9,7 18,5 27,12 36,10 45,16 54,19" fill="none" stroke="#ff2a5f" strokeWidth="2" strokeLinecap="round" />
-                    )}
-                  </svg>
-                </div>
+                    <div className="mover-spark-wrap">
+                      <svg className="spark-svg" viewBox="0 0 54 22">
+                        {tab === 'gainers' ? (
+                          <polyline points="0,18 9,15 18,17 27,11 36,13 45,6 54,3" fill="none" stroke="var(--up)" strokeWidth="2" strokeLinecap="round" />
+                        ) : (
+                          <polyline points="0,4 9,7 18,5 27,12 36,10 45,16 54,19" fill="none" stroke="var(--down)" strokeWidth="2" strokeLinecap="round" />
+                        )}
+                      </svg>
+                    </div>
 
-                <div className="mover-price-column">
-                  <div className={`mover-price-val num tabular-nums ${flash === 'up' ? 'flash-up' : flash === 'down' ? 'flash-down' : ''}`}>
-                    ₹{g.price.toFixed(2)}
-                  </div>
-                  <div className={`mover-pct-badge num tabular-nums ${g.change >= 0 ? 'bull' : 'bear'}`}>
-                    {g.changePercent > 0 ? '+' : ''}{g.changePercent.toFixed(2)}%
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+                    <div className="mover-price-column font-mono tabular-nums">
+                      <div className="mover-price-val font-mono">
+                        <LivePrice price={g.price} decimals={2} />
+                      </div>
+                      <PriceChange change={g.change} changePercent={g.changePercent} />
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </motion.div>
+          </AnimatePresence>
         </div>
       </div>
     </div>

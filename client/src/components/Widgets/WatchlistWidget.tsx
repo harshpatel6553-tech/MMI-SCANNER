@@ -5,6 +5,9 @@ import { useWatchlist } from '../../hooks/useWatchlist';
 import { StockLogo } from '../common/StockLogo';
 import { audioAlerts } from '../../utils/audioAlerts';
 import { Star, ArrowRight, Eye } from 'lucide-react';
+import { LivePrice } from '../common/LivePrice';
+import { PriceChange } from '../common/PriceChange';
+import { motion } from 'framer-motion';
 
 export function WatchlistWidget() {
   const { allStocks, priceFlash } = useStocks({ index: 'ALL', priceMin: 0, priceMax: 0, volumeMin: 0, search: '' }, 'symbol', 'asc');
@@ -45,57 +48,58 @@ export function WatchlistWidget() {
         </div>
 
         <div className="bento-list-body">
-          {watch.map((w) => {
-            const up = w.changePercent >= 0;
-            const flash = priceFlash.get(w.symbol);
-            const starred = isWatchlisted(w.symbol);
-            return (
-              <div
-                className="watch-row-item"
-                key={w.symbol}
-                onClick={() => {
-                  audioAlerts.playClickHaptic();
-                  setChartSymbol(w.symbol);
-                  setActiveTab('Charts');
-                }}
-                title={`Open ${w.symbol} interactive chart`}
-              >
-                <button
-                  type="button"
-                  className="watch-star-btn"
-                  onClick={(e) => {
-                    e.stopPropagation();
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {watch.map((w, idx) => {
+              const starred = isWatchlisted(w.symbol);
+              return (
+                <motion.div
+                  className="watch-row-item"
+                  key={w.symbol}
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: idx * 0.04, duration: 0.25 }}
+                  onClick={() => {
                     audioAlerts.playClickHaptic();
-                    toggleWatchlist(w.symbol);
+                    setChartSymbol(w.symbol);
+                    setActiveTab('Charts');
                   }}
-                  title={starred ? 'Remove from Watchlist' : 'Add to Watchlist'}
+                  title={`Open ${w.symbol} interactive chart`}
                 >
-                  <Star 
-                    size={15} 
-                    strokeWidth={1.5} 
-                    className={starred ? 'text-amber-400 fill-amber-400' : 'text-slate-500 hover:text-slate-300'} 
-                  />
-                </button>
+                  <button
+                    type="button"
+                    className="watch-star-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      audioAlerts.playClickHaptic();
+                      toggleWatchlist(w.symbol);
+                    }}
+                    title={starred ? 'Remove from Watchlist' : 'Add to Watchlist'}
+                  >
+                    <Star 
+                      size={15} 
+                      strokeWidth={1.5} 
+                      className={starred ? 'text-amber-400 fill-amber-400' : 'text-slate-500 hover:text-slate-300'} 
+                    />
+                  </button>
 
-                <div className="mover-identity-group">
-                  <StockLogo symbol={w.symbol} name={w.name} size={26} className="shrink-0" />
-                  <div className="mover-names-wrap">
-                    <span className="mover-sym-text">{w.symbol}</span>
-                    <span className="mover-company-text">{w.name}</span>
+                  <div className="mover-identity-group">
+                    <StockLogo symbol={w.symbol} name={w.name} size={26} className="shrink-0" />
+                    <div className="mover-names-wrap">
+                      <span className="mover-sym-text font-mono">{w.symbol}</span>
+                      <span className="mover-company-text">{w.name}</span>
+                    </div>
                   </div>
-                </div>
 
-                <div className="mover-price-column">
-                  <div className={`mover-price-val num tabular-nums ${flash === 'up' ? 'flash-up' : flash === 'down' ? 'flash-down' : ''}`}>
-                    ₹{w.price.toFixed(2)}
+                  <div className="mover-price-column font-mono tabular-nums">
+                    <div className="mover-price-val font-mono">
+                      <LivePrice price={w.price} decimals={2} />
+                    </div>
+                    <PriceChange change={w.change} changePercent={w.changePercent} />
                   </div>
-                  <div className={`mover-pct-badge num tabular-nums ${up ? 'bull' : 'bear'}`}>
-                    {up ? '+' : ''}{w.changePercent.toFixed(2)}%
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+                </motion.div>
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>

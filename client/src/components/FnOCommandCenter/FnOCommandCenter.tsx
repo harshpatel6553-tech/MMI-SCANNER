@@ -30,6 +30,7 @@ import {
 import './FnOCommandCenter.css';
 import { OptionCandlestickChart } from './OptionCandlestickChart';
 import { WhereSellersAre } from './WhereSellersAre';
+import { AnimatedNumber } from '../common/AnimatedNumber';
 
 interface StrikeDetail {
   strikePrice: number;
@@ -815,8 +816,10 @@ export const FnOCommandCenter: React.FC = () => {
             <span className="metric-label">NIFTY 50</span>
             <span className="live-pill">SPOT</span>
           </div>
-          <div className="metric-value">{spot.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
-          <div className={`metric-sub ${data?.spotChange && data.spotChange >= 0 ? 'up' : 'down'}`}>
+          <div className="metric-value font-mono tabular-nums">
+            <AnimatedNumber value={spot} duration={0.6} decimals={2} />
+          </div>
+          <div className={`metric-sub ${data?.spotChange && data.spotChange >= 0 ? 'up' : 'down'} font-mono tabular-nums`}>
             {data?.spotChange && data.spotChange >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
             <span>
               {data?.spotChange && data.spotChange >= 0 ? '+' : ''}{data?.spotChange || 116.35} ({data?.spotChangePct && data.spotChangePct >= 0 ? '+' : ''}{data?.spotChangePct || 0.51}%)
@@ -830,10 +833,10 @@ export const FnOCommandCenter: React.FC = () => {
             <span className="metric-label">LIKELY RANGE BY {data?.expiry?.split('-')?.[0]}</span>
             <Target size={14} className="text-cyan-400" />
           </div>
-          <div className="metric-value range-val">
-            {likelyRange.low.toLocaleString()} - {likelyRange.high.toLocaleString()}
+          <div className="metric-value range-val font-mono tabular-nums">
+            <AnimatedNumber value={likelyRange.low} duration={0.6} /> - <AnimatedNumber value={likelyRange.high} duration={0.6} />
           </div>
-          <div className="metric-sub muted">
+          <div className="metric-sub muted font-mono tabular-nums">
             <span>±{Math.round(likelyRange.straddlePremium / 2)} · ATM premium {likelyRange.straddlePremium}</span>
           </div>
         </div>
@@ -846,8 +849,10 @@ export const FnOCommandCenter: React.FC = () => {
               <span className="metric-label text-rose-400">CEILING (RESISTANCE)</span>
             </div>
           </div>
-          <div className="metric-value text-rose-400">{ceiling.strike.toLocaleString()}</div>
-          <div className="metric-sub text-rose-300">
+          <div className="metric-value text-rose-400 font-mono tabular-nums">
+            <AnimatedNumber value={ceiling.strike} duration={0.6} />
+          </div>
+          <div className="metric-sub text-rose-300 font-mono tabular-nums">
             <span>{(ceiling.oi / 100000).toFixed(1)} L · +{(ceiling.oiChange / 100000).toFixed(1)} L added</span>
           </div>
         </div>
@@ -860,8 +865,10 @@ export const FnOCommandCenter: React.FC = () => {
               <span className="metric-label text-emerald-400">FLOOR (SUPPORT)</span>
             </div>
           </div>
-          <div className="metric-value text-emerald-400">{floor.strike.toLocaleString()}</div>
-          <div className="metric-sub text-emerald-300">
+          <div className="metric-value text-emerald-400 font-mono tabular-nums">
+            <AnimatedNumber value={floor.strike} duration={0.6} />
+          </div>
+          <div className="metric-sub text-emerald-300 font-mono tabular-nums">
             <span>{(floor.oi / 100000).toFixed(1)} L · +{(floor.oiChange / 100000).toFixed(1)} L added</span>
           </div>
         </div>
@@ -872,8 +879,10 @@ export const FnOCommandCenter: React.FC = () => {
             <span className="metric-label">MAX PAIN</span>
             <Flame size={14} className="text-amber-400" />
           </div>
-          <div className="metric-value text-amber-300">{maxPain.strike.toLocaleString()}</div>
-          <div className="metric-sub muted">
+          <div className="metric-value text-amber-300 font-mono tabular-nums">
+            <AnimatedNumber value={maxPain.strike} duration={0.6} />
+          </div>
+          <div className="metric-sub muted font-mono tabular-nums">
             <span>{maxPain.diffPts} pts {maxPain.isBelow ? 'below spot' : 'above spot'}</span>
           </div>
         </div>
@@ -884,8 +893,8 @@ export const FnOCommandCenter: React.FC = () => {
             <span className="metric-label">PUTS / CALLS (PCR)</span>
             <Activity size={14} className="text-indigo-400" />
           </div>
-          <div className={`metric-value ${pcr >= 1 ? 'text-emerald-400' : 'text-rose-400'}`}>
-            {pcr.toFixed(2)}
+          <div className={`metric-value ${pcr >= 1 ? 'text-emerald-400' : 'text-rose-400'} font-mono tabular-nums`}>
+            <AnimatedNumber value={pcr} decimals={2} duration={0.6} />
           </div>
           <div className="metric-sub muted">
             <span>{pcr >= 1.2 ? 'Bullish bias' : pcr <= 0.8 ? 'Bearish bias' : 'Neutral range'}</span>
@@ -897,8 +906,10 @@ export const FnOCommandCenter: React.FC = () => {
           <div className="metric-header">
             <span className="metric-label">ATM IV</span>
           </div>
-          <div className="metric-value text-purple-300">{atmIV}%</div>
-          <div className="metric-sub muted">
+          <div className="metric-value text-purple-300 font-mono tabular-nums">
+            <AnimatedNumber value={atmIV} decimals={1} duration={0.6} />%
+          </div>
+          <div className="metric-sub muted font-mono">
             <span>ATM Strike: {data?.atmStrike}</span>
           </div>
         </div>
@@ -908,8 +919,10 @@ export const FnOCommandCenter: React.FC = () => {
           <div className="metric-header">
             <span className="metric-label">INDIA VIX</span>
           </div>
-          <div className="metric-value text-amber-400">{indiaVix.toFixed(2)}</div>
-          <div className="metric-sub up">
+          <div className="metric-value text-amber-400 font-mono tabular-nums">
+            <AnimatedNumber value={indiaVix} decimals={2} duration={0.6} />
+          </div>
+          <div className="metric-sub up font-mono tabular-nums">
             <TrendingUp size={13} />
             <span>+{data?.indiaVixChange || 1.28}%</span>
           </div>

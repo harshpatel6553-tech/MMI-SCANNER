@@ -4,7 +4,10 @@ import { useDashboard } from '../../contexts/DashboardContext';
 import { useWatchlist } from '../../hooks/useWatchlist';
 import { StockLogo } from '../common/StockLogo';
 import { audioAlerts } from '../../utils/audioAlerts';
-import { Table as TableIcon, Star, ArrowRight, TrendingUp, TrendingDown } from 'lucide-react';
+import { Table as TableIcon, Star, ArrowRight } from 'lucide-react';
+import { LivePrice } from '../common/LivePrice';
+import { PriceChange } from '../common/PriceChange';
+import { LiveSignal } from '../common/LiveSignal';
 
 function formatVol(v: number) {
   if (v >= 1e7) return (v / 1e7).toFixed(2) + ' Cr';
@@ -35,7 +38,7 @@ export function MarketTableWidget({ fullView = false, watchlistOnly = false }: M
               <TableIcon size={17} strokeWidth={1.5} className="text-cyan-400" />
             </div>
             <div>
-              <div className="table-title-main">
+              <div className="table-title-main" style={{ fontFamily: 'var(--font-display)', letterSpacing: '-0.01em' }}>
                 {watchlistOnly ? 'PORTFOLIO WATCHLIST RADAR' : 'LIVE CASH MARKET SCANNER'}
               </div>
               <div className="table-subtitle-main">
@@ -78,7 +81,9 @@ export function MarketTableWidget({ fullView = false, watchlistOnly = false }: M
               {rows.map((r) => {
                 const up = r.changePercent >= 0;
                 const starred = isWatchlisted(r.symbol);
-                const flash = priceFlash.get(r.symbol);
+                const isNearHigh = r.dayHigh > 0 && (r.price >= r.dayHigh * 0.995);
+                const isVolSurge = r.volume > 500000;
+
                 return (
                   <tr 
                     key={r.symbol}
@@ -110,26 +115,26 @@ export function MarketTableWidget({ fullView = false, watchlistOnly = false }: M
                         setActiveTab('Charts'); 
                       }}
                     >
-                      <div className="sym-flex-wrap">
+                      <div className="sym-flex-wrap" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <StockLogo symbol={r.symbol} name={r.name} size={22} className="shrink-0" />
-                        <span className="sym-ticker-text">{r.symbol}</span>
+                        <span className="sym-ticker-text font-mono" style={{ fontWeight: 800 }}>{r.symbol}</span>
+                        {isNearHigh && <LiveSignal type="breakout" label="ATH" />}
+                        {isVolSurge && !isNearHigh && <LiveSignal type="spike" label="VOL" />}
                       </div>
                     </td>
-                    <td className="company-cell">{r.name}</td>
-                    <td className={`num-col num price-cell ${flash === 'up' ? 'flash-up' : flash === 'down' ? 'flash-down' : ''}`}>
-                      ₹{r.price.toFixed(2)}
+                    <td className="company-cell" style={{ color: 'var(--text-2)' }}>{r.name}</td>
+                    <td className="num-col font-mono tabular-nums">
+                      <LivePrice price={r.price} decimals={2} />
                     </td>
-                    <td className={`num-col num ${up ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    <td className="num-col font-mono tabular-nums" style={{ color: up ? 'var(--up)' : 'var(--down)', fontWeight: 700 }}>
                       {up ? '+' : ''}{r.change.toFixed(2)}
                     </td>
                     <td className="num-col">
-                      <span className={`table-pct-pill num tabular-nums ${up ? 'bull' : 'bear'}`}>
-                        {up ? '+' : ''}{r.changePercent.toFixed(2)}%
-                      </span>
+                      <PriceChange change={r.change} changePercent={r.changePercent} />
                     </td>
-                    <td className="num-col num text-slate-300">₹{r.dayHigh.toFixed(2)}</td>
-                    <td className="num-col num text-slate-300">₹{r.dayLow.toFixed(2)}</td>
-                    <td className="num-col num text-cyan-300 font-semibold">{formatVol(r.volume)}</td>
+                    <td className="num-col font-mono tabular-nums text-slate-300">₹{r.dayHigh.toFixed(2)}</td>
+                    <td className="num-col font-mono tabular-nums text-slate-300">₹{r.dayLow.toFixed(2)}</td>
+                    <td className="num-col font-mono tabular-nums text-cyan-300 font-semibold">{formatVol(r.volume)}</td>
                   </tr>
                 );
               })}
