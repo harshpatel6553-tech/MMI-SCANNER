@@ -34,9 +34,10 @@ import { newsRoutes } from './routes/newsRoutes.js';
 import dealsRoutes from './routes/dealsRoutes.js';
 import { settingsRoutes } from './routes/settingsRoutes.js';
 import fnoRoutes from './routes/fnoRoutes.js';
+import smartMoneyRoutes from './routes/smartMoneyRoutes.js';
 import { stockService } from './services/stockService.js';
 import { alertService } from './services/alertService.js';
-import { newsService } from './services/newsService.js';
+import { newsService, isNoisyOrBlacklisted } from './services/newsService.js';
 import { screenerService } from './services/screenerService.js';
 import { calendarService } from './services/calendarService.js';
 import { twitterService } from './services/twitterService.js';
@@ -134,6 +135,7 @@ app.use('/api/news', newsRoutes);
 app.use('/api/deals', dealsRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/fno', fnoRoutes);
+app.use('/api/smart-money', smartMoneyRoutes);
 
 // Chart alias route for trade/chart requests
 app.get('/api/chart', (req, res) => {
@@ -150,9 +152,17 @@ app.get('/api/chart', (req, res) => {
 // ── News Alerts ────────────────────────────────────────────────
 
 newsService.on('news:alert', (news) => {
+  const src = (news.source || '').toLowerCase();
+  if (!src.includes('redbox') && !src.includes('yatin')) {
+    return;
+  }
+  if (isNoisyOrBlacklisted(news)) {
+    return;
+  }
+  const cleanSource = news.source.startsWith('@') ? news.source : `@${news.source}`;
   io.emit('alert:new', {
     id: `news-${news.id}`,
-    symbol: news.source,
+    symbol: cleanSource,
     name: news.title,
     alertType: 'NEWS',
     price: 0,

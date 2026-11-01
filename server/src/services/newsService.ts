@@ -14,6 +14,47 @@ export interface NewsItem {
   reasoning?: string;
   perspective?: 'Company' | 'IndiaMacro' | 'General';
   isEarningsResult?: boolean;
+  isPromoterAction?: boolean;
+}
+
+const BLACKLISTED_SOURCES = [
+  'liquide', 'simply wall st', 'dd news', 'free press journal',
+  'mid-day', 'livemint', 'goodreturns', 'economic times',
+  'financial express', 'zee business', 'ndtv profit', 'market wire',
+  'google news', 'cnbc tv18', 'cnbctv18'
+];
+
+const BLACKLISTED_TITLE_PATTERNS = [
+  /outlook\s*(&|and)?\s*prediction/i,
+  /stock market this week/i,
+  /market this week/i,
+  /weekly market/i,
+  /technical analysis/i,
+  /share market (live|news|today)/i,
+  /open(s|ed)? flat/i,
+  /end(s|ed)? flat/i,
+  /amid selling in/i,
+  /among \d+ companies/i,
+  /nifty (may|could|will|prediction)/i,
+  /prediction/i,
+  /market watch/i,
+  /top stocks to buy/i,
+  /stocks in focus/i,
+  /trading guide/i,
+  /expert advice/i,
+  /brokerage radar/i,
+];
+
+export function isNoisyOrBlacklisted(item: { source?: string; title?: string; full_text?: string }): boolean {
+  const src = (item.source || '').toLowerCase();
+  for (const bSrc of BLACKLISTED_SOURCES) {
+    if (src.includes(bSrc)) return true;
+  }
+  const text = (item.title || item.full_text || '').toLowerCase();
+  for (const pattern of BLACKLISTED_TITLE_PATTERNS) {
+    if (pattern.test(text)) return true;
+  }
+  return false;
 }
 
 class NewsService extends EventEmitter {
@@ -27,7 +68,7 @@ class NewsService extends EventEmitter {
   }
 
   public getLatestNews(): NewsItem[] {
-    return this.newsCache;
+    return this.newsCache.filter(item => !isNoisyOrBlacklisted(item));
   }
 
   private isFetching = false;
@@ -36,56 +77,85 @@ class NewsService extends EventEmitter {
     if (/\b(surge|jumps?|rall(?:y|ies)|gains?|beats?|rises?|profit up|record high|bullish|buy|upgrade|positive|expansion|orders? won|contract won|strong growth)\b/i.test(title)) {
       return 'Bullish';
     }
-    if (/\b(plunges?|falls?|drops?|slumps?|miss(?:es)?|loss|profit down|bearish|sell|downgrade|probe|fraud|penalty|crackdown|warning|cut)\b/i.test(title)) {
+    if (/\b(plunges?|falls?|drops?|slumps?|miss(?:es)?|loss|profit down|bearish|sell|downgrade|probe|fraud|penalty|crackdown|warning|cut|resign|resigns)\b/i.test(title)) {
       return 'Bearish';
     }
     return 'Neutral';
   }
 
   private extractAffectedStocks(title: string): string[] {
-    const tUpper = title.toUpperCase();
     const matched = new Set<string>();
+
+    // 1. Prefix ticker before colon (e.g. "CRAFTSMAN: Q2...", "BAJAJELEC: Q2...", "20MICRONS: Q2...", "VAKRANGEE: Q2...", "WAAREE: CO...")
+    const prefixMatch = title.match(/^([A-Za-z0-9_\-\.]{2,15}):/i);
+    if (prefixMatch) {
+      const p = prefixMatch[1].toUpperCase();
+      const STOP_TOKENS = new Set(['ALERT', 'BREAKING', 'UPDATE', 'NEWS', 'EXCLUSIVE', 'JUST IN', 'REPORT', 'SOURCE', 'WATCH', 'MARKET', 'NIFTY', 'SENSEX']);
+      if (!STOP_TOKENS.has(p)) {
+        matched.add(p);
+      }
+    }
+
+    // 2. Explicit cashtags like $TECHM, $KPITTECH, $CRAFTSMAN
+    const dollarMatches = title.match(/\$([A-Za-z][A-Za-z0-9_\-]{1,14})\b/g) || [];
+    for (const m of dollarMatches) {
+      const s = m.replace('$', '').toUpperCase();
+      if (s.length >= 2 && s.length <= 15) {
+        matched.add(s);
+      }
+    }
+
+    // 3. Known Company Name / Aliases
+    const ALIAS_MAP = [
+      { re: /\b(PVR\s*INOX|PVR)\b/i, sym: 'PVRINOX' },
+      { re: /\b(BAJAJ\s*ELECTRIC(?:ALS)?|BAJAJELEC)\b/i, sym: 'BAJAJELEC' },
+      { re: /\b(UNITED\s*BREWERIES)\b/i, sym: 'UBL' },
+      { re: /\b(UNITED\s*SPIRITS|MCDOWELL)\b/i, sym: 'UNITDSPR' },
+      { re: /\b(KPIT\s*TECH(?:NOLOGIES)?)\b/i, sym: 'KPITTECH' },
+      { re: /\b(CRAFTSMAN\s*(?:AUTOMATION)?)\b/i, sym: 'CRAFTSMAN' },
+      { re: /\b(20\s*MICRONS|20MICRONS)\b/i, sym: '20MICRONS' },
+      { re: /\b(VAKRANGEE)\b/i, sym: 'VAKRANGEE' },
+      { re: /\b(WAAREE\s*(?:ENERGIES)?)\b/i, sym: 'WAAREEENER' },
+      { re: /\b(BHARTI\s*AIRTEL|AIRTEL)\b/i, sym: 'BHARTIARTL' },
+      { re: /\b(TATA\s*MOTORS)\b/i, sym: 'TATAMOTORS' },
+      { re: /\b(TATA\s*STEEL)\b/i, sym: 'TATASTEEL' },
+      { re: /\b(TATA\s*POWER)\b/i, sym: 'TATAPOWER' },
+      { re: /\b(HDFC\s*BANK)\b/i, sym: 'HDFCBANK' },
+      { re: /\b(ICICI\s*BANK)\b/i, sym: 'ICICIBANK' },
+      { re: /\b(KOTAK\s*BANK)\b/i, sym: 'KOTAKBANK' },
+      { re: /\b(AXIS\s*BANK)\b/i, sym: 'AXISBANK' },
+      { re: /\b(STATE\s*BANK\s*OF\s*INDIA|SBI)\b/i, sym: 'SBIN' },
+      { re: /\b(ASIAN\s*PAINTS?)\b/i, sym: 'ASIANPAINT' },
+      { re: /\b(SUN\s*PHARMA)\b/i, sym: 'SUNPHARMA' },
+      { re: /\b(MARUTI\s*SUZUKI)\b/i, sym: 'MARUTI' },
+      { re: /\b(RELIANCE\s*(?:IND|INDUSTRIES)?|RIL)\b/i, sym: 'RELIANCE' },
+      { re: /\b(LARSEN\s*(&|AND)?\s*TOUBRO|L&T)\b/i, sym: 'LT' },
+    ];
+
+    for (const alias of ALIAS_MAP) {
+      if (alias.re.test(title)) {
+        matched.add(alias.sym);
+      }
+    }
+
+    // 4. Common symbols check - avoiding common English words
     const COMMON_SYMBOLS = [
       'RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK', 'SBIN', 'BHARTIARTL',
       'ITC', 'KOTAKBANK', 'LT', 'AXISBANK', 'HINDUNILVR', 'BAJFINANCE', 'MARUTI',
       'TATASTEEL', 'WIPRO', 'TITAN', 'TATAMOTORS', 'TMPV', 'TMCV', 'ADANIENT',
-      'ADANIPORTS', 'NTPC', 'POWERGRID', 'ONGC', 'COALINDIA', 'SUNPHARMA',
-      'JSWSTEEL', 'TECHM', 'ASIANPAINT', 'ZOMATO', 'PAYTM', 'JIOFIN', 'VEDL',
-      'HAL', 'BEL', 'BSE', 'CDSL', 'IRCTC', 'SUZLON'
+      'ADANIPORTS', 'NTPC', 'POWERGRID', 'SUNPHARMA', 'JSWSTEEL', 'TECHM',
+      'ASIANPAINT', 'ZOMATO', 'PAYTM', 'JIOFIN', 'VEDL', 'HAL', 'BEL', 'BSE',
+      'CDSL', 'IRCTC', 'SUZLON'
     ];
 
+    const tUpper = title.toUpperCase();
     for (const sym of COMMON_SYMBOLS) {
-      if (new RegExp(`\\b${sym}\\b`, 'i').test(tUpper)) {
+      if (new RegExp(`\\b${sym}\\b`).test(tUpper)) {
         matched.add(sym);
       }
     }
-    return Array.from(matched).slice(0, 5);
-  }
 
-  private async fetchRssNews(): Promise<any[]> {
-    try {
-      const url = 'https://news.google.com/rss/search?q=NIFTY+OR+NSE+OR+BSE+stocks+when:1d&hl=en-IN&gl=IN&ceid=IN:en';
-      const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(5000) });
-      if (!res.ok) return [];
-      const xml = await res.text();
-      const chunks = xml.split('<item>').slice(1);
-      return chunks.slice(0, 30).map(chunk => {
-        const titleMatch = chunk.match(/<title>(.*?)<\/title>/);
-        const linkMatch = chunk.match(/<link>(.*?)<\/link>/);
-        const pubDateMatch = chunk.match(/<pubDate>(.*?)<\/pubDate>/);
-        const sourceMatch = chunk.match(/<source[^>]*>(.*?)<\/source>/);
-        const rawTitle = titleMatch ? titleMatch[1].replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1') : '';
-        return {
-          full_text: he.decode(rawTitle),
-          created_at: pubDateMatch ? new Date(pubDateMatch[1]).toISOString() : new Date().toISOString(),
-          _sourceAccount: sourceMatch ? sourceMatch[1] : 'Market Wire',
-          id_str: 'rss-' + Buffer.from(rawTitle).toString('base64').substring(0, 16),
-          link: linkMatch ? linkMatch[1] : '',
-        };
-      }).filter(item => item.full_text && item.full_text.length > 10);
-    } catch {
-      return [];
-    }
+    return Array.from(matched).slice(0, 4);
   }
 
   private currentFetchPromise: Promise<void> | null = null;
@@ -101,12 +171,11 @@ class NewsService extends EventEmitter {
   }
 
   private async _executeFetch(): Promise<void> {
-
     try {
       const accountsToFollow = ['RedboxIndia', 'yatinmota'];
       let allFetchedTweets: any[] = [];
 
-      // Use the centralized twitterService that handles user ID resolution and fetching
+      // Use the centralized twitterService that handles open-source RSS and API endpoints
       const { twitterService } = await import('./twitterService.js');
 
       const fetchPromises = accountsToFollow.map(async (username) => {
@@ -117,7 +186,7 @@ class NewsService extends EventEmitter {
             return [];
           }
 
-          // Helper to deeply find an array of tweets in RapidAPI JSON structure
+          // Helper to deeply find an array of tweets in RapidAPI/RSS JSON structure
           const findTweetArray = (obj: any): any[] => {
             if (!obj || typeof obj !== 'object') return [];
             if (Array.isArray(obj)) return obj.length > 0 ? obj : [];
@@ -166,16 +235,18 @@ class NewsService extends EventEmitter {
       const results = await Promise.all(fetchPromises);
       allFetchedTweets = results.flat();
 
-      // If Twitter returned 0 tweets, check if fallback is allowed
+      // If Twitter returned 0 tweets in this poll, do NOT fallback to generic blog RSS.
+      // Simply preserve existing valid cached tweets.
       if (allFetchedTweets.length === 0) {
-        if (process.env.DISABLE_NEWS_FALLBACK === 'true') {
-          logger.info('Twitter returned 0 tweets and DISABLE_NEWS_FALLBACK is enabled. Keeping feed exclusive.');
-        } else {
-          logger.info('Pulling live Market Wire RSS as fallback...');
-          allFetchedTweets = await this.fetchRssNews();
-        }
+        logger.info('Twitter returned 0 tweets this poll. Preserving cached alpha tweets without retail RSS fallback.');
       }
       
+      // Filter out any noisy/blacklisted items immediately
+      allFetchedTweets = allFetchedTweets.filter(item => !isNoisyOrBlacklisted({
+        source: item._sourceAccount,
+        title: item.full_text
+      }));
+
       // Sort all fetched items by date descending (newest first)
       allFetchedTweets.sort((a, b) => {
         const dateA = new Date(a.created_at || 0).getTime();
@@ -206,24 +277,30 @@ class NewsService extends EventEmitter {
         };
       });
 
-      // Deduplicate newNews internally based on ID
-      const uniqueNewNews = Array.from(new Map(newNews.map(item => [item.id, item])).values());
+      // Deduplicate newNews internally based on ID and filter noise
+      const uniqueNewNews = Array.from(new Map(newNews.map(item => [item.id, item])).values())
+        .filter(item => !isNoisyOrBlacklisted(item));
+
+      // Clean existing cache of any previously stored blog/noisy items
+      this.newsCache = this.newsCache.filter(item => !isNoisyOrBlacklisted(item));
 
       const isFirstFetch = this.newsCache.length === 0;
       let newTweets = uniqueNewNews.filter(n => !this.newsCache.find(old => old.id === n.id));
 
-      // Combine old cache with new tweets, deduplicate again to be absolutely safe, and keep top 100
+      // Combine old cache with new tweets, deduplicate again, and keep top 100
       let combinedNews = [...newTweets, ...this.newsCache]
         .sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
         
-      combinedNews = Array.from(new Map(combinedNews.map(item => [item.id, item])).values()).slice(0, 100);
+      combinedNews = Array.from(new Map(combinedNews.map(item => [item.id, item])).values())
+        .filter(item => !isNoisyOrBlacklisted(item))
+        .slice(0, 100);
         
       this.newsCache = combinedNews;
 
       // Push full snapshot instantly!
       this.emit('news:update');
 
-      // Emit news alerts IMMEDIATELY so the UI flashes without waiting for AI
+      // Emit news alerts ONLY for verified, actionable institutional market alpha
       if (!isFirstFetch && newTweets.length > 0) {
         const now = Date.now();
         const FIVE_MINUTES_MS = 5 * 60 * 1000;
@@ -231,7 +308,24 @@ class NewsService extends EventEmitter {
         newTweets.forEach(news => {
           const tweetTime = new Date(news.pubDate).getTime();
           if (now - tweetTime < FIVE_MINUTES_MS) {
-            this.emit('news:alert', { ...news, alertType: 'NEWS' });
+            // STRICT FILTER FOR ALERTS:
+            // 1. Source MUST be RedboxIndia or yatinmota
+            const src = (news.source || '').toLowerCase();
+            const isAlphaSource = src.includes('redbox') || src.includes('yatin');
+            if (!isAlphaSource) return;
+
+            // 2. Reject noisy titles or blog summaries
+            if (isNoisyOrBlacklisted(news)) return;
+
+            // 3. Must be tangible company news / results / guidance / deals / catalysts
+            const isHighSignal = news.isEarningsResult || 
+                                 news.isPromoterAction || 
+                                 (news.affectedStocks && news.affectedStocks.length > 0) ||
+                                 /\b(guidance|order|contract|resigns?|resignation|ceo|md|cfo|chairman|acquisition|acquired|merger|dividend|bonus|split|approved|approval|usfda|fda|penalty|raid|sebi|cbi|default|insolvency|halt|circuit)\b/i.test(news.title);
+
+            if (isHighSignal) {
+              this.emit('news:alert', { ...news, alertType: 'NEWS' });
+            }
           }
         });
       }
@@ -266,7 +360,11 @@ class NewsService extends EventEmitter {
             else s = 'Neutral';
 
             cachedTweet.sentiment = s as 'Bullish' | 'Bearish' | 'Neutral';
-            cachedTweet.affectedStocks = res.affectedStocks || [];
+            // Only adopt AI affected stocks if it found valid ones, without overwriting existing ticker prefix
+            if (res.affectedStocks && res.affectedStocks.length > 0) {
+              const combinedStocks = new Set([...(cachedTweet.affectedStocks || []), ...res.affectedStocks]);
+              cachedTweet.affectedStocks = Array.from(combinedStocks).slice(0, 4);
+            }
             cachedTweet.reasoning = res.reasoning;
             cachedTweet.perspective = res.perspective;
             updatedAny = true;
@@ -316,7 +414,7 @@ class NewsService extends EventEmitter {
       if (this.isIndianMarketOpen()) {
         this.fetchTweets();
       } else {
-        // Outside market hours, refresh every 5 cycles (5 mins) or if cache is empty
+        // Outside market hours, refresh every 5 cycles (2 mins) or if cache is empty
         if (this.newsCache.length === 0 || tickCount % 5 === 0) {
           this.fetchTweets();
         }

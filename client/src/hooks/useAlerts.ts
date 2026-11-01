@@ -7,6 +7,34 @@ interface Toast extends StockAlert {
   dismissAt: number;
 }
 
+const BLACKLISTED_ALERT_SOURCES = [
+  'liquide', 'simply wall st', 'dd news', 'free press journal',
+  'mid-day', 'livemint', 'goodreturns', 'economic times',
+  'financial express', 'zee business', 'ndtv profit', 'market wire',
+  'google news', 'cnbc tv18', 'cnbctv18'
+];
+
+const BLACKLISTED_TITLE_PATTERNS = [
+  /outlook\s*(&|and)?\s*prediction/i,
+  /stock market this week/i,
+  /market this week/i,
+  /weekly market/i,
+  /technical analysis/i,
+  /share market (live|news|today)/i,
+  /open(s|ed)? flat/i,
+  /end(s|ed)? flat/i,
+  /amid selling in/i,
+  /among \d+ companies/i,
+  /nifty (may|could|will|prediction)/i,
+  /prediction/i,
+  /market watch/i,
+  /top stocks to buy/i,
+  /stocks in focus/i,
+  /trading guide/i,
+  /expert advice/i,
+  /brokerage radar/i,
+];
+
 function isIndexSymbol(symbol: string): boolean {
   const s = symbol.toUpperCase();
   return s.includes('NIFTY') || s.includes('BANKNIFTY') || s.includes('SENSEX') || s.includes('INDIA VIX');
@@ -38,7 +66,20 @@ export function useAlerts() {
         }
         const result = await res.json();
         if (result?.success && Array.isArray(result.data)) {
-          setAlertHistory(result.data);
+          const cleanHistory = result.data.filter((a: StockAlert) => {
+            if (a.alertType !== 'NEWS') return true;
+            const src = (a.symbol || '').toLowerCase();
+            if (!src.includes('redbox') && !src.includes('yatin')) return false;
+            for (const bSrc of BLACKLISTED_ALERT_SOURCES) {
+              if (src.includes(bSrc)) return false;
+            }
+            const title = (a.name || a.details || '').toLowerCase();
+            for (const pat of BLACKLISTED_TITLE_PATTERNS) {
+              if (pat.test(title)) return false;
+            }
+            return true;
+          });
+          setAlertHistory(cleanHistory);
         }
       } catch (err) {
         console.error('Failed to fetch initial alert history:', err);
@@ -51,6 +92,21 @@ export function useAlerts() {
     if (!socket) return;
 
     const handleAlert = (alert: StockAlert) => {
+      // Discard useless blog and generic news alerts
+      if (alert.alertType === 'NEWS') {
+        const src = (alert.symbol || '').toLowerCase();
+        if (!src.includes('redbox') && !src.includes('yatin')) {
+          return;
+        }
+        for (const bSrc of BLACKLISTED_ALERT_SOURCES) {
+          if (src.includes(bSrc)) return;
+        }
+        const titleText = (alert.name || alert.details || '').toLowerCase();
+        for (const pat of BLACKLISTED_TITLE_PATTERNS) {
+          if (pat.test(titleText)) return;
+        }
+      }
+
       const nowMs = Date.now();
 
       // Debounce audio playback (minimum 800ms between identical chimes) to prevent audio clutter
@@ -74,12 +130,16 @@ export function useAlerts() {
       // Show native desktop notification if permitted
       if ('Notification' in window && Notification.permission === 'granted') {
         try {
-          const title = alert.alertType === 'INDEX_MILESTONE'
+          const title = alert.alertType === 'NEWS'
+            ? `⚡ BREAKING NEWS: ${alert.symbol}`
+            : alert.alertType === 'INDEX_MILESTONE'
             ? `🎯 INDEX MILESTONE: ${alert.symbol}`
             : isIdx
             ? `📊 INDEX ALERT: ${alert.symbol}`
             : `⚡ ALERT: ${alert.symbol}`;
-          const body = alert.details 
+          const body = alert.alertType === 'NEWS'
+            ? (alert.name || alert.details || '')
+            : alert.details 
             ? `${alert.symbol} - ${alert.details} @ ₹${alert.price.toLocaleString('en-IN')}`
             : `${alert.symbol} ${alert.alertType === 'DAY_HIGH' ? 'reached Day High' : 'reached Day Low'} at ₹${alert.price.toLocaleString('en-IN')}`;
 

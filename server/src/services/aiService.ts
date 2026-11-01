@@ -10,6 +10,39 @@ export interface AISentimentResult {
   confidence?: number;
 }
 
+const COMMON_DICTIONARY_SYMBOLS = new Set([
+  'ALL', 'AND', 'ARE', 'CAN', 'FOR', 'GET', 'GO', 'HAS', 'HAD', 'KEY', 'NEW',
+  'NOW', 'NOT', 'ONE', 'OUT', 'RAW', 'RUN', 'SEE', 'SET', 'TOP', 'TRY', 'TWO',
+  'USE', 'WAY', 'WIN', 'OIL', 'IT', 'AT', 'ON', 'BE', 'SO', 'DO', 'IF', 'OR',
+  'IS', 'AM', 'BY', 'UP', 'TO', 'NO', 'AN', 'AS', 'HE', 'WE', 'MY', 'US', 'IN'
+]);
+
+const LOCAL_ALIAS_MAP = [
+  { re: /\b(PVR\s*INOX|PVR)\b/i, sym: 'PVRINOX' },
+  { re: /\b(BAJAJ\s*ELECTRIC(?:ALS)?|BAJAJELEC)\b/i, sym: 'BAJAJELEC' },
+  { re: /\b(UNITED\s*BREWERIES)\b/i, sym: 'UBL' },
+  { re: /\b(UNITED\s*SPIRITS|MCDOWELL)\b/i, sym: 'UNITDSPR' },
+  { re: /\b(KPIT\s*TECH(?:NOLOGIES)?)\b/i, sym: 'KPITTECH' },
+  { re: /\b(CRAFTSMAN\s*(?:AUTOMATION)?)\b/i, sym: 'CRAFTSMAN' },
+  { re: /\b(20\s*MICRONS|20MICRONS)\b/i, sym: '20MICRONS' },
+  { re: /\b(VAKRANGEE)\b/i, sym: 'VAKRANGEE' },
+  { re: /\b(WAAREE\s*(?:ENERGIES)?)\b/i, sym: 'WAAREEENER' },
+  { re: /\b(BHARTI\s*AIRTEL|AIRTEL)\b/i, sym: 'BHARTIARTL' },
+  { re: /\b(TATA\s*MOTORS)\b/i, sym: 'TATAMOTORS' },
+  { re: /\b(TATA\s*STEEL)\b/i, sym: 'TATASTEEL' },
+  { re: /\b(TATA\s*POWER)\b/i, sym: 'TATAPOWER' },
+  { re: /\b(HDFC\s*BANK)\b/i, sym: 'HDFCBANK' },
+  { re: /\b(ICICI\s*BANK)\b/i, sym: 'ICICIBANK' },
+  { re: /\b(KOTAK\s*BANK)\b/i, sym: 'KOTAKBANK' },
+  { re: /\b(AXIS\s*BANK)\b/i, sym: 'AXISBANK' },
+  { re: /\b(STATE\s*BANK\s*OF\s*INDIA|SBI)\b/i, sym: 'SBIN' },
+  { re: /\b(ASIAN\s*PAINTS?)\b/i, sym: 'ASIANPAINT' },
+  { re: /\b(SUN\s*PHARMA)\b/i, sym: 'SUNPHARMA' },
+  { re: /\b(MARUTI\s*SUZUKI)\b/i, sym: 'MARUTI' },
+  { re: /\b(RELIANCE\s*(?:IND|INDUSTRIES)?|RIL)\b/i, sym: 'RELIANCE' },
+  { re: /\b(LARSEN\s*(&|AND)?\s*TOUBRO|L&T)\b/i, sym: 'LT' },
+];
+
 class AIService {
   public get hasValidKey(): boolean {
     return Boolean(process.env.GEMINI_API_KEY?.trim() || configService.getKey('GEMINI_API_KEY')?.trim());
@@ -181,17 +214,42 @@ ${headlines.map((h, i) => `[${i}] ${h}`).join('\n')}`;
       else if (bearScore > bullScore) sentiment = 'Bearish';
 
       const affectedStocks = new Set<string>();
-      NIFTY_500_STOCKS.forEach((s: any) => {
-        const sym = s.symbol.toLowerCase();
-        if (lower.includes('$' + sym) || lower.includes(' ' + sym + ' ') || lower.startsWith(sym + ':') || lower.startsWith(sym + ' ')) {
-          affectedStocks.add(s.symbol);
-        } else {
-          const nameParts = s.name.toLowerCase().split(' ');
-          if (nameParts[0] && nameParts[0].length > 3 && lower.includes(nameParts[0])) {
-            affectedStocks.add(s.symbol);
+
+      // 1. Prefix ticker before colon (e.g. "CRAFTSMAN: Q2...", "BAJAJELEC: Q2...", "20MICRONS: Q2...")
+      const prefixMatch = h.match(/^([A-Za-z0-9_\-\.]{2,15}):/i);
+      if (prefixMatch) {
+        const p = prefixMatch[1].toUpperCase();
+        const STOP_TOKENS = new Set(['ALERT', 'BREAKING', 'UPDATE', 'NEWS', 'EXCLUSIVE', 'JUST IN', 'REPORT', 'SOURCE', 'WATCH', 'MARKET', 'NIFTY', 'SENSEX']);
+        if (!STOP_TOKENS.has(p)) {
+          affectedStocks.add(p);
+        }
+      }
+
+      // 2. Explicit cashtags like $TECHM, $KPITTECH, $CRAFTSMAN
+      const dollarMatches = h.match(/\$([A-Za-z][A-Za-z0-9_\-]{1,14})\b/g) || [];
+      for (const m of dollarMatches) {
+        const s = m.replace('$', '').toUpperCase();
+        if (s.length >= 2 && s.length <= 15) {
+          affectedStocks.add(s);
+        }
+      }
+
+      // 3. Known Aliases
+      for (const alias of LOCAL_ALIAS_MAP) {
+        if (alias.re.test(h)) {
+          affectedStocks.add(alias.sym);
+        }
+      }
+
+      // 4. Exact symbol matches for unambiguous symbols (>3 chars and not common English words)
+      for (const s of NIFTY_500_STOCKS) {
+        const sym = s.symbol.toUpperCase();
+        if (sym.length >= 3 && !COMMON_DICTIONARY_SYMBOLS.has(sym)) {
+          if (new RegExp(`\\b${sym}\\b`).test(h)) {
+            affectedStocks.add(sym);
           }
         }
-      });
+      }
 
       const reasoning = matchedKeywords.length > 0
         ? `Categorized as ${sentiment} based on catalysts: ${matchedKeywords.join(', ')}`
@@ -199,7 +257,7 @@ ${headlines.map((h, i) => `[${i}] ${h}`).join('\n')}`;
 
       return {
         sentiment,
-        affectedStocks: Array.from(affectedStocks),
+        affectedStocks: Array.from(affectedStocks).slice(0, 4),
         reasoning,
         perspective,
         confidence: sentiment === 'Neutral' ? 50 : 75,

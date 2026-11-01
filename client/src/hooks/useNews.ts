@@ -15,6 +15,46 @@ export interface NewsItem {
   isPromoterAction?: boolean;
 }
 
+const BLACKLISTED_SOURCES = [
+  'liquide', 'simply wall st', 'dd news', 'free press journal',
+  'mid-day', 'livemint', 'goodreturns', 'economic times',
+  'financial express', 'zee business', 'ndtv profit', 'market wire',
+  'google news', 'cnbc tv18', 'cnbctv18'
+];
+
+const BLACKLISTED_TITLE_PATTERNS = [
+  /outlook\s*(&|and)?\s*prediction/i,
+  /stock market this week/i,
+  /market this week/i,
+  /weekly market/i,
+  /technical analysis/i,
+  /share market (live|news|today)/i,
+  /open(s|ed)? flat/i,
+  /end(s|ed)? flat/i,
+  /amid selling in/i,
+  /among \d+ companies/i,
+  /nifty (may|could|will|prediction)/i,
+  /prediction/i,
+  /market watch/i,
+  /top stocks to buy/i,
+  /stocks in focus/i,
+  /trading guide/i,
+  /expert advice/i,
+  /brokerage radar/i,
+];
+
+function isNoisyOrBlacklisted(n: { source?: string; title?: string }): boolean {
+  const src = (n.source || '').toLowerCase();
+  for (const bSrc of BLACKLISTED_SOURCES) {
+    if (src.includes(bSrc)) return true;
+  }
+  const text = (n.title || '').toLowerCase();
+  for (const pattern of BLACKLISTED_TITLE_PATTERNS) {
+    if (pattern.test(text)) return true;
+  }
+  return false;
+}
+
 const API_URL = (import.meta.env.VITE_SOCKET_URL || window.location.origin) + '/api';
 
 /**
@@ -107,6 +147,7 @@ export function useNews() {
 
     // Index current items
     for (const item of current) {
+      if (isNoisyOrBlacklisted(item)) continue;
       const key = getTweetKey(item);
       map.set(key, item);
       if (item.title && !item.title.endsWith('…') && !item.title.endsWith('...')) {
@@ -116,6 +157,7 @@ export function useNews() {
 
     // Merge incoming items
     for (const inc of incoming) {
+      if (isNoisyOrBlacklisted(inc)) continue;
       const key = getTweetKey(inc);
       const existing = map.get(key);
 
@@ -135,6 +177,7 @@ export function useNews() {
     }
 
     return Array.from(map.values())
+      .filter(item => !isNoisyOrBlacklisted(item))
       .sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime())
       .slice(0, 100);
   }, []);
@@ -209,16 +252,22 @@ export function useNews() {
     // Real-time 0ms alert listener: instantly inject the news item into the feed the millisecond the alert fires!
     const handleAlert = (alert: any) => {
       if (alert.alertType === 'NEWS' || alert.title || alert.details) {
-        const titleText = alert.title || alert.details || '';
-        if (titleText) {
+        const src = (alert.source || alert.symbol || '').toLowerCase();
+        // Discard any incoming alert that is not from RedboxIndia or yatinmota
+        if (!src.includes('redbox') && !src.includes('yatin')) {
+          return;
+        }
+
+        const titleText = alert.title || alert.details || alert.name || '';
+        if (titleText && !isNoisyOrBlacklisted({ source: src, title: titleText })) {
           const newItem: NewsItem = {
             id: alert.id || `alert-${Date.now()}`,
             title: titleText,
             link: alert.link || '',
             pubDate: alert.pubDate || alert.createdAt || new Date().toISOString(),
-            source: alert.source || 'REDBOXINDIA',
+            source: alert.source || alert.symbol || 'REDBOXINDIA',
             sentiment: alert.sentiment || 'Neutral',
-            affectedStocks: alert.affectedStocks || (alert.symbol ? [alert.symbol] : []),
+            affectedStocks: alert.affectedStocks || (alert.symbol && !alert.symbol.startsWith('@') ? [alert.symbol] : []),
             isEarningsResult: alert.isEarningsResult,
             isPromoterAction: alert.isPromoterAction
           };
@@ -236,8 +285,9 @@ export function useNews() {
 
     const handleSnapshot = (fullNews: NewsItem[]) => {
       if (Array.isArray(fullNews) && fullNews.length > 0) {
+        const cleanNews = fullNews.filter(n => !isNoisyOrBlacklisted(n));
         setNews(prev => {
-          const next = mergeLists(fullNews, prev);
+          const next = mergeLists(cleanNews, prev);
           return areNewsListsEqual(prev, next) ? prev : next;
         });
         setLoading(false);

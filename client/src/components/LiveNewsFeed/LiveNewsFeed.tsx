@@ -7,11 +7,56 @@ export interface LiveNewsFeedProps {
   onStockClick?: (symbol: string) => void;
 }
 
+const BLACKLISTED_SOURCES = [
+  'liquide', 'simply wall st', 'dd news', 'free press journal',
+  'mid-day', 'livemint', 'goodreturns', 'economic times',
+  'financial express', 'zee business', 'ndtv profit', 'market wire',
+  'google news', 'cnbc tv18', 'cnbctv18'
+];
+
+const BLACKLISTED_TITLE_PATTERNS = [
+  /outlook\s*(&|and)?\s*prediction/i,
+  /stock market this week/i,
+  /market this week/i,
+  /weekly market/i,
+  /technical analysis/i,
+  /share market (live|news|today)/i,
+  /open(s|ed)? flat/i,
+  /end(s|ed)? flat/i,
+  /amid selling in/i,
+  /among \d+ companies/i,
+  /nifty (may|could|will|prediction)/i,
+  /prediction/i,
+  /market watch/i,
+  /top stocks to buy/i,
+  /stocks in focus/i,
+  /trading guide/i,
+  /expert advice/i,
+  /brokerage radar/i,
+];
+
+function isNoisyOrBlacklistedNews(n: { source?: string; title?: string }): boolean {
+  const src = (n.source || '').toLowerCase();
+  for (const bSrc of BLACKLISTED_SOURCES) {
+    if (src.includes(bSrc)) return true;
+  }
+  const text = (n.title || '').toLowerCase();
+  for (const pattern of BLACKLISTED_TITLE_PATTERNS) {
+    if (pattern.test(text)) return true;
+  }
+  return false;
+}
+
 export function LiveNewsFeed({ onStockClick }: LiveNewsFeedProps) {
   const { news, loading, error } = useNews();
   const { allStocks } = useStocks({ index: 'ALL', priceMin: 0, priceMax: 0, volumeMin: 0, search: '' }, 'volume', 'desc');
   const [filter, setFilter] = useState<'ALL' | 'REDBOX & YATIN' | 'BULLISH' | 'BEARISH' | 'BLOCK DEAL'>('ALL');
   const [search, setSearch] = useState('');
+
+  // Strictly filter out blog spam and generic noisy retail articles
+  const validNews = useMemo(() => {
+    return news.filter(n => !isNoisyOrBlacklistedNews(n));
+  }, [news]);
 
   const formatTime = (dateStr: string) => {
     const d = new Date(dateStr);
@@ -49,7 +94,7 @@ export function LiveNewsFeed({ onStockClick }: LiveNewsFeedProps) {
 
   const counts = useMemo(() => {
     let bullish = 0, bearish = 0, block = 0, exclusive = 0;
-    news.forEach(n => {
+    validNews.forEach(n => {
       const s = n.sentiment?.toLowerCase();
       const src = n.source?.toLowerCase() || '';
       if (src.includes('redbox') || src.includes('yatin')) exclusive++;
@@ -58,16 +103,16 @@ export function LiveNewsFeed({ onStockClick }: LiveNewsFeedProps) {
       if (n.isPromoterAction) block++;
     });
     return {
-      ALL: news.length,
+      ALL: validNews.length,
       'REDBOX & YATIN': exclusive,
       BULLISH: bullish,
       BEARISH: bearish,
       'BLOCK DEAL': block
     };
-  }, [news]);
+  }, [validNews]);
 
   const filteredNews = useMemo(() => {
-    return news.filter(n => {
+    return validNews.filter(n => {
       // Filter tab
       const s = n.sentiment?.toLowerCase();
       const src = n.source?.toLowerCase() || '';
@@ -85,11 +130,11 @@ export function LiveNewsFeed({ onStockClick }: LiveNewsFeedProps) {
       }
       return true;
     });
-  }, [news, filter, search]);
+  }, [validNews, filter, search]);
 
   const trending = useMemo(() => {
     const map = new Map<string, { count: number, sentiment: string }>();
-    news.forEach(n => {
+    validNews.forEach(n => {
       if (!n.affectedStocks) return;
       n.affectedStocks.forEach(sym => {
         const existing = map.get(sym);
@@ -106,9 +151,7 @@ export function LiveNewsFeed({ onStockClick }: LiveNewsFeedProps) {
     return Array.from(map.entries())
       .sort((a, b) => b[1].count - a[1].count)
       .slice(0, 10);
-  }, [news]);
-
-  const todayStr = new Date().toLocaleDateString('en-US', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase();
+  }, [validNews]);
 
   const sourceIcon = (
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -146,7 +189,7 @@ export function LiveNewsFeed({ onStockClick }: LiveNewsFeedProps) {
           </div>
           
           <div className="news-feed">
-            {loading && !news.length && <div style={{padding: '20px', color: 'var(--ink-muted)'}}>Loading news...</div>}
+            {loading && !validNews.length && <div style={{padding: '20px', color: 'var(--ink-muted)'}}>Loading news...</div>}
             
             {filteredNews.map(item => {
               const sentClass = item.isPromoterAction ? 'info' : getSentimentClass(item.sentiment);
@@ -235,11 +278,11 @@ export function LiveNewsFeed({ onStockClick }: LiveNewsFeedProps) {
           <div className="side-card">
             <h3>Sentiment Split</h3>
             {(() => {
-              const totalMentions = news.length || 1;
+              const totalMentions = validNews.length || 1;
               const b = counts.BULLISH;
               const r = counts.BEARISH;
               const i = counts['BLOCK DEAL'];
-              const n = news.length - b - r - i;
+              const n = validNews.length - b - r - i;
               
               const seg = (val: number) => `${((val / totalMentions) * 100).toFixed(0)}%`;
               

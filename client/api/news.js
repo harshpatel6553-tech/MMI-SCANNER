@@ -9,6 +9,27 @@ let newsCache = [];
 let lastFetchTime = 0;
 const CACHE_TTL_MS = 2500; // 2.5s local memory cache to prevent spamming upstream
 
+const BLACKLISTED_TITLE_PATTERNS = [
+  /outlook\s*(&|and)?\s*prediction/i,
+  /stock market this week/i,
+  /market this week/i,
+  /weekly market/i,
+  /technical analysis/i,
+  /share market (live|news|today)/i,
+  /open(s|ed)? flat/i,
+  /end(s|ed)? flat/i,
+  /amid selling in/i,
+  /among \d+ companies/i,
+  /nifty (may|could|will|prediction)/i,
+  /prediction/i,
+  /market watch/i,
+  /top stocks to buy/i,
+  /stocks in focus/i,
+  /trading guide/i,
+  /expert advice/i,
+  /brokerage radar/i,
+];
+
 function extractFullTweetText(item) {
   let rawDesc = item.description || item['content:encoded'] || '';
   if (typeof rawDesc === 'object' && rawDesc?.__cdata) {
@@ -59,32 +80,48 @@ function computeQuickSentiment(title) {
 function extractAffectedStocks(title) {
   const matched = new Set();
 
-  // 1. Redbox format: prefix ticker before colon (e.g. "BAJAJELEC: Q2...", "20MICRONS: Q2...", "VAKRANGEE: Q2...")
-  const prefixMatch = title.match(/^([A-Z0-9\-_]{2,14}):/i);
+  // 1. Redbox format: prefix ticker before colon (e.g. "CRAFTSMAN: Q2...", "BAJAJELEC: Q2...", "20MICRONS: Q2...", "VAKRANGEE: Q2...", "WAAREE: CO...")
+  const prefixMatch = title.match(/^([A-Za-z0-9_\-\.]{2,15}):/i);
   if (prefixMatch) {
-    matched.add(prefixMatch[1].toUpperCase());
+    const p = prefixMatch[1].toUpperCase();
+    const STOP_TOKENS = new Set(['ALERT', 'BREAKING', 'UPDATE', 'NEWS', 'EXCLUSIVE', 'JUST IN', 'REPORT', 'SOURCE', 'WATCH', 'MARKET', 'NIFTY', 'SENSEX']);
+    if (!STOP_TOKENS.has(p)) {
+      matched.add(p);
+    }
   }
 
-  // 2. Match any $TICKER mentions (e.g. $TECHM, $KPITTECH, $UBL, $INOXWIND)
-  const dollarMatches = title.match(/\$([A-Z0-9\-_]+)/gi) || [];
+  // 2. Match any $TICKER mentions (e.g. $TECHM, $KPITTECH, $CRAFTSMAN)
+  const dollarMatches = title.match(/\$([A-Za-z][A-Za-z0-9_\-]{1,14})\b/g) || [];
   for (const m of dollarMatches) {
     const s = m.replace('$', '').toUpperCase();
-    if (s.length >= 2 && s.length <= 14) matched.add(s);
+    if (s.length >= 2 && s.length <= 15) matched.add(s);
   }
 
   // 3. Known Company Name to Stock Symbol mappings
   const NAME_MAPPINGS = [
-    { re: /\b(PVR|INOX|PVR INOX)\b/i, sym: 'PVRINOX' },
-    { re: /\b(BAJAJ ELECTRIC|BAJAJELEC)\b/i, sym: 'BAJAJELEC' },
-    { re: /\b(UNITED BREWERIES|KINGFISHER)\b/i, sym: 'UBL' },
-    { re: /\b(UNITED SPIRITS|MCDOWELL)\b/i, sym: 'UNITDSPR' },
-    { re: /\b(KPIT|KPIT TECH)\b/i, sym: 'KPITTECH' },
-    { re: /\b(CRAFTSMAN)\b/i, sym: 'CRAFTSMAN' },
-    { re: /\b(20MICRONS|20 MICRONS)\b/i, sym: '20MICRONS' },
+    { re: /\b(PVR\s*INOX|PVR)\b/i, sym: 'PVRINOX' },
+    { re: /\b(BAJAJ\s*ELECTRIC(?:ALS)?|BAJAJELEC)\b/i, sym: 'BAJAJELEC' },
+    { re: /\b(UNITED\s*BREWERIES)\b/i, sym: 'UBL' },
+    { re: /\b(UNITED\s*SPIRITS|MCDOWELL)\b/i, sym: 'UNITDSPR' },
+    { re: /\b(KPIT\s*TECH(?:NOLOGIES)?)\b/i, sym: 'KPITTECH' },
+    { re: /\b(CRAFTSMAN\s*(?:AUTOMATION)?)\b/i, sym: 'CRAFTSMAN' },
+    { re: /\b(20\s*MICRONS|20MICRONS)\b/i, sym: '20MICRONS' },
     { re: /\b(VAKRANGEE)\b/i, sym: 'VAKRANGEE' },
-    { re: /\b(WAAREE|WAAREE ENERGIES)\b/i, sym: 'WAAREEENER' },
-    { re: /\b(PRUDENT|PRUDENT CORP)\b/i, sym: 'PRUDENT' },
-    { re: /\b(CHOLAMANDALAM|CHOLAFIN)\b/i, sym: 'CHOLAFIN' },
+    { re: /\b(WAAREE\s*(?:ENERGIES)?)\b/i, sym: 'WAAREEENER' },
+    { re: /\b(BHARTI\s*AIRTEL|AIRTEL)\b/i, sym: 'BHARTIARTL' },
+    { re: /\b(TATA\s*MOTORS)\b/i, sym: 'TATAMOTORS' },
+    { re: /\b(TATA\s*STEEL)\b/i, sym: 'TATASTEEL' },
+    { re: /\b(TATA\s*POWER)\b/i, sym: 'TATAPOWER' },
+    { re: /\b(HDFC\s*BANK)\b/i, sym: 'HDFCBANK' },
+    { re: /\b(ICICI\s*BANK)\b/i, sym: 'ICICIBANK' },
+    { re: /\b(KOTAK\s*BANK)\b/i, sym: 'KOTAKBANK' },
+    { re: /\b(AXIS\s*BANK)\b/i, sym: 'AXISBANK' },
+    { re: /\b(STATE\s*BANK\s*OF\s*INDIA|SBI)\b/i, sym: 'SBIN' },
+    { re: /\b(ASIAN\s*PAINTS?)\b/i, sym: 'ASIANPAINT' },
+    { re: /\b(SUN\s*PHARMA)\b/i, sym: 'SUNPHARMA' },
+    { re: /\b(MARUTI\s*SUZUKI)\b/i, sym: 'MARUTI' },
+    { re: /\b(RELIANCE\s*(?:IND|INDUSTRIES)?|RIL)\b/i, sym: 'RELIANCE' },
+    { re: /\b(LARSEN\s*(&|AND)?\s*TOUBRO|L&T)\b/i, sym: 'LT' },
   ];
 
   for (const map of NAME_MAPPINGS) {
@@ -104,12 +141,12 @@ function extractAffectedStocks(title) {
 
   const tUpper = title.toUpperCase();
   for (const sym of COMMON_SYMBOLS) {
-    if (new RegExp(`\\b${sym}\\b`, 'i').test(tUpper)) {
+    if (new RegExp(`\\b${sym}\\b`).test(tUpper)) {
       matched.add(sym);
     }
   }
 
-  return Array.from(matched).slice(0, 5);
+  return Array.from(matched).slice(0, 4);
 }
 
 export default async function handler(req, res) {
@@ -182,7 +219,7 @@ export default async function handler(req, res) {
               isEarningsResult: earningsRegex.test(fullText),
               isPromoterAction: blockDealRegex.test(fullText)
             };
-          }).filter(t => t.title && t.title.length > 5);
+          }).filter(t => t.title && t.title.length > 5 && !BLACKLISTED_TITLE_PATTERNS.some(p => p.test(t.title)));
         } catch {
           continue;
         }
