@@ -49,8 +49,11 @@ export function HeaderIndices({ nifty50, bankNifty, sensex, flashes }: HeaderInd
           
           <span className={`index-chip-badge font-mono tabular-nums ${niftyUp ? 'up' : 'down'}`}>
             {niftyUp ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
-            <span>
-              {nifty50 ? `${niftyUp ? '+' : ''}${nifty50.changePercent.toFixed(2)}%` : '0.00%'}
+            <span className="index-chip-pts">
+              {nifty50 ? `${niftyUp ? '+' : ''}${(nifty50.change ?? 0).toFixed(2)}` : '0.00'}
+            </span>
+            <span className="index-chip-pct">
+              ({nifty50 ? `${niftyUp ? '+' : ''}${(nifty50.changePercent ?? 0).toFixed(2)}%` : '0.00%'})
             </span>
           </span>
         </div>
@@ -83,8 +86,11 @@ export function HeaderIndices({ nifty50, bankNifty, sensex, flashes }: HeaderInd
           
           <span className={`index-chip-badge font-mono tabular-nums ${bankUp ? 'up' : 'down'}`}>
             {bankUp ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
-            <span>
-              {bankNifty ? `${bankUp ? '+' : ''}${bankNifty.changePercent.toFixed(2)}%` : '0.00%'}
+            <span className="index-chip-pts">
+              {bankNifty ? `${bankUp ? '+' : ''}${(bankNifty.change ?? 0).toFixed(2)}` : '0.00'}
+            </span>
+            <span className="index-chip-pct">
+              ({bankNifty ? `${bankUp ? '+' : ''}${(bankNifty.changePercent ?? 0).toFixed(2)}%` : '0.00%'})
             </span>
           </span>
         </div>
@@ -117,8 +123,11 @@ export function HeaderIndices({ nifty50, bankNifty, sensex, flashes }: HeaderInd
           
           <span className={`index-chip-badge font-mono tabular-nums ${sensexUp ? 'up' : 'down'}`}>
             {sensexUp ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
-            <span>
-              {sensex ? `${sensexUp ? '+' : ''}${sensex.changePercent.toFixed(2)}%` : '0.00%'}
+            <span className="index-chip-pts">
+              {sensex ? `${sensexUp ? '+' : ''}${(sensex.change ?? 0).toFixed(2)}` : '0.00'}
+            </span>
+            <span className="index-chip-pct">
+              ({sensex ? `${sensexUp ? '+' : ''}${(sensex.changePercent ?? 0).toFixed(2)}%` : '0.00%'})
             </span>
           </span>
         </div>
