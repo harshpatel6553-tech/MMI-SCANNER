@@ -27,11 +27,12 @@ export interface BigMoneyAlert {
   timeFormatted: string;
   symbol: string;
   strike: number;
-  side: 'ceiling side' | 'floor side';
+  side: 'RESISTANCE (CALLS)' | 'SUPPORT (PUTS)' | 'ceiling side' | 'floor side' | string;
   action: 'placed' | 'pulled';
   contracts: string;
   contractsNum: number;
   message: string;
+  impact?: 'BULLISH' | 'BEARISH';
 }
 
 export interface FnoMetrics {
@@ -102,11 +103,12 @@ class OptionChainService {
         timeFormatted: '15:30',
         symbol,
         strike: 23100,
-        side: 'ceiling side',
+        side: 'RESISTANCE (CALLS)',
         action: 'pulled',
         contracts: '14.1L',
         contractsNum: 1410000,
-        message: 'Big players just pulled 14.1L bets at the 23100 level (ceiling side) - in 5 minutes.',
+        message: 'Big players removed 14.1L Call bets at 23,100 — Resistance Cleared (Bullish Breakout Signal).',
+        impact: 'BULLISH',
       },
       {
         id: 'init-2',
@@ -114,11 +116,12 @@ class OptionChainService {
         timeFormatted: '15:30',
         symbol,
         strike: 23300,
-        side: 'floor side',
+        side: 'SUPPORT (PUTS)',
         action: 'pulled',
         contracts: '1.0L',
         contractsNum: 100000,
-        message: 'Big players just pulled 1.0L bets at the 23300 level (floor side) - in 5 minutes.',
+        message: 'Big players removed 1.0L Put bets at 23,300 — Support Weakened (Downside Risk Warning).',
+        impact: 'BEARISH',
       },
       {
         id: 'init-3',
@@ -126,11 +129,12 @@ class OptionChainService {
         timeFormatted: '15:28',
         symbol,
         strike: 23250,
-        side: 'floor side',
+        side: 'SUPPORT (PUTS)',
         action: 'pulled',
         contracts: '30K',
         contractsNum: 30000,
-        message: 'Big players just pulled 30K bets at the 23250 level (floor side) - in 5 minutes.',
+        message: 'Big players removed 30K Put bets at 23,250 — Support Weakened (Defensive Caution).',
+        impact: 'BEARISH',
       },
       {
         id: 'init-4',
@@ -138,11 +142,12 @@ class OptionChainService {
         timeFormatted: '15:26',
         symbol,
         strike: 23450,
-        side: 'floor side',
+        side: 'SUPPORT (PUTS)',
         action: 'placed',
         contracts: '58K',
         contractsNum: 58000,
-        message: 'Big players just placed 58K bets at the 23450 level (floor side) - in 5 minutes.',
+        message: 'Big players added 58K Put bets at 23,450 — Support Built (Downside Shielded).',
+        impact: 'BULLISH',
       },
       {
         id: 'init-5',
@@ -150,11 +155,12 @@ class OptionChainService {
         timeFormatted: '15:21',
         symbol,
         strike: 23000,
-        side: 'floor side',
+        side: 'SUPPORT (PUTS)',
         action: 'placed',
         contracts: '1.2L',
         contractsNum: 120000,
-        message: 'Big players just placed 1.2L bets at the 23000 level (floor side) - in 5 minutes.',
+        message: 'Big players added 1.2L Put bets at 23,000 — Strong Support Base Created (Bullish Base).',
+        impact: 'BULLISH',
       },
     ];
   }
@@ -507,24 +513,31 @@ class OptionChainService {
             ? `${(Math.abs(ceDelta) / 100000).toFixed(1)}L` 
             : `${Math.round(Math.abs(ceDelta) / 1000)}K`;
 
+          const isCeRemoved = ceDelta < 0;
+          const ceActionText = isCeRemoved ? 'removed' : 'placed';
+          const ceEffectText = isCeRemoved ? 'Resistance Cleared' : 'Resistance Built';
+
           this.alertsFeed.unshift({
             id: `alert-${Date.now()}-${s.strikePrice}-ce`,
             timestamp: now.toISOString(),
             timeFormatted,
             symbol,
             strike: s.strikePrice,
-            side: 'ceiling side',
-            action,
+            side: 'RESISTANCE (CALLS)',
+            action: isCeRemoved ? 'pulled' : 'placed',
             contracts: contractsFormatted,
             contractsNum: Math.abs(ceDelta),
-            message: `Big players just ${action} ${contractsFormatted} bets at the ${s.strikePrice} level (ceiling side) - in 5 minutes.`,
+            message: `Big players ${ceActionText} ${contractsFormatted} Call bets at the ${s.strikePrice} level (${ceEffectText}) - in 5 minutes.`,
+            impact: isCeRemoved ? 'BULLISH' : 'BEARISH',
           });
         }
 
         // Big Put move threshold
         if (Math.abs(peDelta) >= 50000) {
-          const action = peDelta < 0 ? 'pulled' : 'placed';
-          const contractsFormatted = Math.abs(peDelta) >= 100000 
+          const isPeAdded = peDelta > 0;
+          const peActionText = isPeAdded ? 'placed' : 'removed';
+          const peEffectText = isPeAdded ? 'Support Built' : 'Support Weakened';
+          const peContractsFormatted = Math.abs(peDelta) >= 100000 
             ? `${(Math.abs(peDelta) / 100000).toFixed(1)}L` 
             : `${Math.round(Math.abs(peDelta) / 1000)}K`;
 
@@ -534,79 +547,19 @@ class OptionChainService {
             timeFormatted,
             symbol,
             strike: s.strikePrice,
-            side: 'floor side',
-            action,
-            contracts: contractsFormatted,
+            side: 'SUPPORT (PUTS)',
+            action: isPeAdded ? 'placed' : 'pulled',
+            contracts: peContractsFormatted,
             contractsNum: Math.abs(peDelta),
-            message: `Big players just ${action} ${contractsFormatted} bets at the ${s.strikePrice} level (floor side) - in 5 minutes.`,
+            message: `Big players ${peActionText} ${peContractsFormatted} Put bets at the ${s.strikePrice} level (${peEffectText}) - in 5 minutes.`,
+            impact: isPeAdded ? 'BULLISH' : 'BEARISH',
           });
         }
       }
     } else {
       // Seed initial sample alerts matching realistic active market action if feed is fresh
       if (this.alertsFeed.length === 0) {
-        this.alertsFeed = [
-          {
-            id: 'init-1',
-            timestamp: now.toISOString(),
-            timeFormatted: '15:30',
-            symbol,
-            strike: 23100,
-            side: 'ceiling side',
-            action: 'pulled',
-            contracts: '14.1L',
-            contractsNum: 1410000,
-            message: 'Big players just pulled 14.1L bets at the 23100 level (ceiling side) - in 5 minutes.',
-          },
-          {
-            id: 'init-2',
-            timestamp: now.toISOString(),
-            timeFormatted: '15:30',
-            symbol,
-            strike: 23300,
-            side: 'floor side',
-            action: 'pulled',
-            contracts: '1.0L',
-            contractsNum: 100000,
-            message: 'Big players just pulled 1.0L bets at the 23300 level (floor side) - in 5 minutes.',
-          },
-          {
-            id: 'init-3',
-            timestamp: now.toISOString(),
-            timeFormatted: '15:28',
-            symbol,
-            strike: 23250,
-            side: 'floor side',
-            action: 'pulled',
-            contracts: '30K',
-            contractsNum: 30000,
-            message: 'Big players just pulled 30K bets at the 23250 level (floor side) - in 5 minutes.',
-          },
-          {
-            id: 'init-4',
-            timestamp: now.toISOString(),
-            timeFormatted: '15:26',
-            symbol,
-            strike: 23450,
-            side: 'floor side',
-            action: 'placed',
-            contracts: '58K',
-            contractsNum: 58000,
-            message: 'Big players just placed 58K bets at the 23450 level (floor side) - in 5 minutes.',
-          },
-          {
-            id: 'init-5',
-            timestamp: now.toISOString(),
-            timeFormatted: '15:21',
-            symbol,
-            strike: 23000,
-            side: 'floor side',
-            action: 'placed',
-            contracts: '1.2L',
-            contractsNum: 120000,
-            message: 'Big players just placed 1.2L bets at the 23000 level (floor side) - in 5 minutes.',
-          },
-        ];
+        this.seedInitialAlerts(symbol);
       }
     }
 
@@ -777,11 +730,12 @@ class OptionChainService {
           timeFormatted: '15:28',
           symbol: 'SENSEX',
           strike: atmStrike + 500,
-          side: 'ceiling side',
+          side: 'RESISTANCE (CALLS)',
           action: 'pulled',
           contracts: '82K',
           contractsNum: 82000,
-          message: `Big players just pulled 82K bets at the ${atmStrike + 500} level (ceiling side) - in 5 minutes.`
+          message: `Big players removed 82K Call bets at the ${atmStrike + 500} level (Resistance Cleared) - in 5 minutes.`,
+          impact: 'BULLISH',
         },
         {
           id: `sensex-2-${Date.now()}`,
@@ -789,11 +743,12 @@ class OptionChainService {
           timeFormatted: '15:24',
           symbol: 'SENSEX',
           strike: atmStrike - 500,
-          side: 'floor side',
+          side: 'SUPPORT (PUTS)',
           action: 'placed',
           contracts: '1.1L',
           contractsNum: 110000,
-          message: `Big players just placed 1.1L bets at the ${atmStrike - 500} level (floor side) - in 5 minutes.`
+          message: `Big players added 1.1L Put bets at the ${atmStrike - 500} level (Support Built) - in 5 minutes.`,
+          impact: 'BULLISH',
         }
       ],
       lastUpdated: new Date().toISOString()

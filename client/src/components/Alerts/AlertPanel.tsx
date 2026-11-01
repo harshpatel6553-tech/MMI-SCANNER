@@ -297,7 +297,10 @@ export function AlertPanel({ alerts, onClearAll }: AlertPanelProps) {
                 <AnimatePresence>
                   {filteredAlerts.map(alert => {
                     if (alert.alertType === 'FNO_OI') {
-                      const isCeiling = (alert.side || '').toLowerCase().includes('ceiling');
+                      const isCall = (alert.side || '').toUpperCase().includes('RESISTANCE') || (alert.side || '').toLowerCase().includes('ceiling');
+                      const sideLabel = isCall ? 'RESISTANCE (CALLS)' : 'SUPPORT (PUTS)';
+                      const isBullish = (isCall && alert.action === 'pulled') || (!isCall && alert.action === 'placed');
+
                       return (
                         <motion.div
                           key={alert.id}
@@ -305,22 +308,27 @@ export function AlertPanel({ alerts, onClearAll }: AlertPanelProps) {
                           animate={{ opacity: 1, x: 0, scale: 1 }}
                           exit={{ opacity: 0, x: -16, scale: 0.95 }}
                           transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-                          className={`alert-card ${isCeiling ? 'fno-ceiling' : 'fno-floor'}`}
+                          className={`alert-card ${isCall ? 'fno-ceiling' : 'fno-floor'}`}
                           onClick={() => handleFnoClick(alert.strike)}
                           title="Click to inspect strike in Options Lens"
                           style={{ position: 'relative', overflow: 'hidden', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 6 }}
                         >
                           <div className="alert-light-streak" />
                           <div className="alert-top" style={{ marginBottom: 4 }}>
-                            <span className="alert-time tabular-nums" style={{ fontSize: 13, fontWeight: 700, color: '#9BAAC0' }}>
-                              {formatTime(alert.createdAt)}
-                            </span>
-                            <span className={`fno-side-badge ${isCeiling ? 'ceiling' : 'floor'}`}>
-                              {alert.side ? alert.side.toUpperCase() : isCeiling ? 'CEILING SIDE' : 'FLOOR SIDE'}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <span className="alert-time tabular-nums" style={{ fontSize: 13, fontWeight: 700, color: '#9BAAC0' }}>
+                                {formatTime(alert.createdAt)}
+                              </span>
+                              <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 6px', borderRadius: 4, background: isBullish ? 'rgba(0, 214, 163, 0.15)' : 'rgba(255, 66, 104, 0.15)', color: isBullish ? '#00D6A3' : '#FF4268' }}>
+                                {isBullish ? 'BULLISH FLOW' : 'DEFENSIVE BARRIER'}
+                              </span>
+                            </div>
+                            <span className={`fno-side-badge ${isCall ? 'ceiling' : 'floor'}`}>
+                              {sideLabel}
                             </span>
                           </div>
 
-                          <div style={{ fontSize: 13, color: '#F1F5FC', lineHeight: 1.4, fontWeight: 500 }}>
+                          <div style={{ fontSize: 13, color: '#F1F5FC', lineHeight: 1.4, fontWeight: 600 }}>
                             {alert.details}
                           </div>
 
@@ -332,10 +340,10 @@ export function AlertPanel({ alerts, onClearAll }: AlertPanelProps) {
                                 handleFnoClick(alert.strike);
                               }}
                             >
-                              <span>OI by strike – {alert.strike || 23100}</span>
+                              <span>Inspect Strike {alert.strike || 23100}</span>
                               <ExternalLink size={11} />
                             </button>
-                            <span style={{ fontSize: 10, color: '#64748B', textTransform: 'uppercase', fontWeight: 700 }}>
+                            <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: '#9BAAC0', fontWeight: 700 }}>
                               {alert.symbol || 'NIFTY'} F&amp;O
                             </span>
                           </div>

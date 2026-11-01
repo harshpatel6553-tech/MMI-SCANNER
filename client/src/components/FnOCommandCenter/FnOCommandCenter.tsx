@@ -841,12 +841,12 @@ export const FnOCommandCenter: React.FC = () => {
           </div>
         </div>
 
-        {/* Card 3: Ceiling (Max Call OI) */}
+        {/* Card 3: Key Resistance (Max Call OI) */}
         <div className="fno-metric-card ceiling-card">
           <div className="metric-header">
             <div className="flex-align">
               <span className="dot red-dot" />
-              <span className="metric-label text-rose-400">CEILING (RESISTANCE)</span>
+              <span className="metric-label text-rose-400">KEY RESISTANCE (CALLS)</span>
             </div>
           </div>
           <div className="metric-value text-rose-400 font-mono tabular-nums">
@@ -857,12 +857,12 @@ export const FnOCommandCenter: React.FC = () => {
           </div>
         </div>
 
-        {/* Card 4: Floor (Max Put OI) */}
+        {/* Card 4: Key Support (Max Put OI) */}
         <div className="fno-metric-card floor-card">
           <div className="metric-header">
             <div className="flex-align">
               <span className="dot green-dot" />
-              <span className="metric-label text-emerald-400">FLOOR (SUPPORT)</span>
+              <span className="metric-label text-emerald-400">KEY SUPPORT (PUTS)</span>
             </div>
           </div>
           <div className="metric-value text-emerald-400 font-mono tabular-nums">
@@ -954,10 +954,10 @@ export const FnOCommandCenter: React.FC = () => {
 
               <div className="chart-legend">
                 <span className="legend-item">
-                  <span className="legend-color call-color" /> Ceiling ({ceiling.strike})
+                  <span className="legend-color call-color" /> Key Resistance ({ceiling.strike})
                 </span>
                 <span className="legend-item">
-                  <span className="legend-color put-color" /> Floor ({floor.strike})
+                  <span className="legend-color put-color" /> Key Support ({floor.strike})
                 </span>
                 <span className="legend-item">
                   <span className="legend-line max-pain-line" /> Max Pain ({maxPain.strike})
@@ -1004,8 +1004,8 @@ export const FnOCommandCenter: React.FC = () => {
                       <div className="tt-h-title">
                         <b>{activeCardRow.strikePrice.toLocaleString()}</b>
                         {activeCardRow.strikePrice === data?.atmStrike && <span className="tt-tag atm">ATM</span>}
-                        {activeCardRow.strikePrice === ceiling.strike && <span className="tt-tag ceil">CEILING</span>}
-                        {activeCardRow.strikePrice === floor.strike && <span className="tt-tag floor">FLOOR</span>}
+                        {activeCardRow.strikePrice === ceiling.strike && <span className="tt-tag ceil">RESISTANCE</span>}
+                        {activeCardRow.strikePrice === floor.strike && <span className="tt-tag floor">SUPPORT</span>}
                         {activeCardRow.strikePrice === maxPain.strike && <span className="tt-tag pain">MAX PAIN</span>}
                       </div>
                       <span className="flex-1" />
@@ -1126,9 +1126,9 @@ export const FnOCommandCenter: React.FC = () => {
 
             {/* Bottom Caption Legend (Matching VolumeLens) */}
             <div className="fno-chart-footer-caption">
-              <span className="footer-dot ceil-dot" /> Ceiling (calls) above each strike
+              <span className="footer-dot ceil-dot" /> Resistance (Calls) above spot
               <span className="footer-divider">|</span>
-              <span className="footer-dot floor-dot" /> Floor (puts) below
+              <span className="footer-dot floor-dot" /> Support (Puts) below spot
               <span className="footer-divider">|</span>
               <span className="footer-muted">bright end = added last session - click a bar to chart that option</span>
             </div>
@@ -1243,18 +1243,18 @@ export const FnOCommandCenter: React.FC = () => {
               {displayedAlerts.map(alert => (
                 <div
                   key={alert.id}
-                  className={`alert-card ${alert.side === 'ceiling side' ? 'alert-ceiling' : 'alert-floor'}`}
+                  className={`alert-card ${(alert.side || '').toUpperCase().includes('RESISTANCE') || alert.side === 'ceiling side' ? 'alert-ceiling' : 'alert-floor'}`}
                   onClick={() => setFilterAlertStrike(alert.strike)}
                 >
                   <div className="alert-meta">
                     <span className="alert-time">{alert.timeFormatted}</span>
-                    <span className={`alert-side-badge ${alert.side === 'ceiling side' ? 'badge-ceil' : 'badge-floor'}`}>
-                      {alert.side}
+                    <span className={`alert-side-badge ${(alert.side || '').toUpperCase().includes('RESISTANCE') || alert.side === 'ceiling side' ? 'badge-ceil' : 'badge-floor'}`}>
+                      {(alert.side || '').toUpperCase().includes('RESISTANCE') || alert.side === 'ceiling side' ? 'RESISTANCE (CALLS)' : 'SUPPORT (PUTS)'}
                     </span>
                   </div>
                   <div className="alert-message">{alert.message}</div>
                   <div className="alert-strike-btn">
-                    OI by strike - {alert.strike}
+                    Inspect Strike {alert.strike}
                   </div>
                 </div>
               ))}

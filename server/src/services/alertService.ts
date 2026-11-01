@@ -242,16 +242,21 @@ class AlertService {
     try {
       const rawFno = optionChainService.getAlerts() || [];
       for (const a of rawFno) {
+        const isCall = (a.side || '').toUpperCase().includes('RESISTANCE') || (a.side || '').toLowerCase().includes('ceiling');
+        const actionTitle = isCall 
+          ? (a.action === 'pulled' ? 'Resistance Cleared' : 'Resistance Built')
+          : (a.action === 'placed' ? 'Support Built' : 'Support Weakened');
+
         fnoAlerts.push({
           id: a.id,
           symbol: a.symbol || 'NIFTY',
-          name: `${a.action === 'pulled' ? 'Pulled' : 'Placed'} ${a.contracts} (${a.side})`,
+          name: `${actionTitle} (${a.contracts})`,
           alertType: 'FNO_OI',
           price: a.strike,
           details: a.message,
           createdAt: a.timestamp,
           strike: a.strike,
-          side: a.side,
+          side: isCall ? 'RESISTANCE (CALLS)' : 'SUPPORT (PUTS)',
           action: a.action,
           contracts: a.contracts,
         });

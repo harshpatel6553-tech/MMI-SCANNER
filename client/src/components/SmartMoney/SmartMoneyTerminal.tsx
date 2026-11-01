@@ -649,19 +649,19 @@ export const SmartMoneyTerminal: React.FC = () => {
             </div>
 
             <div className="sm-stat-box">
-              <span className="sm-stat-label">Smart Money Put Floor</span>
+              <span className="sm-stat-label">Smart Money Support Base</span>
               <span className="sm-stat-value up" style={{ color: '#00D6A3' }}>
                 {data?.derivativesPositioning.smartMoneyPutFloor} PE
               </span>
-              <span className="sm-stat-sub">Heavy Institutional Put Writing Floor</span>
+              <span className="sm-stat-sub">Institutional Put Writing Support (Floor)</span>
             </div>
 
             <div className="sm-stat-box">
-              <span className="sm-stat-label">Smart Money Call Ceiling</span>
+              <span className="sm-stat-label">Smart Money Resistance Wall</span>
               <span className="sm-stat-value down" style={{ color: '#FF4268' }}>
                 {data?.derivativesPositioning.smartMoneyCallCeiling} CE
               </span>
-              <span className="sm-stat-sub">Heavy Institutional Call Writing Cap</span>
+              <span className="sm-stat-sub">Institutional Call Writing Resistance (Cap)</span>
             </div>
           </div>
 

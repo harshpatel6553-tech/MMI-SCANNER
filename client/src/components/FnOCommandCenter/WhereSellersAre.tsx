@@ -191,7 +191,7 @@ export const WhereSellersAre: React.FC<WhereSellersAreProps> = ({
         <div className="where-sellers-title-group">
           <h3 className="where-sellers-title">Where the sellers are</h3>
           <p className="where-sellers-subtitle">
-            Open interest at each strike. Calls above {symbol} act as a ceiling, puts below as a floor.
+            Open interest at each strike. Calls above {symbol} act as Resistance, puts below act as Support.
           </p>
         </div>
 
@@ -373,7 +373,7 @@ export const WhereSellersAre: React.FC<WhereSellersAreProps> = ({
                       fontWeight="800"
                       fontFamily="system-ui, -apple-system, sans-serif"
                     >
-                      FLOOR
+                      SUPPORT
                     </text>
                     <text
                       x="0"
@@ -401,7 +401,7 @@ export const WhereSellersAre: React.FC<WhereSellersAreProps> = ({
                       fontWeight="800"
                       fontFamily="system-ui, -apple-system, sans-serif"
                     >
-                      CEILING
+                      RESISTANCE
                     </text>
                     <text
                       x="0"
