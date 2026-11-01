@@ -6,6 +6,7 @@ import { useDashboard } from '../../contexts/DashboardContext';
 import { audioAlerts } from '../../utils/audioAlerts';
 import { X, ExternalLink, Zap } from 'lucide-react';
 import { CyberIcon } from '../common/CyberIcon';
+import { StockLogo } from '../common/StockLogo';
 import './Alerts.css';
 
 interface Toast extends StockAlert {
@@ -123,17 +124,20 @@ export function AlertToast({ toasts, onDismiss }: AlertToastProps) {
               </div>
 
               {/* Symbol & Price Details */}
-              <div className="flex items-baseline justify-between gap-2">
-                <div className="flex flex-col min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-mono font-extrabold text-sm text-white tracking-tight">{toast.symbol}</span>
-                    <span className="text-[11px] text-slate-400 truncate max-w-[140px]">{toast.name}</span>
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <StockLogo symbol={toast.symbol} name={toast.name} size={24} className="shrink-0" />
+                  <div className="flex flex-col min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-mono font-extrabold text-sm text-white tracking-tight">{toast.symbol}</span>
+                      <span className="text-[11px] text-slate-400 truncate max-w-[140px]">{toast.name}</span>
+                    </div>
+                    {toast.details && (
+                      <span className="text-[10.5px] font-medium text-cyan-400 mt-0.5 font-mono">
+                        {toast.details}
+                      </span>
+                    )}
                   </div>
-                  {toast.details && (
-                    <span className="text-[10.5px] font-medium text-cyan-400 mt-0.5 font-mono">
-                      {toast.details}
-                    </span>
-                  )}
                 </div>
 
                 <div className="flex flex-col items-end flex-shrink-0 font-mono tabular-nums">

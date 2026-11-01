@@ -216,8 +216,8 @@ export function MarketTableWidget({ fullView = false, watchlistOnly = false }: M
                         setActiveTab('Charts'); 
                       }}
                     >
-                      <div className="sym-flex-wrap" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <StockLogo symbol={r.symbol} name={r.name} size={22} className="shrink-0" />
+                      <div className="sym-flex-wrap" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <StockLogo symbol={r.symbol} name={r.name} size={26} className="shrink-0" />
                         <span className="sym-ticker-text font-mono" style={{ fontWeight: 800 }}>{r.symbol}</span>
                         {isNearHigh && <LiveSignal type="breakout" label="HIGH" />}
                         {isVolSurge && !isNearHigh && <LiveSignal type="spike" label="VOL" />}

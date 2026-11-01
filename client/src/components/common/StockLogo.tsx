@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface StockLogoProps {
   symbol: string;
@@ -12,14 +12,17 @@ interface StockLogoProps {
 const TICKER_ALIASES: Record<string, string> = {
   TATAMOTORS: 'TMPV',
   'TATA-MOTORS': 'TMPV',
+  TATASTEEL: 'TATASTEEL',
+  TATAPOWER: 'TATAPOWER',
   'M&M': 'MM',
-  'L&TFH': 'L_TFH',
+  'L&TFH': 'LTFH',
   'BAJAJ-AUTO': 'BAJAJ_AUTO',
   'MCDOWELL-N': 'MCDOWELL_N',
-  NIFTY: 'NIFTY50',
-  'NIFTY 50': 'NIFTY50',
-  NIFTY50: 'NIFTY50',
-  BANKNIFTY: 'BANKNIFTY',
+  PAYTM: 'ONE97',
+  'L&T': 'LT',
+  BHARTI: 'BHARTIARTL',
+  HDFC: 'HDFCBANK',
+  MARUTI: 'MARUTI',
 };
 
 // Deterministic color palette for initial/monogram badges (TradingView style)
@@ -49,12 +52,23 @@ function getMonogramColors(sym: string) {
 }
 
 export function StockLogo({ symbol, name, size = 24, className = '', style = {} }: StockLogoProps) {
-  const [loadStage, setLoadStage] = useState<'nse' | 'bse' | 'fallback'>('nse');
+  const [hasError, setHasError] = useState(false);
 
-  const clean = (symbol || '').replace('.NS', '').replace('.BO', '').replace('-EQ', '').trim().toUpperCase();
+  const clean = (symbol || '')
+    .replace('.NS', '')
+    .replace('.BO', '')
+    .replace('-EQ', '')
+    .replace('^', '')
+    .trim()
+    .toUpperCase();
+
   const mappedTicker = TICKER_ALIASES[clean] || clean;
 
-  // Custom brand badges matching user image exactly
+  useEffect(() => {
+    setHasError(false);
+  }, [clean]);
+
+  // Custom brand badge for ZOMATO
   if (clean === 'ZOMATO') {
     return (
       <div
@@ -75,8 +89,8 @@ export function StockLogo({ symbol, name, size = 24, className = '', style = {} 
           fontStyle: 'italic',
           fontSize: Math.max(10, Math.floor(size * 0.58)),
           flexShrink: 0,
-          boxShadow: '0 1px 2px rgba(0,0,0,0.3)',
-          border: '1px solid rgba(255,255,255,0.12)',
+          boxShadow: '0 2px 5px rgba(226, 55, 68, 0.35)',
+          border: '1px solid rgba(255,255,255,0.2)',
           userSelect: 'none',
           ...style,
         }}
@@ -87,56 +101,201 @@ export function StockLogo({ symbol, name, size = 24, className = '', style = {} 
     );
   }
 
-  if (clean === 'NIFTY50' || clean === 'NIFTY 50' || clean === '50') {
+  // Institutional Index Emblems
+  if (clean === 'NIFTY' || clean === 'NIFTY50' || clean === 'NIFTY 50' || clean === '50') {
     return (
       <div
-        className={`stock-logo-circle ${className}`}
+        className={`stock-logo-circle stock-logo-nifty ${className}`}
         style={{
           width: size,
           height: size,
           minWidth: size,
           minHeight: size,
           borderRadius: '50%',
-          backgroundColor: '#1c2237',
+          background: 'linear-gradient(135deg, #07192f 0%, #0c3359 100%)',
+          border: '1.5px solid rgba(0, 214, 163, 0.45)',
           display: 'inline-flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: '#ffffff',
-          fontWeight: 800,
+          color: '#00D6A3',
+          fontWeight: 900,
           fontFamily: "'Space Grotesk', monospace, sans-serif",
-          fontSize: Math.max(9, Math.floor(size * 0.48)),
+          fontSize: Math.max(9, Math.floor(size * 0.44)),
+          letterSpacing: '-0.02em',
           flexShrink: 0,
-          boxShadow: '0 1px 2px rgba(0,0,0,0.3)',
-          border: '1px solid rgba(255,255,255,0.14)',
+          boxShadow: '0 2px 6px rgba(0, 214, 163, 0.3)',
           userSelect: 'none',
           ...style,
         }}
-        title="Nifty 50"
+        title="NIFTY 50 Index"
       >
-        50
+        N50
       </div>
     );
   }
 
-  const handleError = () => {
-    if (loadStage === 'nse') {
-      setLoadStage('bse');
-    } else {
-      setLoadStage('fallback');
-    }
-  };
+  if (clean === 'BANKNIFTY' || clean === 'BANK NIFTY' || clean === 'NIFTY BANK') {
+    return (
+      <div
+        className={`stock-logo-circle stock-logo-banknifty ${className}`}
+        style={{
+          width: size,
+          height: size,
+          minWidth: size,
+          minHeight: size,
+          borderRadius: '50%',
+          background: 'linear-gradient(135deg, #091d3e 0%, #1d4ed8 100%)',
+          border: '1.5px solid rgba(56, 189, 248, 0.45)',
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: '#38BDF8',
+          fontWeight: 900,
+          fontFamily: "'Space Grotesk', monospace, sans-serif",
+          fontSize: Math.max(9, Math.floor(size * 0.44)),
+          letterSpacing: '-0.02em',
+          flexShrink: 0,
+          boxShadow: '0 2px 6px rgba(56, 189, 248, 0.3)',
+          userSelect: 'none',
+          ...style,
+        }}
+        title="Bank NIFTY Index"
+      >
+        BN
+      </div>
+    );
+  }
 
-  const getImgSrc = () => {
-    if (loadStage === 'nse') {
-      return `https://dharunashokkumar.github.io/indian-listed-company-logos/nse/NSE_${mappedTicker}.svg`;
-    }
-    if (loadStage === 'bse') {
-      return `https://dharunashokkumar.github.io/indian-listed-company-logos/bse/BSE_${mappedTicker}.svg`;
-    }
-    return '';
-  };
+  if (clean === 'SENSEX' || clean === 'BSE SENSEX' || clean === 'BSESENSEX') {
+    return (
+      <div
+        className={`stock-logo-circle stock-logo-sensex ${className}`}
+        style={{
+          width: size,
+          height: size,
+          minWidth: size,
+          minHeight: size,
+          borderRadius: '50%',
+          background: 'linear-gradient(135deg, #2b1704 0%, #b45309 100%)',
+          border: '1.5px solid rgba(245, 158, 11, 0.45)',
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: '#FBBF24',
+          fontWeight: 900,
+          fontFamily: "'Space Grotesk', monospace, sans-serif",
+          fontSize: Math.max(8, Math.floor(size * 0.38)),
+          letterSpacing: '-0.02em',
+          flexShrink: 0,
+          boxShadow: '0 2px 6px rgba(245, 158, 11, 0.3)',
+          userSelect: 'none',
+          ...style,
+        }}
+        title="BSE Sensex"
+      >
+        BSX
+      </div>
+    );
+  }
 
-  if (loadStage === 'fallback' || !clean) {
+  if (clean === 'FINNIFTY' || clean === 'FIN NIFTY' || clean === 'NIFTY FIN SERVICE') {
+    return (
+      <div
+        className={`stock-logo-circle stock-logo-finnifty ${className}`}
+        style={{
+          width: size,
+          height: size,
+          minWidth: size,
+          minHeight: size,
+          borderRadius: '50%',
+          background: 'linear-gradient(135deg, #1b0e36 0%, #6d28d9 100%)',
+          border: '1.5px solid rgba(168, 85, 247, 0.45)',
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: '#C084FC',
+          fontWeight: 900,
+          fontFamily: "'Space Grotesk', monospace, sans-serif",
+          fontSize: Math.max(8, Math.floor(size * 0.38)),
+          letterSpacing: '-0.02em',
+          flexShrink: 0,
+          boxShadow: '0 2px 6px rgba(168, 85, 247, 0.3)',
+          userSelect: 'none',
+          ...style,
+        }}
+        title="Nifty Financial Services"
+      >
+        FIN
+      </div>
+    );
+  }
+
+  if (clean === 'MIDCPNIFTY' || clean === 'MIDCAP') {
+    return (
+      <div
+        className={`stock-logo-circle stock-logo-midcap ${className}`}
+        style={{
+          width: size,
+          height: size,
+          minWidth: size,
+          minHeight: size,
+          borderRadius: '50%',
+          background: 'linear-gradient(135deg, #2b0e1e 0%, #be185d 100%)',
+          border: '1.5px solid rgba(244, 63, 94, 0.45)',
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: '#FB7185',
+          fontWeight: 900,
+          fontFamily: "'Space Grotesk', monospace, sans-serif",
+          fontSize: Math.max(8, Math.floor(size * 0.38)),
+          letterSpacing: '-0.02em',
+          flexShrink: 0,
+          boxShadow: '0 2px 6px rgba(244, 63, 94, 0.3)',
+          userSelect: 'none',
+          ...style,
+        }}
+        title="Nifty Midcap Select"
+      >
+        MID
+      </div>
+    );
+  }
+
+  if (clean.includes('VIX')) {
+    return (
+      <div
+        className={`stock-logo-circle stock-logo-vix ${className}`}
+        style={{
+          width: size,
+          height: size,
+          minWidth: size,
+          minHeight: size,
+          borderRadius: '50%',
+          background: 'linear-gradient(135deg, #2c1809 0%, #ea580c 100%)',
+          border: '1.5px solid rgba(249, 115, 22, 0.45)',
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: '#FB923C',
+          fontWeight: 900,
+          fontFamily: "'Space Grotesk', monospace, sans-serif",
+          fontSize: Math.max(8, Math.floor(size * 0.38)),
+          letterSpacing: '-0.02em',
+          flexShrink: 0,
+          boxShadow: '0 2px 6px rgba(249, 115, 22, 0.3)',
+          userSelect: 'none',
+          ...style,
+        }}
+        title="India VIX"
+      >
+        VIX
+      </div>
+    );
+  }
+
+  // Fallback monogram if image fails or clean symbol is empty
+  if (hasError || !clean) {
     const { bg, text } = getMonogramColors(clean);
     const initials = clean.length <= 3 ? clean : clean.slice(0, 2);
     return (
@@ -153,13 +312,13 @@ export function StockLogo({ symbol, name, size = 24, className = '', style = {} 
           display: 'inline-flex',
           alignItems: 'center',
           justifyContent: 'center',
-          fontWeight: 700,
+          fontWeight: 800,
           fontFamily: "'Space Grotesk', system-ui, sans-serif",
           fontSize: Math.max(9, Math.floor(size * (initials.length > 2 ? 0.38 : 0.48))),
           letterSpacing: '-0.02em',
           flexShrink: 0,
-          boxShadow: '0 1px 2px rgba(0,0,0,0.25)',
-          border: '1px solid rgba(255,255,255,0.1)',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
+          border: '1px solid rgba(255,255,255,0.15)',
           userSelect: 'none',
           ...style,
         }}
@@ -169,6 +328,9 @@ export function StockLogo({ symbol, name, size = 24, className = '', style = {} 
       </div>
     );
   }
+
+  // Official corporate vector logo
+  const logoUrl = `https://api.dharun.dev/v1/logos/${mappedTicker}`;
 
   return (
     <div
@@ -185,22 +347,24 @@ export function StockLogo({ symbol, name, size = 24, className = '', style = {} 
         alignItems: 'center',
         justifyContent: 'center',
         flexShrink: 0,
-        boxShadow: '0 1px 2px rgba(0,0,0,0.25)',
-        border: '1px solid rgba(255,255,255,0.12)',
+        boxShadow: '0 2px 5px rgba(0,0,0,0.3)',
+        border: '1px solid rgba(255,255,255,0.18)',
         position: 'relative',
+        padding: Math.max(1, Math.floor(size * 0.08)),
+        userSelect: 'none',
         ...style,
       }}
       title={name || symbol}
     >
       <img
-        src={getImgSrc()}
+        src={logoUrl}
         alt={symbol}
         loading="lazy"
-        onError={handleError}
+        onError={() => setHasError(true)}
         style={{
           width: '100%',
           height: '100%',
-          objectFit: 'cover',
+          objectFit: 'contain',
           display: 'block',
         }}
       />

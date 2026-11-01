@@ -3,6 +3,7 @@ import { useDashboard } from '../../contexts/DashboardContext';
 import { useSocketContext } from '../../context/SocketContext';
 import { audioAlerts } from '../../utils/audioAlerts';
 import { ArrowUpRight, ArrowDownRight, Layers, ChevronRight, Activity } from 'lucide-react';
+import { StockLogo } from '../common/StockLogo';
 
 interface SmartMoneySummary {
   netSmartMoneyFlowCr: number;
@@ -223,9 +224,12 @@ export function SmartMoneyRadarWidget() {
                   cursor: 'pointer'
                 }}
               >
-                <div>
-                  <span style={{ fontWeight: 800, fontSize: 12, color: '#F1F5FC' }}>{s.symbol}</span>
-                  <div style={{ fontSize: 10, color: '#64748B' }}>{s.institution}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <StockLogo symbol={s.symbol} name={s.name} size={22} className="shrink-0" />
+                  <div>
+                    <span style={{ fontWeight: 800, fontSize: 12, color: '#F1F5FC' }}>{s.symbol}</span>
+                    <div style={{ fontSize: 10, color: '#64748B' }}>{s.institution}</div>
+                  </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <div className="font-mono tabular-nums" style={{ fontSize: 12, fontWeight: 700, color: '#00D6A3' }}>
@@ -261,9 +265,12 @@ export function SmartMoneyRadarWidget() {
                   cursor: 'pointer'
                 }}
               >
-                <div>
-                  <span style={{ fontWeight: 800, fontSize: 12, color: '#F1F5FC' }}>{s.symbol}</span>
-                  <div style={{ fontSize: 10, color: '#64748B' }}>{s.institution}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <StockLogo symbol={s.symbol} name={s.name} size={22} className="shrink-0" />
+                  <div>
+                    <span style={{ fontWeight: 800, fontSize: 12, color: '#F1F5FC' }}>{s.symbol}</span>
+                    <div style={{ fontSize: 10, color: '#64748B' }}>{s.institution}</div>
+                  </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <div className="font-mono tabular-nums" style={{ fontSize: 12, fontWeight: 700, color: '#FF4268' }}>

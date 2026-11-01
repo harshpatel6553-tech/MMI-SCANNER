@@ -4,6 +4,7 @@ import { useDashboard } from '../../contexts/DashboardContext';
 import { useSocketContext } from '../../context/SocketContext';
 import { audioAlerts } from '../../utils/audioAlerts';
 import { SmartMoneyTimelineChart, type IntradayFlowPoint, type MarketSessionInfo } from './SmartMoneyTimelineChart';
+import { StockLogo } from '../common/StockLogo';
 import './SmartMoneyTerminal.css';
 
 interface SmartMoneyTarget {
@@ -454,15 +455,18 @@ export const SmartMoneyTerminal: React.FC = () => {
                   onClick={() => handleStockClick(s.symbol)}
                   title={`Click to open chart and analytics for ${s.symbol}`}
                 >
-                  <div className="sm-target-left">
-                    <div className="sm-symbol-line">
-                      <span className="sm-symbol">{s.symbol}</span>
-                      <span className={`sm-tag ${getTagClass(s.footprint)}`}>{s.footprint}</span>
-                    </div>
-                    <div className="sm-client-note">
-                      <span>{s.name}</span>
-                      <span>•</span>
-                      <span style={{ color: '#28CFFF' }}>{s.institution}</span>
+                  <div className="sm-target-left" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <StockLogo symbol={s.symbol} name={s.name} size={28} className="shrink-0" />
+                    <div>
+                      <div className="sm-symbol-line">
+                        <span className="sm-symbol">{s.symbol}</span>
+                        <span className={`sm-tag ${getTagClass(s.footprint)}`}>{s.footprint}</span>
+                      </div>
+                      <div className="sm-client-note">
+                        <span>{s.name}</span>
+                        <span>•</span>
+                        <span style={{ color: '#28CFFF' }}>{s.institution}</span>
+                      </div>
                     </div>
                   </div>
 
@@ -499,15 +503,18 @@ export const SmartMoneyTerminal: React.FC = () => {
                   onClick={() => handleStockClick(s.symbol)}
                   title={`Click to open chart and analytics for ${s.symbol}`}
                 >
-                  <div className="sm-target-left">
-                    <div className="sm-symbol-line">
-                      <span className="sm-symbol">{s.symbol}</span>
-                      <span className={`sm-tag ${getTagClass(s.footprint)}`}>{s.footprint}</span>
-                    </div>
-                    <div className="sm-client-note">
-                      <span>{s.name}</span>
-                      <span>•</span>
-                      <span style={{ color: '#FF4268' }}>{s.institution}</span>
+                  <div className="sm-target-left" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <StockLogo symbol={s.symbol} name={s.name} size={28} className="shrink-0" />
+                    <div>
+                      <div className="sm-symbol-line">
+                        <span className="sm-symbol">{s.symbol}</span>
+                        <span className={`sm-tag ${getTagClass(s.footprint)}`}>{s.footprint}</span>
+                      </div>
+                      <div className="sm-client-note">
+                        <span>{s.name}</span>
+                        <span>•</span>
+                        <span style={{ color: '#FF4268' }}>{s.institution}</span>
+                      </div>
                     </div>
                   </div>
 

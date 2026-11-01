@@ -316,7 +316,8 @@ export function AlertPanel({ alerts, onClearAll }: AlertPanelProps) {
                           <div className="alert-light-streak" />
                           <div className="alert-top" style={{ marginBottom: 4 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                              <span className="alert-time tabular-nums" style={{ fontSize: 13, fontWeight: 700, color: '#9BAAC0' }}>
+                              <StockLogo symbol={alert.symbol || 'NIFTY'} name={alert.name || alert.symbol || 'NIFTY 50'} size={24} />
+                              <span className="alert-time tabular-nums" style={{ fontSize: 12, fontWeight: 700, color: '#9BAAC0' }}>
                                 {formatTime(alert.createdAt)}
                               </span>
                               <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 6px', borderRadius: 4, background: isBullish ? 'rgba(0, 214, 163, 0.15)' : 'rgba(255, 66, 104, 0.15)', color: isBullish ? '#00D6A3' : '#FF4268' }}>
@@ -343,9 +344,12 @@ export function AlertPanel({ alerts, onClearAll }: AlertPanelProps) {
                               <span>Inspect Strike {alert.strike || 23100}</span>
                               <ExternalLink size={11} />
                             </button>
-                            <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: '#9BAAC0', fontWeight: 700 }}>
-                              {alert.symbol || 'NIFTY'} F&amp;O
-                            </span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <StockLogo symbol={alert.symbol || 'NIFTY'} size={18} />
+                              <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: '#9BAAC0', fontWeight: 700 }}>
+                                {alert.symbol || 'NIFTY'} F&amp;O
+                              </span>
+                            </div>
                           </div>
                         </motion.div>
                       );
@@ -367,9 +371,10 @@ export function AlertPanel({ alerts, onClearAll }: AlertPanelProps) {
                         >
                           <div className="alert-light-streak" />
                           <div className="alert-top" style={{ marginBottom: 4 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                              <StockLogo symbol={alert.symbol} name={alert.name} size={18} />
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <StockLogo symbol={alert.symbol} name={alert.name} size={24} />
                               <span style={{ fontWeight: 800, fontSize: 13, color: '#F1F5FC' }}>{alert.symbol}</span>
+                              {alert.name && <span style={{ fontSize: 11, color: '#9BAAC0' }}>{alert.name}</span>}
                             </div>
                             <span className="fno-side-badge" style={{ background: isBuy ? 'rgba(0, 214, 163, 0.15)' : 'rgba(255, 66, 104, 0.15)', color: isBuy ? '#00D6A3' : '#FF4268', borderColor: isBuy ? 'rgba(0, 214, 163, 0.35)' : 'rgba(255, 66, 104, 0.35)' }}>
                               {isBuy ? 'INSTITUTIONAL INFLOW' : 'BLOCK DUMP'}
@@ -421,8 +426,8 @@ export function AlertPanel({ alerts, onClearAll }: AlertPanelProps) {
                       >
                         <div className="alert-light-streak" />
                         <div className="alert-top">
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                            <StockLogo symbol={alert.symbol} name={alert.name} size={20} />
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <StockLogo symbol={alert.symbol} name={alert.name} size={24} />
                             <span className={`alert-badge ${typeClass}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
                               <CyberIcon name={typeIcon} size={12} active={true} />
                               <span>{typeText}</span>
