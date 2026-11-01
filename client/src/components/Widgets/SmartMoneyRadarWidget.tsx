@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useDashboard } from '../../contexts/DashboardContext';
+import { useSocketContext } from '../../context/SocketContext';
 import { audioAlerts } from '../../utils/audioAlerts';
 import { ArrowUpRight, ArrowDownRight, Layers, ChevronRight, Activity } from 'lucide-react';
 
@@ -9,6 +10,10 @@ interface SmartMoneySummary {
   totalInstitutionalOutflowCr: number;
   marketPhase: string;
   accumulationRatioPct: number;
+  marketSession?: {
+    isMarketOpen: boolean;
+    sessionStatusLabel: string;
+  };
   topAccumulators: Array<{
     symbol: string;
     name: string;
@@ -38,6 +43,7 @@ const API_BASE = '/api';
 
 export function SmartMoneyRadarWidget() {
   const { setActiveTab, setSelectedStock, setChartSymbol } = useDashboard();
+  const { socket, isConnected } = useSocketContext();
   const [summary, setSummary] = useState<SmartMoneySummary | null>(null);
 
   useEffect(() => {
@@ -50,6 +56,18 @@ export function SmartMoneyRadarWidget() {
       })
       .catch(() => {});
   }, []);
+
+  // Real-time WebSocket updates
+  useEffect(() => {
+    if (!socket) return;
+    const onFlow = (fresh: any) => {
+      if (fresh) setSummary(fresh);
+    };
+    socket.on('smart-money:flow', onFlow);
+    return () => {
+      socket.off('smart-money:flow', onFlow);
+    };
+  }, [socket]);
 
   const handleStockClick = (symbol: string) => {
     audioAlerts.playHapticClick();
@@ -106,9 +124,12 @@ export function SmartMoneyRadarWidget() {
             <Activity size={18} />
           </div>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#F1F5FC' }}>
                 INSTITUTIONAL SMART MONEY RADAR
+              </span>
+              <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 6px', borderRadius: 4, background: 'rgba(40, 207, 255, 0.15)', color: '#28CFFF', border: '1px solid rgba(40, 207, 255, 0.3)' }}>
+                09:15 — 15:30 IST
               </span>
               <span
                 style={{

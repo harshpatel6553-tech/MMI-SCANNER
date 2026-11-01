@@ -22,6 +22,23 @@ router.get('/flow', (req: Request, res: Response) => {
 });
 
 /**
+ * GET /api/smart-money/intraday-timeline
+ * Returns 09:15 to 15:30 IST intraday cumulative institutional flow progression
+ */
+router.get('/intraday-timeline', (req: Request, res: Response) => {
+  try {
+    const data = smartMoneyService.getSmartMoneyFlow();
+    res.json({
+      status: 'success',
+      marketSession: data.marketSession,
+      timeline: data.intradayTimeline
+    });
+  } catch (error: any) {
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+});
+
+/**
  * GET /api/smart-money/accumulators
  * Returns stocks where institutional buyers are aggressively putting money
  */

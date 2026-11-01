@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Search, RefreshCw, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Layers, ShieldCheck, Activity, BarChart2 } from 'lucide-react';
+import { Search, RefreshCw, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Layers, ShieldCheck, Activity, BarChart2, Clock, Zap } from 'lucide-react';
 import { useDashboard } from '../../contexts/DashboardContext';
+import { useSocketContext } from '../../context/SocketContext';
 import { audioAlerts } from '../../utils/audioAlerts';
+import { SmartMoneyTimelineChart, type IntradayFlowPoint, type MarketSessionInfo } from './SmartMoneyTimelineChart';
 import './SmartMoneyTerminal.css';
 
 interface SmartMoneyTarget {
@@ -46,6 +48,8 @@ interface EnrichedDeal {
 
 interface SmartMoneyFlowData {
   timestamp: string;
+  marketSession?: MarketSessionInfo;
+  intradayTimeline?: IntradayFlowPoint[];
   totalMarketTurnoverCr: number;
   totalInstitutionalInflowCr: number;
   totalInstitutionalOutflowCr: number;
@@ -75,12 +79,13 @@ interface SmartMoneyFlowData {
   recentBlockDeals: EnrichedDeal[];
 }
 
-type SubTabMode = 'radar' | 'inflows' | 'outflows' | 'sectors' | 'derivatives' | 'deals';
+type SubTabMode = 'radar' | 'timeline' | 'inflows' | 'outflows' | 'sectors' | 'derivatives' | 'deals';
 
 const API_BASE = '/api';
 
 export const SmartMoneyTerminal: React.FC = () => {
   const { setSelectedStock, setActiveTab, setChartSymbol } = useDashboard();
+  const { socket, isConnected } = useSocketContext();
   const [data, setData] = useState<SmartMoneyFlowData | null>(null);
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -104,9 +109,25 @@ export const SmartMoneyTerminal: React.FC = () => {
     }
   };
 
+  // Real-time WebSocket listener for immediate sub-second flow updates
+  useEffect(() => {
+    if (!socket) return;
+    const onFlowUpdate = (freshData: SmartMoneyFlowData) => {
+      if (freshData) {
+        setData(freshData);
+        setLoading(false);
+      }
+    };
+    socket.on('smart-money:flow', onFlowUpdate);
+    return () => {
+      socket.off('smart-money:flow', onFlowUpdate);
+    };
+  }, [socket]);
+
+  // Initial fetch and standing fallback polling (every 5 seconds)
   useEffect(() => {
     fetchFlowData();
-    const interval = setInterval(fetchFlowData, 15000);
+    const interval = setInterval(fetchFlowData, 5000);
     return () => clearInterval(interval);
   }, []);
 
@@ -195,11 +216,22 @@ export const SmartMoneyTerminal: React.FC = () => {
       <div className="sm-macro-banner">
         <div className="sm-macro-top">
           <div className="sm-macro-left">
-            <div className="sm-beacon" />
+            <div className={`sm-beacon ${data?.marketSession?.isMarketOpen ? 'live' : ''}`} />
             <div>
-              <div className="sm-macro-title">Smart Money Capital Flow Telemetry</div>
-              <div style={{ fontSize: 11, color: '#64748B' }}>
-                Tracking real-time institutional allocation, delivery spikes & block liquidations across 500+ NSE equities
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <span className="sm-macro-title">Smart Money Capital Flow Telemetry</span>
+                <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 7px', borderRadius: 4, background: 'rgba(40, 207, 255, 0.15)', color: '#28CFFF', border: '1px solid rgba(40, 207, 255, 0.35)', letterSpacing: '0.04em' }}>
+                  SESSION: 09:15 — 15:30 IST
+                </span>
+                {isConnected && (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 10, fontWeight: 800, color: '#00D6A3', background: 'rgba(0, 214, 163, 0.12)', padding: '2px 7px', borderRadius: 4, border: '1px solid rgba(0, 214, 163, 0.3)' }}>
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#00D6A3', boxShadow: '0 0 6px #00D6A3' }} />
+                    REAL-TIME STREAM
+                  </span>
+                )}
+              </div>
+              <div style={{ fontSize: 11, color: '#9BAAC0', marginTop: 3 }}>
+                {data?.marketSession?.sessionStatusLabel || 'Tracking real-time institutional allocation, delivery spikes & block liquidations across 500+ NSE equities'}
               </div>
             </div>
             {data && (
@@ -301,6 +333,18 @@ export const SmartMoneyTerminal: React.FC = () => {
         </button>
 
         <button
+          className={`sm-subtab-btn ${activeSubTab === 'timeline' ? 'active' : ''}`}
+          onClick={() => {
+            audioAlerts.playHapticClick();
+            setActiveSubTab('timeline');
+          }}
+        >
+          <Clock size={14} style={{ color: '#28CFFF' }} />
+          <span>Intraday Timeline (9:15 — 3:30)</span>
+          <span className="sm-tab-badge live">LIVE</span>
+        </button>
+
+        <button
           className={`sm-subtab-btn ${activeSubTab === 'inflows' ? 'active' : ''}`}
           onClick={() => {
             audioAlerts.playHapticClick();
@@ -381,7 +425,15 @@ export const SmartMoneyTerminal: React.FC = () => {
 
       {/* ── Sub-Terminal 1: Capital Flow Radar (Side-by-Side) ──── */}
       {activeSubTab === 'radar' && (
-        <div className="sm-radar-grid">
+        <>
+          {/* Intraday Flow Ribbon (09:15 to 15:30) */}
+          <SmartMoneyTimelineChart
+            timeline={data?.intradayTimeline || []}
+            marketSession={data?.marketSession}
+            isCompact={true}
+          />
+
+          <div className="sm-radar-grid">
           {/* Column 1: WHERE MONEY IS ENTERING */}
           <div className="sm-panel-card inflow-card">
             <div className="sm-panel-head">
@@ -472,6 +524,16 @@ export const SmartMoneyTerminal: React.FC = () => {
             </div>
           </div>
         </div>
+        </>
+      )}
+
+      {/* ── Sub-Terminal: Expanded Intraday Timeline (09:15 — 15:30) ──── */}
+      {activeSubTab === 'timeline' && (
+        <SmartMoneyTimelineChart
+          timeline={data?.intradayTimeline || []}
+          marketSession={data?.marketSession}
+          isCompact={false}
+        />
       )}
 
       {/* ── Sub-Terminal 2: Complete Inflows Table ──────────── */}

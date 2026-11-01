@@ -36,6 +36,7 @@ import { settingsRoutes } from './routes/settingsRoutes.js';
 import fnoRoutes from './routes/fnoRoutes.js';
 import smartMoneyRoutes from './routes/smartMoneyRoutes.js';
 import { stockService } from './services/stockService.js';
+import { smartMoneyService } from './services/smartMoneyService.js';
 import { alertService } from './services/alertService.js';
 import { newsService, isNoisyOrBlacklisted, isAllowedSource } from './services/newsService.js';
 import { screenerService } from './services/screenerService.js';
@@ -309,6 +310,26 @@ async function upsertStocksToSupabase(
   // Supabase syncing disabled for web deployment
 }
 
+// ── Smart Money Real-Time Broadcaster ──────────────────────────
+let lastSmartMoneyBroadcast = 0;
+function broadcastSmartMoneyIfDue(): void {
+  const now = Date.now();
+  if (now - lastSmartMoneyBroadcast >= 2500) {
+    lastSmartMoneyBroadcast = now;
+    try {
+      const flow = smartMoneyService.getSmartMoneyFlow();
+      io.emit('smart-money:flow', flow);
+    } catch {
+      // ignore
+    }
+  }
+}
+
+// Standing heartbeat for Smart Money real-time flow (09:15 to 15:30)
+setInterval(() => {
+  broadcastSmartMoneyIfDue();
+}, 4000);
+
 // ── Polling Loops ──────────────────────────────────────────────
 
 /** Track interval IDs for graceful shutdown */
@@ -369,6 +390,7 @@ async function pollNifty50(isInitial = false): Promise<void> {
     // 4. Broadcast via Socket.IO
     const allCached = stockService.getCachedStocks();
     broadcastStockUpdate(io, allCached, alerts);
+    broadcastSmartMoneyIfDue();
 
     // 5. Log results
     const duration = Date.now() - startTime;
@@ -423,6 +445,7 @@ async function pollNifty500(isInitial = false): Promise<void> {
     // 4. Broadcast via Socket.IO
     const allCached = stockService.getCachedStocks();
     broadcastStockUpdate(io, allCached, alerts);
+    broadcastSmartMoneyIfDue();
 
     // 5. Log results
     const duration = Date.now() - startTime;

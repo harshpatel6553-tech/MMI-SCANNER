@@ -531,3 +531,248 @@
   background: rgba(255, 255, 255, 0.1);
   color: #F1F5FC;
 }
+
+/* ── Real-Time Intraday Flow Timeline (09:15 to 15:30) Styles ── */
+
+.sm-timeline-wrapper {
+  background: linear-gradient(135deg, rgba(16, 26, 43, 0.95) 0%, rgba(11, 18, 32, 0.98) 100%);
+  border: 1px solid var(--border-subtle, #243249);
+  border-radius: 14px;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+  position: relative;
+  overflow: hidden;
+}
+
+.sm-timeline-wrapper.compact-mode {
+  padding: 16px 20px;
+  background: rgba(16, 26, 43, 0.7);
+  box-shadow: none;
+}
+
+.sm-timeline-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.sm-timeline-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sm-timeline-beacon-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sm-timeline-beacon {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.sm-timeline-beacon.live-pulse {
+  background: #00D6A3;
+  box-shadow: 0 0 12px #00D6A3;
+  animation: beaconPulse 2s infinite;
+}
+
+.sm-timeline-beacon.closed-glow {
+  background: #28CFFF;
+  box-shadow: 0 0 10px rgba(40, 207, 255, 0.6);
+}
+
+.sm-timeline-title {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #F1F5FC;
+}
+
+.sm-timeline-sub {
+  font-size: 11px;
+  color: #9BAAC0;
+  margin-top: 2px;
+}
+
+.sm-view-chips {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(7, 11, 18, 0.6);
+  padding: 4px;
+  border-radius: 8px;
+  border: 1px solid #243249;
+}
+
+.sm-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  color: #9BAAC0;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sm-chip:hover {
+  color: #F1F5FC;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.sm-chip.active {
+  background: rgba(40, 207, 255, 0.15);
+  color: #28CFFF;
+  border: 1px solid rgba(40, 207, 255, 0.3);
+}
+
+/* Session Progress Track */
+.sm-session-track-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: rgba(7, 11, 18, 0.5);
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(36, 50, 73, 0.6);
+}
+
+.sm-session-labels {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  font-family: var(--font-mono, monospace);
+  font-weight: 700;
+}
+
+.sm-time-tag {
+  color: #64748B;
+}
+
+.sm-time-center {
+  color: #28CFFF;
+  letter-spacing: 0.04em;
+}
+
+.sm-progress-line {
+  position: relative;
+  width: 100%;
+  height: 6px;
+  background: rgba(36, 50, 73, 0.7);
+  border-radius: 3px;
+  overflow: visible;
+}
+
+.sm-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #00D6A3 0%, #28CFFF 60%, #D4AF37 100%);
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+
+.sm-progress-marker {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #28CFFF;
+  border: 2px solid #070B12;
+  box-shadow: 0 0 8px #28CFFF;
+}
+
+.sm-marker-ping {
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgba(40, 207, 255, 0.4);
+  animation: ping 1.8s infinite cubic-bezier(0, 0, 0.2, 1);
+}
+
+@keyframes ping {
+  75%, 100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+/* Phase Summary Cards Grid */
+.sm-phase-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-top: 4px;
+}
+
+@media (max-width: 900px) {
+  .sm-phase-summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.sm-phase-box {
+  background: rgba(11, 18, 32, 0.7);
+  border: 1px solid #243249;
+  border-radius: 8px;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.sm-phase-box-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #9BAAC0;
+}
+
+.sm-phase-box-val {
+  font-size: 15px;
+  font-weight: 800;
+  font-family: var(--font-mono, monospace);
+  font-variant-numeric: tabular-nums;
+}
+
+.sm-phase-box-val.up {
+  color: #00D6A3;
+}
+
+.sm-phase-box-val.down {
+  color: #FF4268;
+}
+
+.sm-phase-box-sub {
+  font-size: 10px;
+  color: #64748B;
+}
+
+.sm-tab-badge.live {
+  background: rgba(40, 207, 255, 0.2);
+  color: #28CFFF;
+  border: 1px solid rgba(40, 207, 255, 0.4);
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+}

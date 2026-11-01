@@ -140,6 +140,8 @@ export interface ServerToClientEvents {
   'server:announcement': (announcement: SystemAnnouncement) => void;
   /** Clear active announcement */
   'server:clear-announcement': () => void;
+  /** Real-time Smart Money institutional capital flow stream (09:15 - 15:30 IST) */
+  'smart-money:flow': (data: any) => void;
 }
 
 /** System announcement payload */
