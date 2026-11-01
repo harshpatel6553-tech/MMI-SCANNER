@@ -97,7 +97,7 @@ export function useIndices(allStocks: StockData[]) {
   useEffect(() => {
     let isMounted = true;
     const fetchIndices = async () => {
-      // Priority 1: Direct Vercel Serverless API (/api/indices) — real-time quotes, 0ms lag
+      // Priority 1: Direct Vercel Serverless API (/api/indices) - real-time quotes, 0ms lag
       try {
         const vRes = await fetch(`/api/indices?_t=${Date.now()}`, {
           cache: 'no-store',

@@ -33,6 +33,7 @@ import stockRoutes from './routes/stockRoutes.js';
 import { newsRoutes } from './routes/newsRoutes.js';
 import dealsRoutes from './routes/dealsRoutes.js';
 import { settingsRoutes } from './routes/settingsRoutes.js';
+import fnoRoutes from './routes/fnoRoutes.js';
 import { stockService } from './services/stockService.js';
 import { alertService } from './services/alertService.js';
 import { newsService } from './services/newsService.js';
@@ -132,6 +133,7 @@ app.use('/api/stocks', stockRoutes);
 app.use('/api/news', newsRoutes);
 app.use('/api/deals', dealsRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/fno', fnoRoutes);
 
 // Chart alias route for trade/chart requests
 app.get('/api/chart', (req, res) => {

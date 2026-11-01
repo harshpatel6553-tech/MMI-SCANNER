@@ -120,7 +120,7 @@ export function StockDetailModal({ stock, onClose }: StockDetailModalProps) {
             </div>
             <div className={`modal-change ${changeClass}`}>
               <span className="modal-change-arrow">
-                {displayStock.change > 0 ? '▲' : displayStock.change < 0 ? '▼' : '—'}
+                {displayStock.change > 0 ? '▲' : displayStock.change < 0 ? '▼' : '-'}
               </span>
               {formatPrice(Math.abs(displayStock.change))}
               {' '}

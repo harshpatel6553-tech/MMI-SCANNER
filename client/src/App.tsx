@@ -20,6 +20,7 @@ import { PromoterWatch } from './components/PromoterWatch/PromoterWatch';
 import { PaperTradingDashboard } from './components/PaperTrading/PaperTradingDashboard';
 import { AdminDashboard } from './components/AdminDashboard/AdminDashboard';
 import { ChartView } from './components/ChartView/ChartView';
+import { FnOCommandCenter } from './components/FnOCommandCenter/FnOCommandCenter';
 
 import { AlertPanel } from './components/Alerts/AlertPanel';
 import { AlertToast } from './components/Alerts/AlertToast';
@@ -31,6 +32,7 @@ import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { Login } from './components/Login/Login';
 import { Paywall } from './components/Paywall/Paywall';
 import { MaintenanceCountdown, TARGET_LAUNCH_TIME } from './components/Maintenance/MaintenanceCountdown';
+import { AnimatedBackground } from './components/AnimatedBackground/AnimatedBackground';
 
 
 import { motion, AnimatePresence } from 'framer-motion';
@@ -41,10 +43,10 @@ function getTabHeader(tab: string, advancers: number, decliners: number, total: 
   switch (tab) {
     case 'Overview':
       return {
-        eyebrow: 'MARKET OVERVIEW',
+        eyebrow: 'MACRO CASH & DERIVATIVES TELEMETRY',
         title: (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-            {advancers >= decliners ? "Today's tape is running green." : "Today's tape is running red."}
+            {advancers >= decliners ? 'Cash Equities in Bullish Expansion' : 'Broad Market in Defensive Contraction'}
             <CyberIcon name={advancers >= decliners ? 'pulse_up' : 'pulse_down'} size={24} />
           </span>
         ),
@@ -52,8 +54,16 @@ function getTabHeader(tab: string, advancers: number, decliners: number, total: 
           <>
             <b style={{ color: 'var(--up)', fontWeight: 700 }} className="tabular-nums">{advancers}▲</b> advancers vs{' '}
             <b style={{ color: 'var(--down)', fontWeight: 700 }} className="tabular-nums">{decliners}▼</b> decliners across{' '}
-            <span className="tabular-nums">{total}</span> tracked stocks — real-time algorithmic scanner.
+            <span className="tabular-nums" style={{ color: '#fff', fontWeight: 700 }}>{total}</span> tracked NSE equities - sub-second institutional volume scanner.
           </>
+        )
+      };
+    case 'OptionsLens':
+      return {
+        eyebrow: 'DERIVATIVES TELEMETRY',
+        title: 'Options Lens - F&O Command Center',
+        sub: (
+          <>Live NSE Option Chain, Expected Range, Max Pain, Overlaid Strike OI profile & Big Money institutional alerts.</>
         )
       };
     case 'Table':
@@ -159,6 +169,7 @@ function AppContent() {
 
   return (
     <div className="app">
+      <AnimatedBackground />
       {/* Beast Cinematic Ambient Lighting & Noise Grain */}
       <div className="beast-grain" />
       <div className="beast-ambient-glow">
@@ -203,6 +214,7 @@ function AppContent() {
               style={{ width: '100%' }}
             >
               {activeTab === 'Charts' && <ChartView allStocks={allStocks} />}
+              {activeTab === 'OptionsLens' && <FnOCommandCenter />}
 
               {activeTab === 'Overview' && (
                 <>
@@ -306,37 +318,7 @@ function AppContent() {
 }
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading, isTrialExpired } = useAuth();
-
-  if (loading) {
-    return (
-      <div style={{
-        display: 'flex',
-        height: '100vh',
-        width: '100vw',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: '#04060c',
-        color: '#00f59b',
-        fontFamily: 'monospace',
-        fontSize: '14px',
-        letterSpacing: '0.1em'
-      }}>
-        INITIALIZING TERMINAL...
-      </div>
-    );
-  }
-
-  // Strictly block unauthenticated visitors - redirect directly to login
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-
-  // Check trial expiration
-  if (isTrialExpired) {
-    return <Paywall />;
-  }
-
+  // Login requirement removed: direct open terminal access for everyone
   return <>{children}</>;
 }
 
@@ -361,14 +343,16 @@ export default function App() {
           <AnnouncementModal />
           <MaintenanceGate>
             <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route path="/paywall" element={<Paywall />} />
+              <Route path="/login" element={<Navigate to="/" replace />} />
+              <Route path="/paywall" element={<Navigate to="/" replace />} />
               <Route path="/overview" element={<Navigate to="/" replace />} />
               <Route path="/" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
               <Route path="/table" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
               <Route path="/heatmap" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
               <Route path="/sectors" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
               <Route path="/charts" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
+              <Route path="/options-lens" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
+              <Route path="/fno" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
               <Route path="/technical" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
               <Route path="/watchlist" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
               <Route path="/news" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />

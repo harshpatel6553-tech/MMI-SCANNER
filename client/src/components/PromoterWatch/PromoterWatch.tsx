@@ -111,7 +111,7 @@ export const PromoterWatch: React.FC = () => {
 
         <div className="chart-grid">
           <div className="chart-card">
-            <div className="ctitle">Promoter Disclosures — Cumulative (30 Days)</div>
+            <div className="ctitle">Promoter Disclosures - Cumulative (30 Days)</div>
             <svg viewBox={`0 0 ${lw} ${lh + 30}`} width="100%" height="120">
               <defs>
                 <linearGradient id="fadeGreen" x1="0" y1="0" x2="0" y2="1">

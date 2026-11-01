@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
 import { useStocks } from '../../hooks/useStocks';
 import { useDashboard } from '../../contexts/DashboardContext';
-import { CometCard } from '../ui/comet-card';
 import { StockLogo } from '../common/StockLogo';
 import { audioAlerts } from '../../utils/audioAlerts';
-import { AnimatedEmoji } from '../common/AnimatedEmoji';
+import { TrendingUp, TrendingDown, Flame } from 'lucide-react';
 
 export function TopMoversWidget() {
-  const [tab, setTab] = useState<'gainers'|'losers'>('gainers');
+  const [tab, setTab] = useState<'gainers' | 'losers'>('gainers');
   const { allStocks, priceFlash } = useStocks({ index: 'ALL', priceMin: 0, priceMax: 0, volumeMin: 0, search: '' }, 'symbol', 'asc');
   const { setChartSymbol, setActiveTab } = useDashboard();
 
@@ -15,71 +14,89 @@ export function TopMoversWidget() {
   const top5 = sorted.slice(0, 5);
 
   return (
-    <CometCard>
-      <div style={{ padding: '18px', display: 'flex', flexDirection: 'column', height: '100%' }}>
-        <div className="card-head" style={{ marginBottom: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <AnimatedEmoji name={tab === 'gainers' ? 'livenews' : 'blood'} size={22} />
-            <span className="card-title" style={{ letterSpacing: '-0.01em' }}>Top Market Movers</span>
+    <div className="bento-widget-shell">
+      <div className="bento-widget-core">
+        <div className="bento-card-header">
+          <div className="bento-title-left">
+            <div className="bento-icon-box">
+              <Flame size={17} strokeWidth={1.5} className="text-amber-400" />
+            </div>
+            <div>
+              <span className="bento-card-title">Top Market Movers</span>
+              <div className="bento-card-subtitle">Real-time percentage velocity across active equities</div>
+            </div>
           </div>
-          <div className="tabs">
-            <div 
-              className={"tab" + (tab === 'gainers' ? ' active' : '')} 
+          <div className="bento-segment-control">
+            <button
+              type="button"
+              className={`bento-seg-btn ${tab === 'gainers' ? 'active-bull' : ''}`}
               onClick={() => {
                 audioAlerts.playClickHaptic();
                 setTab('gainers');
               }}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}
             >
-              <AnimatedEmoji name="rocket" size={14} /> Gainers
-            </div>
-            <div 
-              className={"tab" + (tab === 'losers' ? ' active' : '')} 
+              <TrendingUp size={13} strokeWidth={1.5} />
+              <span>Gainers</span>
+            </button>
+            <button
+              type="button"
+              className={`bento-seg-btn ${tab === 'losers' ? 'active-bear' : ''}`}
               onClick={() => {
                 audioAlerts.playClickHaptic();
                 setTab('losers');
               }}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}
             >
-              <AnimatedEmoji name="blood" size={14} /> Losers
-            </div>
+              <TrendingDown size={13} strokeWidth={1.5} />
+              <span>Losers</span>
+            </button>
           </div>
         </div>
-        <div style={{ flex: 1 }}>
-          {top5.map(g => {
+
+        <div className="bento-list-body">
+          {top5.map((g) => {
             const flash = priceFlash.get(g.symbol);
             return (
-            <div 
-              className="mover-row" 
-              key={g.symbol}
-              onClick={() => {
-                audioAlerts.playClickHaptic();
-                setChartSymbol(g.symbol);
-                setActiveTab('Charts');
-              }}
-              style={{ cursor: 'pointer', padding: '10px 4px', borderRadius: 8, transition: 'background 0.15s ease' }}
-              title={`Click to analyze ${g.symbol} chart`}
-            >
-              <StockLogo symbol={g.symbol} name={g.name} size={24} style={{ marginRight: 6, flexShrink: 0 }} />
-              <div className="mover-sym" style={{ fontWeight: 700 }}>{g.symbol}</div>
-              <div className="mover-co">{g.name}</div>
-              <svg className="spark" viewBox="0 0 52 22">
-                {tab === 'gainers' ? (
-                  <polyline points="0,16 8,14 16,17 24,10 32,12 40,5 52,2" fill="none" stroke="#34d399" strokeWidth="1.8"/>
-                ) : (
-                  <polyline points="0,6 8,8 16,5 24,12 32,10 40,17 52,20" fill="none" stroke="#f87171" strokeWidth="1.8"/>
-                )}
-              </svg>
-              <div className={`mover-price num tabular-nums ${flash === 'up' ? 'flash-up' : flash === 'down' ? 'flash-down' : ''}`} style={{ fontWeight: 600 }}>
-                ₹{g.price.toFixed(2)}
+              <div 
+                className="mover-row-item" 
+                key={g.symbol}
+                onClick={() => {
+                  audioAlerts.playClickHaptic();
+                  setChartSymbol(g.symbol);
+                  setActiveTab('Charts');
+                }}
+                title={`Click to analyze ${g.symbol} chart`}
+              >
+                <div className="mover-identity-group">
+                  <StockLogo symbol={g.symbol} name={g.name} size={26} className="shrink-0" />
+                  <div className="mover-names-wrap">
+                    <span className="mover-sym-text">{g.symbol}</span>
+                    <span className="mover-company-text">{g.name}</span>
+                  </div>
+                </div>
+
+                <div className="mover-spark-wrap">
+                  <svg className="spark-svg" viewBox="0 0 54 22">
+                    {tab === 'gainers' ? (
+                      <polyline points="0,18 9,15 18,17 27,11 36,13 45,6 54,3" fill="none" stroke="#00f59b" strokeWidth="2" strokeLinecap="round" />
+                    ) : (
+                      <polyline points="0,4 9,7 18,5 27,12 36,10 45,16 54,19" fill="none" stroke="#ff2a5f" strokeWidth="2" strokeLinecap="round" />
+                    )}
+                  </svg>
+                </div>
+
+                <div className="mover-price-column">
+                  <div className={`mover-price-val num tabular-nums ${flash === 'up' ? 'flash-up' : flash === 'down' ? 'flash-down' : ''}`}>
+                    ₹{g.price.toFixed(2)}
+                  </div>
+                  <div className={`mover-pct-badge num tabular-nums ${g.change >= 0 ? 'bull' : 'bear'}`}>
+                    {g.changePercent > 0 ? '+' : ''}{g.changePercent.toFixed(2)}%
+                  </div>
+                </div>
               </div>
-              <div className={"chg-pill tabular-nums " + (g.change >= 0 ? 'up' : 'down')} style={{ fontWeight: 700 }}>
-                {g.changePercent > 0 ? '+' : ''}{g.changePercent.toFixed(2)}%
-              </div>
-            </div>
-          )})}
+            );
+          })}
         </div>
       </div>
-    </CometCard>
+    </div>
   );
 }

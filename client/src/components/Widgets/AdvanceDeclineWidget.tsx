@@ -1,8 +1,7 @@
 import React from 'react';
 import { useStocks } from '../../hooks/useStocks';
-import { CometCard } from '../ui/comet-card';
 import { audioAlerts } from '../../utils/audioAlerts';
-import { AnimatedEmoji } from '../common/AnimatedEmoji';
+import { Activity, TrendingUp, TrendingDown, Gauge } from 'lucide-react';
 
 export function AdvanceDeclineWidget() {
   const { stats } = useStocks({ index: 'ALL', priceMin: 0, priceMax: 0, volumeMin: 0, search: '' }, 'symbol', 'asc');
@@ -15,98 +14,76 @@ export function AdvanceDeclineWidget() {
   const isNeutral = stats.gainers === stats.losers;
 
   return (
-    <CometCard>
-      <div 
-        className="ad-card" 
-        onMouseEnter={() => audioAlerts.playClickHaptic()}
-        style={{ padding: '20px', display: 'flex', flexDirection: 'column', height: '100%', gap: '14px' }}
-      >
-        <div className="ad-head" style={{ marginBottom: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <AnimatedEmoji name="swords" size={22} />
+    <div className="ad-hardware-shell" onMouseEnter={() => audioAlerts.playClickHaptic()}>
+      <div className="ad-hardware-core">
+        <div className="ad-head">
+          <div className="ad-title-group">
+            <div className="ad-icon-badge">
+              <Gauge size={18} strokeWidth={1.5} className="text-cyan-400" />
+            </div>
             <div>
-              <span className="t" style={{ fontSize: '13.5px', fontWeight: 800, letterSpacing: '-0.01em' }}>
+              <div className="ad-title-text">
                 MARKET BREADTH TELEMETRY
-              </span>
-              <div style={{ fontSize: '11px', color: 'var(--text-3)', marginTop: 2 }}>
+              </div>
+              <div className="ad-sub-text">
                 Real-time Advance to Decline ratio across all tracked securities
               </div>
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span 
-              style={{
-                fontSize: '11px',
-                fontWeight: 800,
-                letterSpacing: '0.04em',
-                padding: '4px 10px',
-                borderRadius: '8px',
-                border: isBullish ? '1px solid rgba(16,185,129,0.3)' : '1px solid rgba(239,68,68,0.3)',
-                background: isBullish ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)',
-                color: isBullish ? 'var(--up)' : 'var(--down)',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6
-              }}
-            >
+
+          <div className="ad-badges-group">
+            <span className={`ad-bias-badge ${isBullish ? 'bull' : isNeutral ? 'neutral' : 'bear'}`}>
               {isBullish ? (
                 <>
-                  <AnimatedEmoji name="bull" size={14} /> BULL BIAS
+                  <TrendingUp size={13} strokeWidth={1.5} />
+                  <span>BULL BIAS</span>
                 </>
               ) : isNeutral ? (
                 <>
-                  <AnimatedEmoji name="scale" size={14} /> NEUTRAL
+                  <Activity size={13} strokeWidth={1.5} />
+                  <span>NEUTRAL</span>
                 </>
               ) : (
                 <>
-                  <AnimatedEmoji name="bear" size={14} /> BEAR BIAS
+                  <TrendingDown size={13} strokeWidth={1.5} />
+                  <span>BEAR BIAS</span>
                 </>
               )}
             </span>
-            <span className="r tabular-nums" style={{ fontWeight: 800, fontSize: '12.5px', padding: '4px 10px', borderRadius: 8 }}>
+            <span className="ad-ratio-pill num tabular-nums">
               A/D RATIO: {adRatio}
             </span>
           </div>
         </div>
 
-        {/* Dual Neon Laser Bar with Smooth Transitions */}
-        <div style={{ position: 'relative' }}>
-          <div className="ad-bar" style={{ height: 12, borderRadius: 8, background: 'rgba(255,255,255,0.06)', padding: 2, display: 'flex', gap: 2 }}>
+        {/* Dual Neon Laser Bar with Multi-Segment Progress */}
+        <div className="ad-bar-container">
+          <div className="ad-bar-track">
             <div 
-              style={{
-                width: `${gainerPct}%`,
-                background: 'linear-gradient(90deg, #059669, #10b981)',
-                borderRadius: '6px 0 0 6px',
-                transition: 'width 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
-                boxShadow: '0 0 12px rgba(16, 185, 129, 0.4)'
-              }}
+              className="ad-bar-segment bull"
+              style={{ width: `${gainerPct}%` }}
             />
             <div 
-              style={{
-                width: `${loserPct}%`,
-                background: 'linear-gradient(90deg, #ef4444, #dc2626)',
-                borderRadius: '0 6px 6px 0',
-                transition: 'width 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
-                boxShadow: '0 0 12px rgba(239, 68, 68, 0.4)'
-              }}
+              className="ad-bar-segment bear"
+              style={{ width: `${loserPct}%` }}
             />
           </div>
         </div>
 
-        <div className="ad-labels" style={{ marginTop: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '12px' }}>
-            <span style={{ color: 'var(--up)', fontWeight: 800 }}>▲</span>
-            <span><b className="num tabular-nums" style={{ color: 'var(--up)', fontSize: '13px' }}>{stats.gainers}</b> advancing ({gainerPct.toFixed(1)}%)</span>
+        <div className="ad-labels-row">
+          <span className="ad-label-item bull">
+            <span className="glyph">▲</span>
+            <span><b className="num tabular-nums">{stats.gainers}</b> advancing ({gainerPct.toFixed(1)}%)</span>
           </span>
-          <span style={{ fontSize: '11px', color: 'var(--text-3)', fontWeight: 600 }}>
+          <span className="ad-label-center">
             {stats.unchanged} flat / sideways
           </span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '12px' }}>
-            <span><b className="num tabular-nums" style={{ color: 'var(--down)', fontSize: '13px' }}>{stats.losers}</b> declining ({loserPct.toFixed(1)}%)</span>
-            <span style={{ color: 'var(--down)', fontWeight: 800 }}>▼</span>
+          <span className="ad-label-item bear">
+            <span><b className="num tabular-nums">{stats.losers}</b> declining ({loserPct.toFixed(1)}%)</span>
+            <span className="glyph">▼</span>
           </span>
         </div>
       </div>
-    </CometCard>
+    </div>
   );
 }

@@ -1,5 +1,5 @@
 /* ============================================
-   ALERTS — Toast & Panel Styles
+   ALERTS - Toast & Panel Styles
    ============================================ */
 
 /* ---- Toast Container ---- */
@@ -180,7 +180,7 @@
 }
 
 /* ============================================
-   ALERT PANEL — BEAST RADAR TERMINAL
+   ALERT PANEL - BEAST RADAR TERMINAL
    ============================================ */
 
 /* ---- Alert Panel Drawer ---- */
@@ -213,7 +213,7 @@
   pointer-events: auto;
 }
 
-/* Floating Toggle Trigger — Sleek Cyber Radar Pill */
+/* Floating Toggle Trigger - Sleek Cyber Radar Pill */
 .alert-panel-toggle {
   position: fixed !important; 
   right: 0 !important; 

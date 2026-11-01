@@ -61,7 +61,7 @@ function getApiBase(): string {
 }
 
 function fmt(v: number | null | undefined, dec = 2): string {
-  if (v == null || isNaN(v)) return '—';
+  if (v == null || isNaN(v)) return '-';
   return v.toLocaleString('en-IN', { minimumFractionDigits: dec, maximumFractionDigits: dec });
 }
 
@@ -1008,7 +1008,7 @@ export function ChartPane({
                 fontWeight: 700,
                 color: (currentRsi ?? 50) >= 70 ? '#ef4444' : (currentRsi ?? 50) <= 30 ? '#10b981' : '#c084fc',
               }}>
-                {currentRsi !== null ? currentRsi.toFixed(1) : '—'}
+                {currentRsi !== null ? currentRsi.toFixed(1) : '-'}
               </span>
               <button
                 onClick={(e) => { e.stopPropagation(); toggleIndicator('rsi'); }}

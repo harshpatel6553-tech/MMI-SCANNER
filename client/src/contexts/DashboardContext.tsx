@@ -14,6 +14,8 @@ export const PATH_TO_TAB: Record<string, string> = {
   '/results': 'Results',
   '/promoter': 'Promoter',
   '/papertrading': 'PaperTrading',
+  '/options-lens': 'OptionsLens',
+  '/fno': 'OptionsLens',
   '/admin': 'Admin',
 };
 
@@ -23,6 +25,7 @@ export const TAB_TO_PATH: Record<string, string> = {
   'Heatmap': '/heatmap',
   'Sectors': '/sectors',
   'Charts': '/charts',
+  'OptionsLens': '/options-lens',
   'Technical': '/technical',
   'Watchlist': '/watchlist',
   'LiveNews': '/news',

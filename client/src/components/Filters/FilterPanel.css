@@ -148,7 +148,7 @@
 }
 
 .filter-panel .stat-value {
-  font-family: 'Inter', -apple-system, sans-serif;
+  font-family: 'JetBrains Mono', monospace;
   font-size: 12px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;

@@ -98,6 +98,15 @@ export function Sidebar() {
             <span>Pro Charts</span>
             <span className="nav-badge" style={{ background: 'rgba(16,185,129,0.2)', color: '#34d399', fontWeight: 800 }}>PRO</span>
           </div>
+
+          <div 
+            className={`nav-item ${activeTab === 'OptionsLens' ? 'active' : ''}`} 
+            onClick={() => handleTabChange('OptionsLens')}
+          >
+            <CyberIcon name="overview" size={20} active={activeTab === 'OptionsLens'} />
+            <span>Options Lens (F&O)</span>
+            <span className="nav-badge" style={{ background: 'rgba(56,189,248,0.2)', color: '#38bdf8', fontWeight: 800 }}>LIVE</span>
+          </div>
         </div>
 
         <div className="nav-group">

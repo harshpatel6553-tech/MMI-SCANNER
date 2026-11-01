@@ -1,47 +1,41 @@
-.animated-bg {
+/* ========================================================
+   MMI TERMINAL - 3D Constellation & Mesh Motion System
+   ======================================================== */
+
+.animated-3d-bg {
   position: fixed;
   inset: 0;
-  z-index: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -1;
   pointer-events: none;
   overflow: hidden;
+  background-color: #04060a;
 }
 
-.gradient-mesh {
+.ambient-mesh-glow {
   position: absolute;
-  inset: -50%;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(ellipse at 20% 50%, rgba(10, 14, 40, 1) 0%, transparent 50%),
-              radial-gradient(ellipse at 80% 20%, rgba(20, 10, 50, 0.8) 0%, transparent 50%),
-              radial-gradient(ellipse at 50% 80%, rgba(5, 20, 40, 0.9) 0%, transparent 50%),
-              linear-gradient(135deg, #0a0e1a 0%, #0d1525 25%, #10092a 50%, #0a1628 75%, #0a0e1a 100%);
-  background-size: 100% 100%;
-  animation: gradientMesh 30s ease infinite;
+  inset: -20%;
+  width: 140%;
+  height: 140%;
+  background: 
+    radial-gradient(circle at 20% 15%, rgba(0, 212, 255, 0.08) 0%, transparent 45%),
+    radial-gradient(circle at 85% 75%, rgba(0, 245, 155, 0.06) 0%, transparent 45%),
+    radial-gradient(circle at 50% 50%, rgba(14, 22, 40, 0.95) 0%, #04060a 85%);
+  filter: blur(50px);
 }
 
-.grid-overlay {
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba(0, 212, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 212, 255, 0.03) 1px, transparent 1px);
-  background-size: 60px 60px;
-  animation: gridPulse 8s ease-in-out infinite;
-}
-
-.particles {
+.constellation-3d-canvas {
   position: absolute;
   inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
 }
 
-.particle {
+.vignette-overlay {
   position: absolute;
-  left: var(--x);
-  top: var(--y);
-  width: var(--size);
-  height: var(--size);
-  background: var(--accent);
-  border-radius: 50%;
-  animation: floatParticle var(--duration) var(--delay) ease-in-out infinite;
-  box-shadow: 0 0 6px var(--accent-glow);
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 40%, rgba(4, 6, 10, 0.85) 100%);
+  z-index: 2;
 }

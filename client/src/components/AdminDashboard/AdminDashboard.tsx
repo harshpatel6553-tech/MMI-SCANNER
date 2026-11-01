@@ -338,7 +338,7 @@ export function AdminDashboard() {
       await signOut();
     } finally {
       setActiveTab('Overview');
-      navigate('/login');
+      navigate('/');
     }
   };
 
@@ -350,7 +350,7 @@ export function AdminDashboard() {
           <p style={{ color: 'var(--text-2)', marginBottom: 20 }}>You must be signed in with an administrator account to access this console.</p>
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
             <button className="beast-btn" onClick={handleReturnToScanner}>← Return to Scanner</button>
-            <button className="beast-btn primary" onClick={() => navigate('/login')}>Sign In to Admin</button>
+            <button className="beast-btn primary" onClick={handleReturnToScanner}>Return to Terminal</button>
           </div>
         </div>
       </div>

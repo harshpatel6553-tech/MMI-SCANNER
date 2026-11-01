@@ -70,12 +70,12 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: process.env.VITE_BACKEND_URL || 'https://35.226.242.164.sslip.io',
+        target: process.env.VITE_BACKEND_URL || 'http://localhost:5000',
         changeOrigin: true,
         secure: false,
       },
       '/socket.io': {
-        target: process.env.VITE_BACKEND_URL || 'https://35.226.242.164.sslip.io',
+        target: process.env.VITE_BACKEND_URL || 'http://localhost:5000',
         ws: true,
         changeOrigin: true,
         secure: false,

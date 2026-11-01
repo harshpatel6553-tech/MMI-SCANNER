@@ -15,7 +15,7 @@
   position: relative;
   box-shadow: 0 24px 48px rgba(0,0,0,0.5);
   color: var(--text-1, #F5F5F5);
-  font-family: var(--font-body, 'Inter', sans-serif);
+  font-family: var(--font-body, 'Plus Jakarta Sans', sans-serif);
 }
 
 .tm-close {

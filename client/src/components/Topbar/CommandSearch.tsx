@@ -187,7 +187,7 @@ export const CommandSearch: FC<Props> = ({ items = DEFAULT_ITEMS }) => {
             />
         )}
       </AnimatePresence>
-      <div className="relative z-[10000] h-10 w-full max-w-[280px] md:w-64">
+      <div className="relative z-[10000] h-10 w-full max-w-[210px] xl:max-w-[240px]">
         <AnimatePresence mode="popLayout">
           {!isOpen ? (
             <motion.button

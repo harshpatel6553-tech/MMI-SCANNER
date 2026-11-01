@@ -80,7 +80,7 @@ export function useAlerts() {
             ? `📊 INDEX ALERT: ${alert.symbol}`
             : `⚡ ALERT: ${alert.symbol}`;
           const body = alert.details 
-            ? `${alert.symbol} — ${alert.details} @ ₹${alert.price.toLocaleString('en-IN')}`
+            ? `${alert.symbol} - ${alert.details} @ ₹${alert.price.toLocaleString('en-IN')}`
             : `${alert.symbol} ${alert.alertType === 'DAY_HIGH' ? 'reached Day High' : 'reached Day Low'} at ₹${alert.price.toLocaleString('en-IN')}`;
 
           new Notification(title, { body, silent: true });

@@ -325,9 +325,9 @@ export function PineStudio({
                             <td>
                               {trade.exitTime
                                 ? formatTime(new Date(trade.exitTime * 1000).toISOString())
-                                : '—'}
+                                : '-'}
                             </td>
-                            <td>{trade.exitPrice ? `₹${trade.exitPrice.toFixed(2)}` : '—'}</td>
+                            <td>{trade.exitPrice ? `₹${trade.exitPrice.toFixed(2)}` : '-'}</td>
                             <td style={{
                               fontWeight: 700,
                               color: (trade.profit ?? 0) >= 0 ? '#10b981' : '#ef4444',
@@ -340,7 +340,7 @@ export function PineStudio({
                                   </span>
                                 </>
                               ) : (
-                                '—'
+                                '-'
                               )}
                             </td>
                             <td>

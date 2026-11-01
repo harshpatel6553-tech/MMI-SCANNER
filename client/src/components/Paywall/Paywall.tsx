@@ -1,102 +1,290 @@
+import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useDashboard } from '../../contexts/DashboardContext';
+import { 
+  ShieldCheck, 
+  Zap, 
+  Check, 
+  Copy, 
+  CheckCircle2, 
+  Sparkles, 
+  LogOut, 
+  Mail, 
+  QrCode,
+  TrendingUp,
+  Activity,
+  Layers
+} from 'lucide-react';
 import './Paywall.css';
+
+interface PlanTier {
+  id: string;
+  name: string;
+  tagline: string;
+  price: number;
+  period: string;
+  billedAs: string;
+  savings?: string;
+  popular?: boolean;
+}
+
+const TIERS: PlanTier[] = [
+  {
+    id: 'monthly',
+    name: 'Starter Monthly',
+    tagline: 'Agile trading flexibility',
+    price: 499,
+    period: '/mo',
+    billedAs: 'Billed monthly at ₹499',
+  },
+  {
+    id: 'yearly',
+    name: 'Pro Trader Annual',
+    tagline: 'Complete institutional suite',
+    price: 4799,
+    period: '/yr',
+    billedAs: 'Effective ₹399/mo (Save 20%)',
+    savings: 'Save 20%',
+    popular: true,
+  },
+  {
+    id: 'triennial',
+    name: 'Institutional 3-Year',
+    tagline: 'Maximum alpha & priority desk',
+    price: 9999,
+    period: '/3 yrs',
+    billedAs: 'Effective ₹277/mo (Save 44%)',
+    savings: 'Best Value',
+  },
+];
+
+const FEATURES = [
+  { title: 'Real-time F&O Command Center', desc: 'NSE Option Chain, Greeks, Max Pain & Range telemetry' },
+  { title: 'Overlaid OI Profile Bars', desc: 'Direct on-chart horizontal open interest strike visualization' },
+  { title: '5-Minute Smart Money Alerts', desc: 'Institutional delta spike detector for 50K+ contract moves' },
+  { title: '500+ NSE Stock Screener', desc: 'Day High/Low breakouts, volume pressure & relative volume' },
+  { title: 'Real-time News Alpha Wire', desc: 'Corporate filings, block deals & algorithmic sentiment scoring' },
+  { title: 'Zero Broker Credentials Needed', desc: 'Direct exchange telemetry with 100% data privacy' },
+];
 
 export function Paywall() {
   const navigate = useNavigate();
   const { signOut, user, isTrialExpired, loading } = useAuth();
   const { setActiveTab } = useDashboard();
 
+  const [selectedPlan, setSelectedPlan] = useState<PlanTier>(TIERS[1]);
+  const [copied, setCopied] = useState(false);
+
   const handleSignOut = async () => {
     try {
       await signOut();
     } finally {
       setActiveTab('Overview');
-      navigate('/login');
+      navigate('/');
     }
+  };
+
+  const handleCopyUpi = () => {
+    navigator.clipboard.writeText('harshpatel6553-2@oksbi');
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
   };
 
   if (loading) return null;
   if (!isTrialExpired) return <Navigate to="/" replace />;
 
+  const upiPayload = `upi://pay?pa=harshpatel6553-2@oksbi&pn=Market%20Minds%20Scanner&am=${selectedPlan.price}&cu=INR`;
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(upiPayload)}`;
+
+  const emailSubject = encodeURIComponent(`Subscription Activation: ${selectedPlan.name} (${user?.email || ''})`);
+  const emailBody = encodeURIComponent(
+    `Hello Market Minds Team,\n\nI have completed the payment of ₹${selectedPlan.price.toLocaleString('en-IN')} for the ${selectedPlan.name} plan.\n\nAccount Email: ${user?.email || ''}\nAttached: Payment Screenshot\n\nPlease activate my subscription.\n\nThank you!`
+  );
+  const mailtoLink = `mailto:marketmindsinvestment25@gmail.com?subject=${emailSubject}&body=${emailBody}`;
+
   return (
-    <div className="paywall-container">
-      <div className="paywall-card glass-card">
-        <div className="paywall-header">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="56" height="56" className="paywall-icon">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
-          </svg>
-          <h2>Your 14-Day Free Trial Has Expired</h2>
-          <p>Unlock premium access to the Market Minds Scanner to continue getting real-time breakouts and volume spikes.</p>
+    <div className="paywall-wrapper">
+      {/* Precision Ambient Glow */}
+      <div className="paywall-ambient-glow" />
+
+      <div className="paywall-content-container">
+        {/* Top Header */}
+        <div className="paywall-hero-header">
+          <div className="vanguard-eyebrow-badge">
+            <Sparkles size={12} strokeWidth={1.5} className="text-cyan-400" />
+            <span>SUBSCRIPTION PORTAL</span>
+          </div>
+          <h1 className="paywall-title">Unlock Institutional Market Telemetry</h1>
+          <p className="paywall-subtitle">
+            Your 14-day trial has concluded. Select a dedicated plan to restore real-time F&O signals, algorithmic breakouts, and big money alerts.
+          </p>
         </div>
 
-        <div className="payment-box">
-          <div className="subscription-tiers">
-            <div className="tier-card">
-              <h3>Monthly</h3>
-              <div className="price-tag">₹499<span>/mo</span></div>
-            </div>
-            <div className="tier-card recommended">
-              <div className="recommended-badge">Most Popular</div>
-              <h3>Yearly</h3>
-              <div className="price-tag">₹6,000<span>/yr</span></div>
-            </div>
-            <div className="tier-card">
-              <h3>3 Years</h3>
-              <div className="price-tag">₹15,000<span>/3 yrs</span></div>
-            </div>
-          </div>
-          
-          <div className="payment-instructions">
-            <div className="step">
-              <div className="step-number">1</div>
-              <p>Scan the QR code below using Google Pay, PhonePe, or Paytm to pay for your chosen plan.</p>
-            </div>
-            
-            <div className="high-tech-qr-container">
-              <div className="qr-scanner-frame">
-                <div className="qr-corner top-left"></div>
-                <div className="qr-corner top-right"></div>
-                <div className="qr-corner bottom-left"></div>
-                <div className="qr-corner bottom-right"></div>
-                <div className="scanner-laser"></div>
-                
-                {/* Dynamically generated crisp QR code for the UPI ID */}
-                <img 
-                  src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=upi%3A%2F%2Fpay%3Fpa%3Dharshpatel6553-2%40oksbi%26pn%3DMarket%2520Minds%2520Scanner%26cu%3DINR" 
-                  alt="UPI QR Code" 
-                  className="qr-code-img"
-                />
+        {/* Pricing Tiers Grid with Double-Bezel Architecture */}
+        <div className="paywall-tiers-grid">
+          {TIERS.map((tier) => {
+            const isSelected = selectedPlan.id === tier.id;
+            return (
+              <div
+                key={tier.id}
+                className={`paywall-tier-shell ${isSelected ? 'is-selected' : ''} ${tier.popular ? 'is-popular' : ''}`}
+                onClick={() => setSelectedPlan(tier)}
+              >
+                <div className="paywall-tier-core">
+                  {tier.savings && (
+                    <div className="tier-ribbon">
+                      <span>{tier.savings}</span>
+                    </div>
+                  )}
+
+                  <div className="tier-header">
+                    <div className="tier-name">{tier.name}</div>
+                    <div className="tier-tagline">{tier.tagline}</div>
+                  </div>
+
+                  <div className="tier-price-wrap">
+                    <span className="currency">₹</span>
+                    <span className="amount">{tier.price.toLocaleString('en-IN')}</span>
+                    <span className="period">{tier.period}</span>
+                  </div>
+
+                  <div className="tier-billed-note">{tier.billedAs}</div>
+
+                  <button
+                    type="button"
+                    className={`tier-select-btn group ${isSelected ? 'active' : ''}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedPlan(tier);
+                    }}
+                  >
+                    <span>{isSelected ? 'Active Plan' : 'Select Plan'}</span>
+                    <div className="tier-btn-nest">
+                      <Check size={13} strokeWidth={1.5} />
+                    </div>
+                  </button>
+                </div>
               </div>
-              <div className="upi-id-box" onClick={() => navigator.clipboard.writeText('harshpatel6553-2@oksbi')}>
-                <span className="upi-label">UPI ID</span>
-                <span className="upi-value">harshpatel6553-2@oksbi</span>
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="copy-icon">
-                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                </svg>
-              </div>
+            );
+          })}
+        </div>
+
+        {/* Two-Column Activation & Features Layout */}
+        <div className="paywall-details-split">
+          {/* Left: What's Included */}
+          <div className="paywall-features-card">
+            <div className="section-label">
+              <Layers size={15} className="text-cyan-400" />
+              <span>Everything Included In Your Access</span>
             </div>
 
-            <div className="step">
-              <div className="step-number">2</div>
-              <p>Send a screenshot of the successful payment via Email to: <strong>marketmindsinvestment25@gmail.com</strong></p>
+            <div className="features-list">
+              {FEATURES.map((feat, idx) => (
+                <div key={idx} className="feature-item">
+                  <div className="feature-check">
+                    <Check size={13} className="text-emerald-400" />
+                  </div>
+                  <div className="feature-text">
+                    <div className="feature-title">{feat.title}</div>
+                    <div className="feature-desc">{feat.desc}</div>
+                  </div>
+                </div>
+              ))}
             </div>
-            
-            <div className="step">
-              <div className="step-number">3</div>
-              <p>Include your account email (<strong>{user?.email}</strong>) and your chosen plan in the message. Your account will be activated manually upon verification.</p>
+
+            <div className="security-guarantee-box">
+              <ShieldCheck size={18} className="text-emerald-400 shrink-0" />
+              <div>
+                <b>100% Client Privacy Guarantee</b>
+                <p>No broker API keys or account credentials required. We connect directly to official exchange market feeds.</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Right: Instant UPI Checkout & Activation */}
+          <div className="paywall-checkout-card">
+            <div className="section-label">
+              <QrCode size={15} className="text-cyan-400" />
+              <span>Instant UPI Activation (₹{selectedPlan.price.toLocaleString('en-IN')})</span>
+            </div>
+
+            <div className="checkout-body">
+              {/* High-Tech QR Box */}
+              <div className="qr-terminal-box">
+                <div className="qr-frame">
+                  <span className="qr-corner tl" />
+                  <span className="qr-corner tr" />
+                  <span className="qr-corner bl" />
+                  <span className="qr-corner br" />
+                  <img src={qrUrl} alt="UPI QR Code" className="qr-image" />
+                </div>
+                <div className="qr-caption">
+                  Scan with GPay, PhonePe, Paytm, or any UPI App
+                </div>
+              </div>
+
+              {/* UPI ID Copy Field */}
+              <div className="upi-copy-field" onClick={handleCopyUpi}>
+                <div className="upi-id-left">
+                  <span className="upi-tag">UPI ID</span>
+                  <span className="upi-address">harshpatel6553-2@oksbi</span>
+                </div>
+                <button type="button" className={`upi-copy-btn ${copied ? 'copied' : ''}`} title="Copy UPI ID">
+                  {copied ? (
+                    <>
+                      <CheckCircle2 size={14} className="text-emerald-400" />
+                      <span>Copied</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy size={14} />
+                      <span>Copy</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* 2-Step Instant Activation Protocol */}
+              <div className="activation-steps">
+                <div className="act-step">
+                  <div className="step-num">1</div>
+                  <div className="step-body">
+                    Complete payment of <b>₹{selectedPlan.price.toLocaleString('en-IN')}</b> using your preferred UPI app.
+                  </div>
+                </div>
+
+                <div className="act-step">
+                  <div className="step-num">2</div>
+                  <div className="step-body">
+                    Send screenshot along with registered email <b>({user?.email})</b> for instant verification.
+                  </div>
+                </div>
+              </div>
+
+              {/* One-Click Direct Verification Link with Button-in-Button Architecture */}
+              <a href={mailtoLink} className="dispatch-proof-btn group">
+                <span className="dispatch-btn-label">Email Payment Screenshot for Instant Activation</span>
+                <div className="dispatch-btn-nest">
+                  <Mail size={15} strokeWidth={1.5} />
+                </div>
+              </a>
             </div>
           </div>
         </div>
 
-        <div className="paywall-footer">
-          <button className="signout-btn" onClick={handleSignOut}>
-            Sign Out
+        {/* Footer Actions */}
+        <div className="paywall-bottom-bar">
+          <button type="button" className="paywall-signout-btn" onClick={handleSignOut}>
+            <LogOut size={14} />
+            <span>Sign Out of Terminal</span>
           </button>
+          <span className="footer-support-text">
+            Need desk assistance? Contact: <b>marketmindsinvestment25@gmail.com</b>
+          </span>
         </div>
       </div>
     </div>
   );
 }
+export default Paywall;

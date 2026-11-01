@@ -11,7 +11,7 @@ export function StatusBar({ stockCount }: StatusBarProps) {
 
   return (
     <div className="status-bar">
-      {/* Left — Connection */}
+      {/* Left - Connection */}
       <div className="status-section">
         <span className={`status-dot ${isConnected ? 'connected' : 'disconnected'}`} />
         <span className={`status-text ${isConnected ? 'connected' : 'disconnected'}`}>
@@ -25,7 +25,7 @@ export function StatusBar({ stockCount }: StatusBarProps) {
         )}
       </div>
 
-      {/* Center — Last Update */}
+      {/* Center - Last Update */}
       <div className="status-section">
         <span className={`refresh-icon ${isConnected ? 'spinning' : ''}`}>⟳</span>
         <span>
@@ -33,7 +33,7 @@ export function StatusBar({ stockCount }: StatusBarProps) {
         </span>
       </div>
 
-      {/* Right — Stock Count */}
+      {/* Right - Stock Count */}
       <div className="status-section">
         <span className="stock-count">{stockCount} stocks loaded</span>
       </div>

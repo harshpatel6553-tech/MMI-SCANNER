@@ -98,14 +98,16 @@ export function Topbar({ allStocks, alertCount }: TopbarProps) {
 
   return (
     <header className="topbar">
-      {/* Live NIFTY 50, BANK NIFTY & SENSEX Indices Telemetry */}
-      <HeaderIndices nifty50={nifty50} bankNifty={bankNifty} sensex={sensex} flashes={flashes} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0, flex: 1 }}>
+        {/* Live NIFTY 50, BANK NIFTY & SENSEX Indices Telemetry */}
+        <HeaderIndices nifty50={nifty50} bankNifty={bankNifty} sensex={sensex} flashes={flashes} />
 
-      {/* Global Command Search */}
-      <CommandSearch items={searchItems} />
+        {/* Global Command Search */}
+        <CommandSearch items={searchItems} />
+      </div>
 
       {/* Right Controls & Telemetry */}
-      <div className="topbar-right">
+      <div className="topbar-right" style={{ flexShrink: 0 }}>
         {/* Dynamic Tape Sentiment Pill */}
         <div 
           className="market-pill beast-sentiment-pill" 
@@ -140,7 +142,7 @@ export function Topbar({ allStocks, alertCount }: TopbarProps) {
         <div 
           className={`icon-btn ${!isMuted ? 'active-audio' : ''}`}
           onClick={handleSoundToggle}
-          title={isMuted ? "Sound Alerts Muted — Click to Enable" : "Sound Alerts Active — Click to Mute"}
+          title={isMuted ? "Sound Alerts Muted - Click to Enable" : "Sound Alerts Active - Click to Mute"}
           style={{ cursor: 'pointer', position: 'relative' }}
         >
           {isMuted ? (

@@ -292,7 +292,7 @@ export function ChartView({ allStocks: propStocks }: ChartViewProps) {
           {[
             { id: 'crosshair', icon: '⊕', label: 'Crosshair' },
             { id: 'trend', icon: '↗', label: 'Trend Line' },
-            { id: 'hline', icon: '—', label: 'Horizontal Line' },
+            { id: 'hline', icon: '-', label: 'Horizontal Line' },
             { id: 'vline', icon: '↕', label: 'Vertical Line' },
             { id: 'fib', icon: '◇', label: 'Fibonacci Retracement' },
             { id: 'rect', icon: '□', label: 'Rectangle Zone' },
@@ -587,7 +587,7 @@ const styles: Record<string, React.CSSProperties> = {
     height: 'calc(100vh - 60px)',
     background: '#0d1117',
     overflow: 'hidden',
-    fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+    fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
   },
   topBar: {
     display: 'flex',

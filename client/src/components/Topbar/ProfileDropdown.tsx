@@ -63,16 +63,16 @@ export function ProfileDropdown() {
       console.error('Logout error:', err);
     } finally {
       setActiveTab('Overview');
-      navigate('/login');
+      navigate('/');
     }
   };
 
   const handleSignIn = () => {
     setIsOpen(false);
-    navigate('/login');
+    navigate('/');
   };
 
-  const username = user?.email ? user.email.split('@')[0] : 'Guest';
+  const username = user?.email ? user.email.split('@')[0] : 'Guest Trader';
 
   return (
     <div className="profile-dropdown-container" ref={dropdownRef}>
@@ -80,7 +80,7 @@ export function ProfileDropdown() {
       <div 
         className={`profile-user-card ${isOpen ? 'is-open' : ''}`}
         onClick={() => setIsOpen(!isOpen)}
-        title={user ? user.email : 'Click to Sign In'}
+        title={user ? user.email : 'Terminal Open Access'}
       >
         <div className="profile-card-avatar">
           {selectedAvatar ? (
@@ -90,15 +90,15 @@ export function ProfileDropdown() {
               {user ? getInitials() : <User size={16} />}
             </div>
           )}
-          <div className={`status-indicator ${user ? 'online' : 'offline'}`} />
+          <div className="status-indicator online" />
         </div>
 
         <div className="profile-user-info">
-          <div className="profile-user-name" title={user?.email || 'Guest User'}>
-            {user?.email || 'Guest User'}
+          <div className="profile-user-name" title={user?.email || 'Guest Trader'}>
+            {user?.email || 'Guest Trader'}
           </div>
-          <div className={`profile-user-sub ${!user ? 'offline' : ''}`}>
-            {user ? (profile?.is_admin ? 'Administrator' : 'Active Member') : 'Not Signed In'}
+          <div className="profile-user-sub">
+            {user ? (profile?.is_admin ? 'Administrator' : 'Active Member') : 'Terminal Open Access'}
           </div>
         </div>
 
@@ -118,15 +118,15 @@ export function ProfileDropdown() {
         <div className="profile-dropdown-menu">
           <div className="dropdown-header">
             <div className="dropdown-header-top">
-              <span className="user-email-title" title={user?.email || 'Guest User'}>
-                {user?.email || 'Guest User'}
+              <span className="user-email-title" title={user?.email || 'Active Member'}>
+                {user?.email || 'Active Member'}
               </span>
               <span className={`user-role-badge ${profile?.is_admin ? 'admin' : ''}`}>
-                {profile?.is_admin ? 'ADMIN' : (user ? 'MEMBER' : 'GUEST')}
+                {profile?.is_admin ? 'ADMIN' : 'MEMBER'}
               </span>
             </div>
-            <p className={`user-status ${!user ? 'offline' : ''}`}>
-              {user ? 'Session Active · Real-Time Feed' : 'Authentication Required'}
+            <p className="user-status">
+              Terminal Open Access · Real-Time Feed
             </p>
           </div>
 
@@ -152,18 +152,14 @@ export function ProfileDropdown() {
             </div>
           </div>
 
-          <div className="dropdown-divider"></div>
-
-          {user ? (
-            <button className="logout-button" onClick={handleLogout}>
-              <LogOut size={15} />
-              <span>Log Out</span>
-            </button>
-          ) : (
-            <button className="login-button" onClick={handleSignIn}>
-              <LogIn size={15} />
-              <span>Sign In / Register</span>
-            </button>
+          {user && (
+            <>
+              <div className="dropdown-divider"></div>
+              <button className="logout-button" onClick={handleLogout}>
+                <LogOut size={15} />
+                <span>Log Out</span>
+              </button>
+            </>
           )}
         </div>
       )}

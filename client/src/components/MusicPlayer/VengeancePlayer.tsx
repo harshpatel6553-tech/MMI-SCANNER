@@ -55,7 +55,7 @@ export interface MusicPlayerProps {
 
 const EQ_BARS = [0, 1, 2, 3];
 
-/** Shared equalizer keyframes — identical across instances, so safe to repeat. */
+/** Shared equalizer keyframes - identical across instances, so safe to repeat. */
 const EQ_KEYFRAMES =
   "@keyframes vengeance-eq{0%,100%{transform:scaleY(0.28)}50%{transform:scaleY(1)}}";
 
@@ -113,7 +113,7 @@ export function MusicPlayer({
 
     if (shouldPlayRef.current) {
       audio.play().catch(() => {
-        /* Autoplay can be blocked until the user interacts — ignore. */
+        /* Autoplay can be blocked until the user interacts - ignore. */
       });
     }
     // Reload only when the source changes, not when the callback identity does.

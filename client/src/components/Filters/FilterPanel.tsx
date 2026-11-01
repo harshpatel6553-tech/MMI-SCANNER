@@ -67,7 +67,7 @@ export function FilterPanel({ filters, onChange, stats }: FilterPanelProps) {
                 onChange={e => updateFilter('priceMin', Number(e.target.value) || 0)}
               />
             </div>
-            <span className="range-separator">—</span>
+            <span className="range-separator">-</span>
             <div className="input-with-prefix">
               <span className="input-prefix">₹</span>
               <input

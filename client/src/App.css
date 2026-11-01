@@ -1,11 +1,12 @@
 /* ============================================
-   APP LAYOUT — Tactical Telemetry Architecture
+   APP LAYOUT - Tactical Telemetry Architecture
    ============================================ */
 
 .app {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  min-height: 100dvh;
+  height: 100dvh;
   overflow: hidden;
   position: relative;
   background: var(--bg-primary);
@@ -33,7 +34,7 @@
   border-bottom: 1px solid var(--border);
 }
 
-/* Table area — takes remaining space */
+/* Table area - takes remaining space */
 .app-table {
   flex: 1;
   overflow: hidden;
