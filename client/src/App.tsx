@@ -6,6 +6,7 @@ import { Sidebar } from './components/Sidebar/Sidebar';
 import { Topbar } from './components/Topbar/Topbar';
 import { StatsWidget } from './components/Widgets/StatsWidget';
 import { AdvanceDeclineWidget } from './components/Widgets/AdvanceDeclineWidget';
+import { SmartMoneyRadarWidget } from './components/Widgets/SmartMoneyRadarWidget';
 import { TopMoversWidget } from './components/Widgets/TopMoversWidget';
 import { SectorPulseWidget } from './components/Widgets/SectorPulseWidget';
 import { LiveNewsWidget } from './components/Widgets/LiveNewsWidget';
@@ -124,10 +125,10 @@ function getTabHeader(tab: string, advancers: number, decliners: number, total: 
       };
     case 'Promoter':
       return {
-        eyebrow: 'INSIDER ACTION',
-        title: 'NSE Bulk Deals & Promoter Watch',
+        eyebrow: 'INSTITUTIONAL CAPITAL FLOW',
+        title: 'Smart Money & Institutional Radar',
         sub: (
-          <>Institutional block trades, promoter buying & insider stake movements tracked in real time.</>
+          <>Where institutional buyers (FIIs, DIIs, Mutual Funds & Sovereign Funds) are putting their money and from where they are removing funds.</>
         )
       };
     case 'PaperTrading':
@@ -220,6 +221,7 @@ function AppContent() {
                 <>
                   {preferences.showStats && <StatsWidget />}
                   {preferences.showAdvanceDecline && <AdvanceDeclineWidget />}
+                  <SmartMoneyRadarWidget />
 
                   <div className="grid-2">
                     {preferences.showTopMovers && <TopMoversWidget />}

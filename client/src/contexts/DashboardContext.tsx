@@ -13,6 +13,7 @@ export const PATH_TO_TAB: Record<string, string> = {
   '/news': 'LiveNews',
   '/results': 'Results',
   '/promoter': 'Promoter',
+  '/smart-money': 'Promoter',
   '/papertrading': 'PaperTrading',
   '/options-lens': 'OptionsLens',
   '/fno': 'OptionsLens',

@@ -155,7 +155,8 @@ export function Sidebar() {
             onClick={() => handleTabChange('Promoter')}
           >
             <CyberIcon name="promoter" size={20} active={activeTab === 'Promoter'} />
-            <span>Promoter Watch</span>
+            <span>Smart Money Flow</span>
+            <span className="nav-badge" style={{ background: 'rgba(0, 214, 163, 0.15)', color: '#00D6A3', fontWeight: 800 }}>FII/DII</span>
           </div>
         </div>
 
