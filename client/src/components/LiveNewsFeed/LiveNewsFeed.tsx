@@ -7,12 +7,11 @@ export interface LiveNewsFeedProps {
   onStockClick?: (symbol: string) => void;
 }
 
-const BLACKLISTED_SOURCES = [
-  'liquide', 'simply wall st', 'dd news', 'free press journal',
-  'mid-day', 'livemint', 'goodreturns', 'economic times',
-  'financial express', 'zee business', 'ndtv profit', 'market wire',
-  'google news', 'cnbc tv18', 'cnbctv18'
-];
+function isAllowedSource(source?: string): boolean {
+  if (!source) return false;
+  const s = source.toLowerCase().replace('@', '').trim();
+  return s === 'redboxindia' || s === 'yatinmota';
+}
 
 const BLACKLISTED_TITLE_PATTERNS = [
   /outlook\s*(&|and)?\s*prediction/i,
@@ -36,10 +35,7 @@ const BLACKLISTED_TITLE_PATTERNS = [
 ];
 
 function isNoisyOrBlacklistedNews(n: { source?: string; title?: string }): boolean {
-  const src = (n.source || '').toLowerCase();
-  for (const bSrc of BLACKLISTED_SOURCES) {
-    if (src.includes(bSrc)) return true;
-  }
+  if (!isAllowedSource(n.source)) return true;
   const text = (n.title || '').toLowerCase();
   for (const pattern of BLACKLISTED_TITLE_PATTERNS) {
     if (pattern.test(text)) return true;
@@ -53,9 +49,9 @@ export function LiveNewsFeed({ onStockClick }: LiveNewsFeedProps) {
   const [filter, setFilter] = useState<'ALL' | 'REDBOX & YATIN' | 'BULLISH' | 'BEARISH' | 'BLOCK DEAL'>('ALL');
   const [search, setSearch] = useState('');
 
-  // Strictly filter out blog spam and generic noisy retail articles
+  // Strictly allow ONLY verified institutional alpha sources (@RedboxIndia & @yatinmota)
   const validNews = useMemo(() => {
-    return news.filter(n => !isNoisyOrBlacklistedNews(n));
+    return news.filter(n => isAllowedSource(n.source) && !isNoisyOrBlacklistedNews(n));
   }, [news]);
 
   const formatTime = (dateStr: string) => {

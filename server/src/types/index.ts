@@ -73,7 +73,7 @@ export interface StockAlert {
   /** Full company name */
   name: string;
   /** Type of price alert */
-  alertType: 'DAY_HIGH' | 'DAY_LOW' | 'VOLUME_SPIKE' | 'NEWS' | 'INDEX_MILESTONE';
+  alertType: 'DAY_HIGH' | 'DAY_LOW' | 'VOLUME_SPIKE' | 'NEWS' | 'INDEX_MILESTONE' | 'FNO_OI' | 'SMART_MONEY';
   /** Price at which the alert was triggered (₹) */
   price: number;
   /** Percentage change of the stock at the time the alert was triggered */
@@ -84,6 +84,10 @@ export interface StockAlert {
   details?: string;
   /** Alert creation timestamp in ISO 8601 format */
   createdAt: string;
+  strike?: number;
+  side?: string;
+  action?: string;
+  contracts?: string;
 }
 
 /** Client-side filter/query options for stock screening */

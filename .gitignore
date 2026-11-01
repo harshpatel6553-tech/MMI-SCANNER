@@ -41,3 +41,6 @@ Thumbs.db
 # Submodules / Repos
 server/twikit_repo/
 *.tsbuildinfo
+
+brag-output/
+

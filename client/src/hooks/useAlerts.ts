@@ -7,12 +7,11 @@ interface Toast extends StockAlert {
   dismissAt: number;
 }
 
-const BLACKLISTED_ALERT_SOURCES = [
-  'liquide', 'simply wall st', 'dd news', 'free press journal',
-  'mid-day', 'livemint', 'goodreturns', 'economic times',
-  'financial express', 'zee business', 'ndtv profit', 'market wire',
-  'google news', 'cnbc tv18', 'cnbctv18'
-];
+function isAllowedSource(source?: string): boolean {
+  if (!source) return false;
+  const s = source.toLowerCase().replace('@', '').trim();
+  return s === 'redboxindia' || s === 'yatinmota';
+}
 
 const BLACKLISTED_TITLE_PATTERNS = [
   /outlook\s*(&|and)?\s*prediction/i,
@@ -58,29 +57,68 @@ export function useAlerts() {
   useEffect(() => {
     const fetchAlertHistory = async () => {
       try {
-        const socketUrl = import.meta.env.VITE_SOCKET_URL || '';
-        const baseUrl = socketUrl.endsWith('/') ? socketUrl.slice(0, -1) : socketUrl;
-        const res = await fetch(`${baseUrl}/api/stocks/alerts?limit=300`);
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}`);
-        }
-        const result = await res.json();
-        if (result?.success && Array.isArray(result.data)) {
-          const cleanHistory = result.data.filter((a: StockAlert) => {
-            if (a.alertType !== 'NEWS') return true;
-            const src = (a.symbol || '').toLowerCase();
-            if (!src.includes('redbox') && !src.includes('yatin')) return false;
-            for (const bSrc of BLACKLISTED_ALERT_SOURCES) {
-              if (src.includes(bSrc)) return false;
+        let alertsData: StockAlert[] = [];
+        try {
+          const res = await fetch('/api/stocks/alerts?limit=300');
+          if (res.ok) {
+            const result = await res.json();
+            if (result?.success && Array.isArray(result.data)) {
+              alertsData = result.data;
             }
-            const title = (a.name || a.details || '').toLowerCase();
-            for (const pat of BLACKLISTED_TITLE_PATTERNS) {
-              if (pat.test(title)) return false;
+          }
+        } catch {
+          // Fallback to socketUrl if relative fetch fails
+          const socketUrl = import.meta.env.VITE_SOCKET_URL || '';
+          const baseUrl = socketUrl.endsWith('/') ? socketUrl.slice(0, -1) : socketUrl;
+          if (baseUrl) {
+            const res = await fetch(`${baseUrl}/api/stocks/alerts?limit=300`);
+            const result = await res.json();
+            if (result?.success && Array.isArray(result.data)) {
+              alertsData = result.data;
             }
-            return true;
-          });
-          setAlertHistory(cleanHistory);
+          }
         }
+
+        // Also fetch live F&O OI alerts directly
+        try {
+          const fnoRes = await fetch('/api/fno/oi-alerts');
+          if (fnoRes.ok) {
+            const fnoJson = await fnoRes.json();
+            if (fnoJson?.success && Array.isArray(fnoJson.alerts)) {
+              const mappedFno: StockAlert[] = fnoJson.alerts.map((a: any) => ({
+                id: a.id,
+                symbol: a.symbol || 'NIFTY',
+                name: `${a.action === 'pulled' ? 'Pulled' : 'Placed'} ${a.contracts} (${a.side})`,
+                alertType: 'FNO_OI',
+                price: a.strike,
+                details: a.message,
+                createdAt: a.timestamp,
+                strike: a.strike,
+                side: a.side,
+                action: a.action,
+                contracts: a.contracts,
+              }));
+
+              // Merge without duplicates
+              const existingIds = new Set(alertsData.map(a => a.id));
+              mappedFno.forEach(f => {
+                if (!existingIds.has(f.id)) {
+                  alertsData.push(f);
+                }
+              });
+            }
+          }
+        } catch {
+          // Ignore F&O alert fetch errors
+        }
+
+        alertsData.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+        const cleanHistory = alertsData.filter((a: StockAlert) => {
+          if (a.alertType !== 'NEWS') return true;
+          return isAllowedSource(a.symbol);
+        });
+        setAlertHistory(cleanHistory);
       } catch (err) {
         console.error('Failed to fetch initial alert history:', err);
       }
@@ -92,14 +130,11 @@ export function useAlerts() {
     if (!socket) return;
 
     const handleAlert = (alert: StockAlert) => {
-      // Discard useless blog and generic news alerts
+      // Discard useless blog and non-whitelisted news alerts
       if (alert.alertType === 'NEWS') {
         const src = (alert.symbol || '').toLowerCase();
-        if (!src.includes('redbox') && !src.includes('yatin')) {
+        if (!isAllowedSource(src)) {
           return;
-        }
-        for (const bSrc of BLACKLISTED_ALERT_SOURCES) {
-          if (src.includes(bSrc)) return;
         }
         const titleText = (alert.name || alert.details || '').toLowerCase();
         for (const pat of BLACKLISTED_TITLE_PATTERNS) {

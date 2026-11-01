@@ -30,12 +30,16 @@ export interface StockAlert {
   symbol: string;
   name: string;
   /** Type of price alert */
-  alertType: 'DAY_HIGH' | 'DAY_LOW' | 'VOLUME_SPIKE' | 'NEWS' | 'INDEX_MILESTONE';
+  alertType: 'DAY_HIGH' | 'DAY_LOW' | 'VOLUME_SPIKE' | 'NEWS' | 'INDEX_MILESTONE' | 'FNO_OI' | 'SMART_MONEY';
   price: number;
   change?: number;
   changePercent?: number;
   details?: string;
   createdAt: string;
+  strike?: number;
+  side?: string;
+  action?: string;
+  contracts?: string;
 }
 
 export interface FilterOptions {

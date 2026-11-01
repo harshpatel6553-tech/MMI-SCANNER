@@ -37,7 +37,7 @@ import fnoRoutes from './routes/fnoRoutes.js';
 import smartMoneyRoutes from './routes/smartMoneyRoutes.js';
 import { stockService } from './services/stockService.js';
 import { alertService } from './services/alertService.js';
-import { newsService, isNoisyOrBlacklisted } from './services/newsService.js';
+import { newsService, isNoisyOrBlacklisted, isAllowedSource } from './services/newsService.js';
 import { screenerService } from './services/screenerService.js';
 import { calendarService } from './services/calendarService.js';
 import { twitterService } from './services/twitterService.js';
@@ -152,8 +152,7 @@ app.get('/api/chart', (req, res) => {
 // ── News Alerts ────────────────────────────────────────────────
 
 newsService.on('news:alert', (news) => {
-  const src = (news.source || '').toLowerCase();
-  if (!src.includes('redbox') && !src.includes('yatin')) {
+  if (!isAllowedSource(news.source)) {
     return;
   }
   if (isNoisyOrBlacklisted(news)) {

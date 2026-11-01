@@ -9,6 +9,7 @@
 
 import crypto from 'node:crypto';
 import type { StockData, StockAlert } from '../types/index.js';
+import { optionChainService } from './optionChainService.js';
 import logger from '../utils/logger.js';
 
 interface HighLowState {
@@ -211,7 +212,31 @@ class AlertService {
   }
 
   async getRecentAlerts(limit: number = 100): Promise<StockAlert[]> {
-    return this.inMemoryAlerts.slice(0, limit);
+    const fnoAlerts: StockAlert[] = [];
+    try {
+      const rawFno = optionChainService.getAlerts() || [];
+      for (const a of rawFno) {
+        fnoAlerts.push({
+          id: a.id,
+          symbol: a.symbol || 'NIFTY',
+          name: `${a.action === 'pulled' ? 'Pulled' : 'Placed'} ${a.contracts} (${a.side})`,
+          alertType: 'FNO_OI',
+          price: a.strike,
+          details: a.message,
+          createdAt: a.timestamp,
+          strike: a.strike,
+          side: a.side,
+          action: a.action,
+          contracts: a.contracts,
+        });
+      }
+    } catch {
+      // Ignore if optionChainService is not yet populated
+    }
+
+    const merged = [...fnoAlerts, ...this.inMemoryAlerts];
+    merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return merged.slice(0, limit);
   }
 
   getTrackedSymbolCount(): number {

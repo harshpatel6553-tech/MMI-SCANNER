@@ -15,12 +15,11 @@ export interface NewsItem {
   isPromoterAction?: boolean;
 }
 
-const BLACKLISTED_SOURCES = [
-  'liquide', 'simply wall st', 'dd news', 'free press journal',
-  'mid-day', 'livemint', 'goodreturns', 'economic times',
-  'financial express', 'zee business', 'ndtv profit', 'market wire',
-  'google news', 'cnbc tv18', 'cnbctv18'
-];
+export function isAllowedSource(source?: string): boolean {
+  if (!source) return false;
+  const s = source.toLowerCase().replace('@', '').trim();
+  return s === 'redboxindia' || s === 'yatinmota';
+}
 
 const BLACKLISTED_TITLE_PATTERNS = [
   /outlook\s*(&|and)?\s*prediction/i,
@@ -44,10 +43,7 @@ const BLACKLISTED_TITLE_PATTERNS = [
 ];
 
 function isNoisyOrBlacklisted(n: { source?: string; title?: string }): boolean {
-  const src = (n.source || '').toLowerCase();
-  for (const bSrc of BLACKLISTED_SOURCES) {
-    if (src.includes(bSrc)) return true;
-  }
+  if (!isAllowedSource(n.source)) return true;
   const text = (n.title || '').toLowerCase();
   for (const pattern of BLACKLISTED_TITLE_PATTERNS) {
     if (pattern.test(text)) return true;
@@ -147,7 +143,7 @@ export function useNews() {
 
     // Index current items
     for (const item of current) {
-      if (isNoisyOrBlacklisted(item)) continue;
+      if (!isAllowedSource(item.source) || isNoisyOrBlacklisted(item)) continue;
       const key = getTweetKey(item);
       map.set(key, item);
       if (item.title && !item.title.endsWith('…') && !item.title.endsWith('...')) {
@@ -157,7 +153,7 @@ export function useNews() {
 
     // Merge incoming items
     for (const inc of incoming) {
-      if (isNoisyOrBlacklisted(inc)) continue;
+      if (!isAllowedSource(inc.source) || isNoisyOrBlacklisted(inc)) continue;
       const key = getTweetKey(inc);
       const existing = map.get(key);
 
@@ -177,7 +173,7 @@ export function useNews() {
     }
 
     return Array.from(map.values())
-      .filter(item => !isNoisyOrBlacklisted(item))
+      .filter(item => isAllowedSource(item.source) && !isNoisyOrBlacklisted(item))
       .sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime())
       .slice(0, 100);
   }, []);
@@ -193,8 +189,9 @@ export function useNews() {
         if (vRes.ok) {
           const vData = await vRes.json();
           if (vData.success && Array.isArray(vData.data) && vData.data.length > 0) {
+            const cleanData = vData.data.filter((d: NewsItem) => isAllowedSource(d.source));
             setNews(prev => {
-              const next = mergeLists(vData.data, prev);
+              const next = mergeLists(cleanData, prev);
               return areNewsListsEqual(prev, next) ? prev : next;
             });
             setError(null);
@@ -209,13 +206,14 @@ export function useNews() {
       // Priority 2: Backend server /api/news
       const response = await fetch(`${API_URL}/news?_t=${Date.now()}`);
       const data = await response.json();
-      if (data.success) {
+      if (data.success && Array.isArray(data.data)) {
+        const cleanData = data.data.filter((d: NewsItem) => isAllowedSource(d.source));
         setNews(prev => {
-          const next = mergeLists(data.data, prev);
+          const next = mergeLists(cleanData, prev);
           return areNewsListsEqual(prev, next) ? prev : next;
         });
         setError(null);
-        if (data.data.length > 0) {
+        if (cleanData.length > 0) {
           isWarmingUp.current = false;
         } else {
           isWarmingUp.current = true;
@@ -253,8 +251,8 @@ export function useNews() {
     const handleAlert = (alert: any) => {
       if (alert.alertType === 'NEWS' || alert.title || alert.details) {
         const src = (alert.source || alert.symbol || '').toLowerCase();
-        // Discard any incoming alert that is not from RedboxIndia or yatinmota
-        if (!src.includes('redbox') && !src.includes('yatin')) {
+        // Strictly allow only verified alpha sources (@RedboxIndia & @yatinmota)
+        if (!isAllowedSource(src)) {
           return;
         }
 
@@ -285,7 +283,8 @@ export function useNews() {
 
     const handleSnapshot = (fullNews: NewsItem[]) => {
       if (Array.isArray(fullNews) && fullNews.length > 0) {
-        const cleanNews = fullNews.filter(n => !isNoisyOrBlacklisted(n));
+        // Strictly filter incoming snapshot to allow ONLY @RedboxIndia and @yatinmota
+        const cleanNews = fullNews.filter(n => isAllowedSource(n.source) && !isNoisyOrBlacklisted(n));
         setNews(prev => {
           const next = mergeLists(cleanNews, prev);
           return areNewsListsEqual(prev, next) ? prev : next;

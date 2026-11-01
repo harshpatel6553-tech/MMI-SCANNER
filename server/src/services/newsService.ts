@@ -17,12 +17,11 @@ export interface NewsItem {
   isPromoterAction?: boolean;
 }
 
-const BLACKLISTED_SOURCES = [
-  'liquide', 'simply wall st', 'dd news', 'free press journal',
-  'mid-day', 'livemint', 'goodreturns', 'economic times',
-  'financial express', 'zee business', 'ndtv profit', 'market wire',
-  'google news', 'cnbc tv18', 'cnbctv18'
-];
+export function isAllowedSource(source?: string): boolean {
+  if (!source) return false;
+  const s = source.toLowerCase().replace('@', '').trim();
+  return s === 'redboxindia' || s === 'yatinmota';
+}
 
 const BLACKLISTED_TITLE_PATTERNS = [
   /outlook\s*(&|and)?\s*prediction/i,
@@ -46,10 +45,7 @@ const BLACKLISTED_TITLE_PATTERNS = [
 ];
 
 export function isNoisyOrBlacklisted(item: { source?: string; title?: string; full_text?: string }): boolean {
-  const src = (item.source || '').toLowerCase();
-  for (const bSrc of BLACKLISTED_SOURCES) {
-    if (src.includes(bSrc)) return true;
-  }
+  if (!isAllowedSource(item.source)) return true;
   const text = (item.title || item.full_text || '').toLowerCase();
   for (const pattern of BLACKLISTED_TITLE_PATTERNS) {
     if (pattern.test(text)) return true;
@@ -68,7 +64,7 @@ class NewsService extends EventEmitter {
   }
 
   public getLatestNews(): NewsItem[] {
-    return this.newsCache.filter(item => !isNoisyOrBlacklisted(item));
+    return this.newsCache.filter(item => isAllowedSource(item.source) && !isNoisyOrBlacklisted(item));
   }
 
   private isFetching = false;
@@ -91,12 +87,12 @@ class NewsService extends EventEmitter {
     if (prefixMatch) {
       const p = prefixMatch[1].toUpperCase();
       const STOP_TOKENS = new Set(['ALERT', 'BREAKING', 'UPDATE', 'NEWS', 'EXCLUSIVE', 'JUST IN', 'REPORT', 'SOURCE', 'WATCH', 'MARKET', 'NIFTY', 'SENSEX']);
-      if (!STOP_TOKENS.has(p)) {
+      if (!STOP_TOKENS.has(p) && !/^\d+$/.test(p)) {
         matched.add(p);
       }
     }
 
-    // 2. Explicit cashtags like $TECHM, $KPITTECH, $CRAFTSMAN
+    // 2. Explicit cashtags starting with a letter like $TECHM, $KPITTECH, $CRAFTSMAN (ignore currency like $4.20)
     const dollarMatches = title.match(/\$([A-Za-z][A-Za-z0-9_\-]{1,14})\b/g) || [];
     for (const m of dollarMatches) {
       const s = m.replace('$', '').toUpperCase();
@@ -235,14 +231,8 @@ class NewsService extends EventEmitter {
       const results = await Promise.all(fetchPromises);
       allFetchedTweets = results.flat();
 
-      // If Twitter returned 0 tweets in this poll, do NOT fallback to generic blog RSS.
-      // Simply preserve existing valid cached tweets.
-      if (allFetchedTweets.length === 0) {
-        logger.info('Twitter returned 0 tweets this poll. Preserving cached alpha tweets without retail RSS fallback.');
-      }
-      
-      // Filter out any noisy/blacklisted items immediately
-      allFetchedTweets = allFetchedTweets.filter(item => !isNoisyOrBlacklisted({
+      // Strictly allow ONLY @RedboxIndia and @yatinmota
+      allFetchedTweets = allFetchedTweets.filter(item => isAllowedSource(item._sourceAccount) && !isNoisyOrBlacklisted({
         source: item._sourceAccount,
         title: item.full_text
       }));
@@ -279,10 +269,10 @@ class NewsService extends EventEmitter {
 
       // Deduplicate newNews internally based on ID and filter noise
       const uniqueNewNews = Array.from(new Map(newNews.map(item => [item.id, item])).values())
-        .filter(item => !isNoisyOrBlacklisted(item));
+        .filter(item => isAllowedSource(item.source) && !isNoisyOrBlacklisted(item));
 
-      // Clean existing cache of any previously stored blog/noisy items
-      this.newsCache = this.newsCache.filter(item => !isNoisyOrBlacklisted(item));
+      // Clean existing cache of any previously stored non-whitelisted items
+      this.newsCache = this.newsCache.filter(item => isAllowedSource(item.source) && !isNoisyOrBlacklisted(item));
 
       const isFirstFetch = this.newsCache.length === 0;
       let newTweets = uniqueNewNews.filter(n => !this.newsCache.find(old => old.id === n.id));
@@ -292,7 +282,7 @@ class NewsService extends EventEmitter {
         .sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
         
       combinedNews = Array.from(new Map(combinedNews.map(item => [item.id, item])).values())
-        .filter(item => !isNoisyOrBlacklisted(item))
+        .filter(item => isAllowedSource(item.source) && !isNoisyOrBlacklisted(item))
         .slice(0, 100);
         
       this.newsCache = combinedNews;
@@ -310,9 +300,7 @@ class NewsService extends EventEmitter {
           if (now - tweetTime < FIVE_MINUTES_MS) {
             // STRICT FILTER FOR ALERTS:
             // 1. Source MUST be RedboxIndia or yatinmota
-            const src = (news.source || '').toLowerCase();
-            const isAlphaSource = src.includes('redbox') || src.includes('yatin');
-            if (!isAlphaSource) return;
+            if (!isAllowedSource(news.source)) return;
 
             // 2. Reject noisy titles or blog summaries
             if (isNoisyOrBlacklisted(news)) return;
