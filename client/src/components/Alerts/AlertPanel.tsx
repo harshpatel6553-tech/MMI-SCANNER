@@ -267,7 +267,7 @@ export function AlertPanel({ alerts, onClearAll }: AlertPanelProps) {
                   <div className="empty-sub">No alerts match the "{filter}" filter. Live tape is broadcasting actively.</div>
                 </div>
               ) : (
-                <AnimatePresence mode="popLayout">
+                <AnimatePresence>
                   {filteredAlerts.map(alert => {
                     const isHigh = alert.alertType === 'DAY_HIGH';
                     const isLow = alert.alertType === 'DAY_LOW';
@@ -289,7 +289,7 @@ export function AlertPanel({ alerts, onClearAll }: AlertPanelProps) {
                         className={`alert-card ${typeClass}`}
                         onClick={() => handleCardClick(alert.symbol)}
                         title="Click to open interactive chart"
-                        style={{ position: 'relative', overflow: 'hidden' }}
+                        style={{ position: 'relative', overflow: 'hidden', flexShrink: 0 }}
                       >
                         <div className="alert-light-streak" />
                         <div className="alert-top">
