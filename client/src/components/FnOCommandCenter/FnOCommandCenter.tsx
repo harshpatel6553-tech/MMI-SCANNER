@@ -141,7 +141,7 @@ export const FnOCommandCenter: React.FC = () => {
 
   // Floating Card state (from VolumeLens Image 1)
   const [hoveredStrikeRow, setHoveredStrikeRow] = useState<StrikeRow | null>(null);
-  const [pinnedStrike, setPinnedStrike] = useState<number | null>(23050);
+  const [pinnedStrike, setPinnedStrike] = useState<number | null>(null);
   const [activeOptionType, setActiveOptionType] = useState<'CE' | 'PE'>('CE');
   const [cardPosY, setCardPosY] = useState<number>(30);
 
@@ -304,9 +304,11 @@ export const FnOCommandCenter: React.FC = () => {
 
   const activeCardRow = useMemo(() => {
     if (hoveredStrikeRow) return hoveredStrikeRow;
-    const targetStrike = pinnedStrike || data?.atmStrike || 23050;
-    return data?.strikes.find(s => s.strikePrice === targetStrike) || null;
-  }, [hoveredStrikeRow, pinnedStrike, data?.strikes, data?.atmStrike]);
+    if (pinnedStrike) {
+      return data?.strikes.find(s => s.strikePrice === pinnedStrike) || null;
+    }
+    return null;
+  }, [hoveredStrikeRow, pinnedStrike, data?.strikes]);
 
   // ── Render Horizontal OI Profile Directly on Chart Canvas (from VolumeLens Image 1) ──
   const renderOIProfileCanvas = useCallback(() => {
@@ -1020,20 +1022,18 @@ export const FnOCommandCenter: React.FC = () => {
                       <span className="flex-1" />
                       <span className="tt-lot-badge font-mono">Lot: {getLotSize(selectedSymbol)} sh</span>
                       <span className="tt-time-label">as of Fri 30 Oct 15:30</span>
-                      {pinnedStrike && (
-                        <button
-                          type="button"
-                          className="tt-close-btn"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setPinnedStrike(null);
-                            setHoveredStrikeRow(null);
-                          }}
-                          title="Close card"
-                        >
-                          <X size={12} />
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        className="tt-close-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPinnedStrike(null);
+                          setHoveredStrikeRow(null);
+                        }}
+                        title="Close card"
+                      >
+                        <X size={12} />
+                      </button>
                     </div>
 
                     {/* Call sellers row */}
