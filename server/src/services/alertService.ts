@@ -62,7 +62,7 @@ class AlertService {
 
       const isIndex = stock.indexName === 'INDEX' || stock.symbol.includes('NIFTY') || stock.symbol.includes('SENSEX');
 
-      // First time seeing this symbol today — record initial baseline state, skip alert
+      // First time seeing this symbol today — record initial baseline state
       if (!this.previousHighLowState.has(stock.symbol)) {
         this.previousHighLowState.set(stock.symbol, {
           atHigh: stock.atDayHigh,
@@ -72,6 +72,32 @@ class AlertService {
           volumeSpiked: Boolean(stock.volumeSpike),
           lastAlertPrice: 0,
         });
+
+        if (stock.atDayHigh || stock.price >= stock.dayHigh) {
+          this.inMemoryAlerts.push({
+            id: this.generateDeterministicUUID(`${stock.symbol}_DAY_HIGH_${dayTimestamp}_${currentMs}`),
+            symbol: stock.symbol,
+            name: stock.name,
+            alertType: 'DAY_HIGH',
+            price: stock.price,
+            change: stock.change,
+            changePercent: stock.changePercent,
+            details: `Cleared session high at ₹${stock.price.toFixed(2)}`,
+            createdAt: nowIso
+          });
+        } else if (stock.atDayLow || (stock.dayLow > 0 && stock.price <= stock.dayLow)) {
+          this.inMemoryAlerts.push({
+            id: this.generateDeterministicUUID(`${stock.symbol}_DAY_LOW_${dayTimestamp}_${currentMs}`),
+            symbol: stock.symbol,
+            name: stock.name,
+            alertType: 'DAY_LOW',
+            price: stock.price,
+            change: stock.change,
+            changePercent: stock.changePercent,
+            details: `Broke session low at ₹${stock.price.toFixed(2)}`,
+            createdAt: nowIso
+          });
+        }
         continue;
       }
 

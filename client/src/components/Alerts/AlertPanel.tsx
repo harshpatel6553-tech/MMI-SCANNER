@@ -21,7 +21,7 @@ function isIndexSymbol(symbol: string): boolean {
 
 export function AlertPanel({ alerts, onClearAll }: AlertPanelProps) {
   const { isAlertPanelOpen, setIsAlertPanelOpen, setActiveTab, setChartSymbol, setSelectedStock } = useDashboard();
-  const [filter, setFilter] = useState<'ALL' | 'INDICES' | 'HIGH' | 'LOW' | 'NEWS' | 'SPIKE'>('ALL');
+  const [filter, setFilter] = useState<'ALL' | 'FNO' | 'INDICES' | 'HIGH' | 'LOW' | 'NEWS' | 'SPIKE'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [isMuted, setIsMuted] = useState(audioAlerts.getIsMuted());
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -50,12 +50,26 @@ export function AlertPanel({ alerts, onClearAll }: AlertPanelProps) {
     setIsAlertPanelOpen(false);
   };
 
+  const handleFnoClick = (_strike?: number) => {
+    audioAlerts.playHapticClick();
+    setActiveTab('OptionsLens');
+    setIsAlertPanelOpen(false);
+  };
+
+  const handleSmartMoneyClick = () => {
+    audioAlerts.playHapticClick();
+    setActiveTab('Promoter');
+    setIsAlertPanelOpen(false);
+  };
+
   // Robust, unambiguous filtering
   const filteredAlerts = useMemo(() => {
     return alerts.filter(a => {
       const isIdx = isIndexSymbol(a.symbol) || a.alertType === 'INDEX_MILESTONE';
 
-      if (filter === 'INDICES') {
+      if (filter === 'FNO') {
+        if (a.alertType !== 'FNO_OI' && a.alertType !== 'SMART_MONEY') return false;
+      } else if (filter === 'INDICES') {
         if (!isIdx) return false;
       } else if (filter === 'HIGH') {
         if (a.alertType !== 'DAY_HIGH') return false;
@@ -82,8 +96,11 @@ export function AlertPanel({ alerts, onClearAll }: AlertPanelProps) {
 
   // Precise category counts with zero fallthrough errors
   const counts = useMemo(() => {
-    const c = { ALL: alerts.length, INDICES: 0, HIGH: 0, LOW: 0, NEWS: 0, SPIKE: 0 };
+    const c = { ALL: alerts.length, FNO: 0, INDICES: 0, HIGH: 0, LOW: 0, NEWS: 0, SPIKE: 0 };
     alerts.forEach(a => {
+      if (a.alertType === 'FNO_OI' || a.alertType === 'SMART_MONEY') {
+        c.FNO++;
+      }
       if (isIndexSymbol(a.symbol) || a.alertType === 'INDEX_MILESTONE') {
         c.INDICES++;
       }
@@ -189,6 +206,16 @@ export function AlertPanel({ alerts, onClearAll }: AlertPanelProps) {
               </button>
               
               <button 
+                className={`filter-chip fno-chip ${filter === 'FNO' ? 'active' : ''}`} 
+                onClick={() => { audioAlerts.playHapticClick(); setFilter('FNO'); }}
+                style={{ borderColor: filter === 'FNO' ? 'var(--cyan)' : undefined }}
+              >
+                <CyberIcon name="overview" size={13} active={filter === 'FNO'} />
+                <span>F&O BIG MONEY</span>
+                <span className="chip-cnt" style={{ background: 'rgba(40, 207, 255, 0.2)', color: 'var(--cyan)' }}>{counts.FNO}</span>
+              </button>
+              
+              <button 
                 className={`filter-chip indices-chip ${filter === 'INDICES' ? 'active' : ''}`} 
                 onClick={() => { audioAlerts.playHapticClick(); setFilter('INDICES'); }}
               >
@@ -269,6 +296,99 @@ export function AlertPanel({ alerts, onClearAll }: AlertPanelProps) {
               ) : (
                 <AnimatePresence>
                   {filteredAlerts.map(alert => {
+                    if (alert.alertType === 'FNO_OI') {
+                      const isCeiling = (alert.side || '').toLowerCase().includes('ceiling');
+                      return (
+                        <motion.div
+                          key={alert.id}
+                          initial={{ opacity: 0, x: 20, scale: 0.97 }}
+                          animate={{ opacity: 1, x: 0, scale: 1 }}
+                          exit={{ opacity: 0, x: -16, scale: 0.95 }}
+                          transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+                          className={`alert-card ${isCeiling ? 'fno-ceiling' : 'fno-floor'}`}
+                          onClick={() => handleFnoClick(alert.strike)}
+                          title="Click to inspect strike in Options Lens"
+                          style={{ position: 'relative', overflow: 'hidden', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 6 }}
+                        >
+                          <div className="alert-light-streak" />
+                          <div className="alert-top" style={{ marginBottom: 4 }}>
+                            <span className="alert-time tabular-nums" style={{ fontSize: 13, fontWeight: 700, color: '#9BAAC0' }}>
+                              {formatTime(alert.createdAt)}
+                            </span>
+                            <span className={`fno-side-badge ${isCeiling ? 'ceiling' : 'floor'}`}>
+                              {alert.side ? alert.side.toUpperCase() : isCeiling ? 'CEILING SIDE' : 'FLOOR SIDE'}
+                            </span>
+                          </div>
+
+                          <div style={{ fontSize: 13, color: '#F1F5FC', lineHeight: 1.4, fontWeight: 500 }}>
+                            {alert.details}
+                          </div>
+
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
+                            <button
+                              className="fno-strike-btn"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleFnoClick(alert.strike);
+                              }}
+                            >
+                              <span>OI by strike – {alert.strike || 23100}</span>
+                              <ExternalLink size={11} />
+                            </button>
+                            <span style={{ fontSize: 10, color: '#64748B', textTransform: 'uppercase', fontWeight: 700 }}>
+                              {alert.symbol || 'NIFTY'} F&amp;O
+                            </span>
+                          </div>
+                        </motion.div>
+                      );
+                    }
+
+                    if (alert.alertType === 'SMART_MONEY') {
+                      const isBuy = (alert.changePercent ?? 0) >= 0;
+                      return (
+                        <motion.div
+                          key={alert.id}
+                          initial={{ opacity: 0, x: 20, scale: 0.97 }}
+                          animate={{ opacity: 1, x: 0, scale: 1 }}
+                          exit={{ opacity: 0, x: -16, scale: 0.95 }}
+                          transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+                          className="alert-card smart-money"
+                          onClick={handleSmartMoneyClick}
+                          title="Click to inspect Institutional Smart Money Radar"
+                          style={{ position: 'relative', overflow: 'hidden', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 6 }}
+                        >
+                          <div className="alert-light-streak" />
+                          <div className="alert-top" style={{ marginBottom: 4 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <StockLogo symbol={alert.symbol} name={alert.name} size={18} />
+                              <span style={{ fontWeight: 800, fontSize: 13, color: '#F1F5FC' }}>{alert.symbol}</span>
+                            </div>
+                            <span className="fno-side-badge" style={{ background: isBuy ? 'rgba(0, 214, 163, 0.15)' : 'rgba(255, 66, 104, 0.15)', color: isBuy ? '#00D6A3' : '#FF4268', borderColor: isBuy ? 'rgba(0, 214, 163, 0.35)' : 'rgba(255, 66, 104, 0.35)' }}>
+                              {isBuy ? 'INSTITUTIONAL INFLOW' : 'BLOCK DUMP'}
+                            </span>
+                          </div>
+
+                          <div style={{ fontSize: 12, color: '#F1F5FC', fontWeight: 600 }}>
+                            {alert.details}
+                          </div>
+
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
+                            <button
+                              className="fno-strike-btn"
+                              style={{ color: '#00D6A3', borderColor: 'rgba(0, 214, 163, 0.3)' }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSmartMoneyClick();
+                              }}
+                            >
+                              <span>Inspect Smart Money Flow →</span>
+                            </button>
+                            <span className="alert-time tabular-nums">{formatTime(alert.createdAt)}</span>
+                          </div>
+                        </motion.div>
+                      );
+                    }
+
                     const isHigh = alert.alertType === 'DAY_HIGH';
                     const isLow = alert.alertType === 'DAY_LOW';
                     const isNews = alert.alertType === 'NEWS';

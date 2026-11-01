@@ -23,6 +23,8 @@ function isIndexSymbol(symbol: string): boolean {
 }
 
 function getToastLabel(alertType: StockAlert['alertType']): string {
+  if (alertType === 'FNO_OI') return 'F&O BIG MONEY';
+  if (alertType === 'SMART_MONEY') return 'SMART MONEY';
   if (alertType === 'INDEX_MILESTONE') return 'INDEX PEAK';
   if (alertType === 'DAY_HIGH') return 'DAY HIGH BREAK';
   if (alertType === 'DAY_LOW') return 'DAY LOW BREAK';

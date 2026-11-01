@@ -786,3 +786,78 @@
 }
 
 
+
+/* F&O Big Money & Smart Money Alert Panel Card Styles */
+.alert-card.fno-ceiling {
+  border-left: 3px solid #FF4268;
+}
+
+.alert-card.fno-ceiling:hover {
+  box-shadow: 0 10px 25px -5px rgba(255, 66, 104, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 66, 104, 0.5);
+}
+
+.alert-card.fno-floor {
+  border-left: 3px solid #28CFFF;
+}
+
+.alert-card.fno-floor:hover {
+  box-shadow: 0 10px 25px -5px rgba(40, 207, 255, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  border-color: rgba(40, 207, 255, 0.5);
+}
+
+.alert-card.smart-money {
+  border-left: 3px solid #00D6A3;
+}
+
+.alert-card.smart-money:hover {
+  box-shadow: 0 10px 25px -5px rgba(0, 214, 163, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  border-color: rgba(0, 214, 163, 0.5);
+}
+
+.fno-side-badge {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.fno-side-badge.ceiling {
+  background: rgba(255, 66, 104, 0.15);
+  color: #FF4268;
+  border: 1px solid rgba(255, 66, 104, 0.35);
+}
+
+.fno-side-badge.floor {
+  background: rgba(40, 207, 255, 0.15);
+  color: #28CFFF;
+  border: 1px solid rgba(40, 207, 255, 0.35);
+}
+
+.fno-strike-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(40, 207, 255, 0.12);
+  border: 1px solid rgba(40, 207, 255, 0.3);
+  color: #28CFFF;
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--font-mono, monospace);
+  cursor: pointer;
+  pointer-events: auto !important;
+  transition: all 0.2s ease;
+  margin-top: 6px;
+  width: fit-content;
+}
+
+.fno-strike-btn:hover {
+  background: rgba(40, 207, 255, 0.25);
+  border-color: #28CFFF;
+  color: #FFFFFF;
+  box-shadow: 0 0 12px rgba(40, 207, 255, 0.4);
+}

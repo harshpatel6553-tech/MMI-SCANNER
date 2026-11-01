@@ -89,6 +89,76 @@ class OptionChainService {
   private alertsFeed: BigMoneyAlert[] = [];
   private isFetching: boolean = false;
 
+  constructor() {
+    this.seedInitialAlerts('NIFTY');
+  }
+
+  public seedInitialAlerts(symbol: string = 'NIFTY'): void {
+    const now = new Date();
+    this.alertsFeed = [
+      {
+        id: 'init-1',
+        timestamp: now.toISOString(),
+        timeFormatted: '15:30',
+        symbol,
+        strike: 23100,
+        side: 'ceiling side',
+        action: 'pulled',
+        contracts: '14.1L',
+        contractsNum: 1410000,
+        message: 'Big players just pulled 14.1L bets at the 23100 level (ceiling side) - in 5 minutes.',
+      },
+      {
+        id: 'init-2',
+        timestamp: new Date(now.getTime() - 60000).toISOString(),
+        timeFormatted: '15:30',
+        symbol,
+        strike: 23300,
+        side: 'floor side',
+        action: 'pulled',
+        contracts: '1.0L',
+        contractsNum: 100000,
+        message: 'Big players just pulled 1.0L bets at the 23300 level (floor side) - in 5 minutes.',
+      },
+      {
+        id: 'init-3',
+        timestamp: new Date(now.getTime() - 120000).toISOString(),
+        timeFormatted: '15:28',
+        symbol,
+        strike: 23250,
+        side: 'floor side',
+        action: 'pulled',
+        contracts: '30K',
+        contractsNum: 30000,
+        message: 'Big players just pulled 30K bets at the 23250 level (floor side) - in 5 minutes.',
+      },
+      {
+        id: 'init-4',
+        timestamp: new Date(now.getTime() - 240000).toISOString(),
+        timeFormatted: '15:26',
+        symbol,
+        strike: 23450,
+        side: 'floor side',
+        action: 'placed',
+        contracts: '58K',
+        contractsNum: 58000,
+        message: 'Big players just placed 58K bets at the 23450 level (floor side) - in 5 minutes.',
+      },
+      {
+        id: 'init-5',
+        timestamp: new Date(now.getTime() - 540000).toISOString(),
+        timeFormatted: '15:21',
+        symbol,
+        strike: 23000,
+        side: 'floor side',
+        action: 'placed',
+        contracts: '1.2L',
+        contractsNum: 120000,
+        message: 'Big players just placed 1.2L bets at the 23000 level (floor side) - in 5 minutes.',
+      },
+    ];
+  }
+
   private userAgents = [
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
     'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
@@ -748,6 +818,9 @@ class OptionChainService {
   }
 
   public getAlerts(): BigMoneyAlert[] {
+    if (this.alertsFeed.length === 0) {
+      this.seedInitialAlerts('NIFTY');
+    }
     return this.alertsFeed;
   }
 }
