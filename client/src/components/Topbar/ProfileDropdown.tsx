@@ -63,13 +63,13 @@ export function ProfileDropdown() {
       console.error('Logout error:', err);
     } finally {
       setActiveTab('Overview');
-      navigate('/');
+      navigate('/login');
     }
   };
 
   const handleSignIn = () => {
     setIsOpen(false);
-    navigate('/');
+    navigate('/login');
   };
 
   const username = user?.email ? user.email.split('@')[0] : 'Guest Trader';
