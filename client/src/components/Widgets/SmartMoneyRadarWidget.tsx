@@ -4,6 +4,7 @@ import { useSocketContext } from '../../context/SocketContext';
 import { audioAlerts } from '../../utils/audioAlerts';
 import { ArrowUpRight, ArrowDownRight, Layers, ChevronRight, Activity } from 'lucide-react';
 import { StockLogo } from '../common/StockLogo';
+import { computeClientSmartMoneyFlow } from '../../services/smartMoneyClientEngine';
 
 interface SmartMoneySummary {
   netSmartMoneyFlowCr: number;
@@ -45,17 +46,38 @@ const API_BASE = '/api';
 export function SmartMoneyRadarWidget() {
   const { setActiveTab, setSelectedStock, setChartSymbol } = useDashboard();
   const { socket, isConnected } = useSocketContext();
-  const [summary, setSummary] = useState<SmartMoneySummary | null>(null);
+  const [summary, setSummary] = useState<SmartMoneySummary>(() => computeClientSmartMoneyFlow(null) as any);
 
   useEffect(() => {
-    fetch(`${API_BASE}/smart-money/flow`)
-      .then(res => res.json())
-      .then(json => {
-        if (json.status === 'success' && json.data) {
-          setSummary(json.data);
+    const socketUrl = import.meta.env.VITE_SOCKET_URL || '';
+    const endpoints = [
+      `/api/smart-money/flow`,
+      `http://localhost:5000/api/smart-money/flow`,
+      `${socketUrl.replace(/\/$/, '')}/api/smart-money/flow`,
+    ].filter(Boolean);
+
+    let fetched = false;
+    (async () => {
+      for (const ep of endpoints) {
+        try {
+          const res = await fetch(ep);
+          if (res.ok) {
+            const json = await res.json();
+            if (json.status === 'success' && json.data && json.data.topAccumulators?.length > 0) {
+              setSummary(json.data);
+              fetched = true;
+              break;
+            }
+          }
+        } catch (e) {
+          // try next endpoint
         }
-      })
-      .catch(() => {});
+      }
+
+      if (!fetched) {
+        setSummary(computeClientSmartMoneyFlow(null) as any);
+      }
+    })();
   }, []);
 
   // Real-time WebSocket updates

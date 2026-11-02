@@ -5,9 +5,13 @@ import { useSocketContext } from '../../context/SocketContext';
 import { audioAlerts } from '../../utils/audioAlerts';
 import { SmartMoneyTimelineChart, type IntradayFlowPoint, type MarketSessionInfo } from './SmartMoneyTimelineChart';
 import { StockLogo } from '../common/StockLogo';
+import { computeClientSmartMoneyFlow } from '../../services/smartMoneyClientEngine';
+import type { StockData } from '../../types';
 import './SmartMoneyTerminal.css';
 
-interface SmartMoneyTarget {
+export type { IntradayFlowPoint, MarketSessionInfo };
+
+export interface SmartMoneyTarget {
   symbol: string;
   name: string;
   price: number;
@@ -23,7 +27,7 @@ interface SmartMoneyTarget {
   dealValueCr?: number;
 }
 
-interface SectorRotationData {
+export interface SectorRotationData {
   sector: string;
   inflowCr: number;
   outflowCr: number;
@@ -35,7 +39,7 @@ interface SectorRotationData {
   topDistributor: string;
 }
 
-interface EnrichedDeal {
+export interface EnrichedDeal {
   date: string;
   symbol: string;
   clientName: string;
@@ -47,7 +51,7 @@ interface EnrichedDeal {
   valueCr: number;
 }
 
-interface SmartMoneyFlowData {
+export interface SmartMoneyFlowData {
   timestamp: string;
   marketSession?: MarketSessionInfo;
   intradayTimeline?: IntradayFlowPoint[];
@@ -82,13 +86,11 @@ interface SmartMoneyFlowData {
 
 type SubTabMode = 'radar' | 'timeline' | 'inflows' | 'outflows' | 'sectors' | 'derivatives' | 'deals';
 
-const API_BASE = '/api';
-
-export const SmartMoneyTerminal: React.FC = () => {
+export const SmartMoneyTerminal: React.FC<{ stocks?: StockData[] }> = ({ stocks }) => {
   const { setSelectedStock, setActiveTab, setChartSymbol } = useDashboard();
   const { socket, isConnected } = useSocketContext();
-  const [data, setData] = useState<SmartMoneyFlowData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<SmartMoneyFlowData>(() => computeClientSmartMoneyFlow(stocks));
+  const [loading, setLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState<SubTabMode>('radar');
   const [searchQuery, setSearchQuery] = useState('');
@@ -97,18 +99,55 @@ export const SmartMoneyTerminal: React.FC = () => {
   const fetchFlowData = async () => {
     try {
       setIsRefreshing(true);
-      const res = await fetch(`${API_BASE}/smart-money/flow`);
-      const json = await res.json();
-      if (json.status === 'success' && json.data) {
-        setData(json.data);
+      const socketUrl = import.meta.env.VITE_SOCKET_URL || '';
+      const endpoints = [
+        `/api/smart-money/flow`,
+        `http://localhost:5000/api/smart-money/flow`,
+        `${socketUrl.replace(/\/$/, '')}/api/smart-money/flow`,
+      ].filter(Boolean);
+
+      let fetched = false;
+      for (const ep of endpoints) {
+        try {
+          const res = await fetch(ep);
+          if (res.ok) {
+            const json = await res.json();
+            if (json.status === 'success' && json.data && json.data.topAccumulators?.length > 0) {
+              setData(json.data);
+              fetched = true;
+              break;
+            }
+          }
+        } catch (e) {
+          // try next endpoint fallback
+        }
+      }
+
+      if (!fetched && stocks && stocks.length > 0) {
+        setData(computeClientSmartMoneyFlow(stocks));
       }
     } catch (err) {
-      console.error('Failed to load smart money flow:', err);
+      console.error('Failed to load smart money flow from backend:', err);
+      if (stocks && stocks.length > 0) {
+        setData(computeClientSmartMoneyFlow(stocks));
+      }
     } finally {
       setLoading(false);
       setIsRefreshing(false);
     }
   };
+
+  // Re-compute client-side whenever fresh stocks arrive if server hasn't sent data
+  useEffect(() => {
+    if (stocks && stocks.length > 0) {
+      setData(prev => {
+        if (prev && prev.topAccumulators && prev.topAccumulators.length > 0 && prev.totalInstitutionalInflowCr > 0) {
+          return prev;
+        }
+        return computeClientSmartMoneyFlow(stocks);
+      });
+    }
+  }, [stocks]);
 
   // Real-time WebSocket listener for immediate sub-second flow updates
   useEffect(() => {

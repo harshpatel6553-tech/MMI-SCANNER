@@ -242,7 +242,7 @@ function AppContent() {
               {activeTab === 'Watchlist' && <MarketTableWidget fullView={true} watchlistOnly={true} />}
               {activeTab === 'LiveNews' && <LiveNewsFeed />}
               {activeTab === 'Results' && <EarningsResults />}
-              {activeTab === 'Promoter' && <PromoterWatch />}
+              {activeTab === 'Promoter' && <PromoterWatch stocks={allStocks} />}
               {activeTab === 'PaperTrading' && <PaperTradingDashboard />}
               {activeTab === 'Admin' && <AdminDashboard />}
             </motion.div>
