@@ -31,6 +31,7 @@ import './FnOCommandCenter.css';
 import { OptionCandlestickChart } from './OptionCandlestickChart';
 import { WhereSellersAre } from './WhereSellersAre';
 import { AnimatedNumber } from '../common/AnimatedNumber';
+import { useSocketContext } from '../../context/SocketContext';
 import {
   formatContracts,
   formatShares,
@@ -131,6 +132,7 @@ interface Candle {
 const INDICES = ['NIFTY 50'];
 
 export const FnOCommandCenter: React.FC = () => {
+  const { socket, isConnected } = useSocketContext();
   const [selectedSymbol, setSelectedSymbol] = useState<string>('NIFTY');
   const [selectedExpiry, setSelectedExpiry] = useState<string>('');
   const [data, setData] = useState<FnoData | null>(null);
@@ -198,13 +200,49 @@ export const FnOCommandCenter: React.FC = () => {
   };
 
   useEffect(() => {
-    setLoading(true);
     fetchData(selectedSymbol, selectedExpiry);
+    // Relaxed background sync for option chain at 60s without disruptive UI resets
     const interval = setInterval(() => {
-      fetchData(selectedSymbol, selectedExpiry);
-    }, 4000);
+      fetchData(selectedSymbol, selectedExpiry, false);
+    }, 60000);
     return () => clearInterval(interval);
   }, [selectedSymbol, selectedExpiry]);
+
+  // Real-time WebSocket tick listener for sub-second zero-refresh updates
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleIndicesUpdate = (indicesList: any[]) => {
+      if (!Array.isArray(indicesList)) return;
+      const nifty = indicesList.find(
+        (i: any) => i.symbol === 'NIFTY 50' || i.name === 'NIFTY 50' || i.symbol === 'NIFTY'
+      );
+      if (!nifty || !nifty.price) return;
+
+      const livePrice = Number(nifty.price);
+      const liveChange = Number(nifty.change || 0);
+      const liveChangePct = Number(nifty.changePercent || 0);
+
+      setData(prev => {
+        if (!prev) return prev;
+        if (prev.spot === livePrice) return prev;
+        return {
+          ...prev,
+          spot: livePrice,
+          spotChange: liveChange,
+          spotChangePct: liveChangePct,
+        };
+      });
+    };
+
+    socket.on('indices:update', handleIndicesUpdate);
+    socket.on('stocks:update:partial', handleIndicesUpdate);
+
+    return () => {
+      socket.off('indices:update', handleIndicesUpdate);
+      socket.off('stocks:update:partial', handleIndicesUpdate);
+    };
+  }, [socket]);
 
   // Fetch real candles for the main index chart
   const fetchIndexCandles = async (symbol: string, tf: string): Promise<Candle[]> => {
@@ -628,7 +666,11 @@ export const FnOCommandCenter: React.FC = () => {
         low: c.low,
         close: c.close,
       })));
-      chart.timeScale().fitContent();
+      const totalBars = underlyingCandles.length;
+      chart.timeScale().setVisibleLogicalRange({
+        from: Math.max(0, totalBars - 70),
+        to: totalBars + 5,
+      });
       requestAnimationFrame(() => renderOIRef.current());
     }
 
@@ -660,21 +702,25 @@ export const FnOCommandCenter: React.FC = () => {
         const spotVal = data?.spot || candles[candles.length - 1]?.close;
         if (spotVal && candleSeriesRef.current) {
           if (spotPriceLineRef.current) {
-            try { candleSeriesRef.current.removePriceLine(spotPriceLineRef.current); } catch (e) {}
-            spotPriceLineRef.current = null;
+            spotPriceLineRef.current.applyOptions({ price: spotVal });
+          } else {
+            spotPriceLineRef.current = candleSeriesRef.current.createPriceLine({
+              price: spotVal,
+              color: '#06b6d4',
+              lineWidth: 1,
+              lineStyle: LineStyle.Dashed,
+              axisLabelVisible: false,
+              title: '',
+            });
           }
-          spotPriceLineRef.current = candleSeriesRef.current.createPriceLine({
-            price: spotVal,
-            color: '#06b6d4',
-            lineWidth: 1,
-            lineStyle: LineStyle.Dashed,
-            axisLabelVisible: false,
-            title: '',
-          });
         }
 
         if (mainChartRef.current) {
-          mainChartRef.current.timeScale().fitContent();
+          const totalBars = candles.length;
+          mainChartRef.current.timeScale().setVisibleLogicalRange({
+            from: Math.max(0, totalBars - 70),
+            to: totalBars + 5,
+          });
         }
         requestAnimationFrame(() => renderOIRef.current());
       }
@@ -691,21 +737,19 @@ export const FnOCommandCenter: React.FC = () => {
     const series = candleSeriesRef.current;
     const liveSpot = data.spot;
 
-    // 1. Move dashed spot line across the chart
+    // 1. Move dashed spot line across the chart smoothly without flicker
     if (spotPriceLineRef.current) {
-      try {
-        series.removePriceLine(spotPriceLineRef.current);
-      } catch (e) {}
-      spotPriceLineRef.current = null;
+      spotPriceLineRef.current.applyOptions({ price: liveSpot });
+    } else {
+      spotPriceLineRef.current = series.createPriceLine({
+        price: liveSpot,
+        color: '#06b6d4',
+        lineWidth: 1,
+        lineStyle: LineStyle.Dashed,
+        axisLabelVisible: false,
+        title: '',
+      });
     }
-    spotPriceLineRef.current = series.createPriceLine({
-      price: liveSpot,
-      color: '#06b6d4',
-      lineWidth: 1,
-      lineStyle: LineStyle.Dashed,
-      axisLabelVisible: false,
-      title: '',
-    });
 
     // 2. Real-time active forming candle update (0-delay intraday tick!)
     const tfSec = timeframe === '1m' ? 60 : timeframe === '15m' ? 900 : timeframe === '1H' ? 3600 : 300;

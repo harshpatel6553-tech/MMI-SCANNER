@@ -51,6 +51,8 @@ export const OptionCandlestickChart: React.FC<OptionCandlestickChartProps> = ({
   const candleSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
   const volumeSeriesRef = useRef<ISeriesApi<'Histogram'> | null>(null);
   const ltpPriceLineRef = useRef<any>(null);
+  const lastLoadedContractRef = useRef<string>('');
+  const optionCandlesRef = useRef<Candle[]>([]);
 
   const [activeTf, setActiveTf] = useState<'1m' | '5m' | '15m' | '1H'>('5m');
   const [hoverOhlc, setHoverOhlc] = useState<{ o: number; h: number; l: number; c: number; v?: number } | null>(null);
@@ -148,7 +150,7 @@ export const OptionCandlestickChart: React.FC<OptionCandlestickChartProps> = ({
     }
 
     return candles;
-  }, [underlyingCandles, type, ltp, activeTf, strike]);
+  }, [symbol, strike, type, activeTf]);
 
   const optionCandles = useMemo<Candle[]>(() => {
     if (realCandles && realCandles.length > 0) {
@@ -156,6 +158,10 @@ export const OptionCandlestickChart: React.FC<OptionCandlestickChartProps> = ({
     }
     return fallbackCandles;
   }, [realCandles, fallbackCandles]);
+
+  // Keep optionCandles ref updated
+  optionCandlesRef.current = optionCandles;
+  const currentKey = `${symbol}_${strike}_${type}_${activeTf}_${realCandles ? 'real' : 'fallback'}`;
 
   // Session summary for top readout (matches latest session bar stats)
   const sessionSummary = useMemo(() => {
@@ -277,51 +283,62 @@ export const OptionCandlestickChart: React.FC<OptionCandlestickChartProps> = ({
     };
   }, [type]);
 
-  // Update Candlestick Data when optionCandles or strike updates
+  // Update Candlestick Data ONLY when contract, timeframe or data source changes
   useEffect(() => {
     if (!candleSeriesRef.current || !volumeSeriesRef.current || !chartRef.current) return;
 
     if (optionCandles.length > 0) {
-      candleSeriesRef.current.setData(optionCandles.map(c => ({
-        time: c.time,
-        open: c.open,
-        high: c.high,
-        low: c.low,
-        close: c.close,
-      })));
+      const isNewContract = lastLoadedContractRef.current !== currentKey;
+      if (isNewContract) {
+        candleSeriesRef.current.setData(optionCandles.map(c => ({
+          time: c.time,
+          open: c.open,
+          high: c.high,
+          low: c.low,
+          close: c.close,
+        })));
 
-      volumeSeriesRef.current.setData(optionCandles.map(c => ({
-        time: c.time,
-        value: c.volume || 100,
-        color: c.close >= c.open ? 'rgba(16, 185, 129, 0.25)' : 'rgba(244, 63, 94, 0.25)'
-      })));
+        volumeSeriesRef.current.setData(optionCandles.map(c => ({
+          time: c.time,
+          value: c.volume || 100,
+          color: c.close >= c.open ? 'rgba(16, 185, 129, 0.25)' : 'rgba(244, 63, 94, 0.25)'
+        })));
 
-      chartRef.current.timeScale().fitContent();
+        const totalBars = optionCandles.length;
+        chartRef.current.timeScale().setVisibleLogicalRange({
+          from: Math.max(0, totalBars - 60),
+          to: totalBars + 5,
+        });
+        lastLoadedContractRef.current = currentKey;
+      }
     }
-  }, [optionCandles, strike]);
+  }, [optionCandles, currentKey]);
 
   // Real-time Dashed LTP price line & live candle tick
   useEffect(() => {
     if (!candleSeriesRef.current || !ltp || ltp <= 0) return;
     const series = candleSeriesRef.current;
 
+    // 1. Move dashed LTP price line smoothly without recreate
     if (ltpPriceLineRef.current) {
-      try {
-        series.removePriceLine(ltpPriceLineRef.current);
-      } catch (e) {}
-      ltpPriceLineRef.current = null;
+      ltpPriceLineRef.current.applyOptions({
+        price: ltp,
+        title: `LTP ₹${ltp.toFixed(2)}`,
+      });
+    } else {
+      ltpPriceLineRef.current = series.createPriceLine({
+        price: ltp,
+        color: type === 'CE' ? '#f43f5e' : '#06b6d4',
+        lineWidth: 1,
+        lineStyle: LineStyle.Dashed,
+        title: `LTP ₹${ltp.toFixed(2)}`,
+      });
     }
-    ltpPriceLineRef.current = series.createPriceLine({
-      price: ltp,
-      color: type === 'CE' ? '#f43f5e' : '#06b6d4',
-      lineWidth: 1,
-      lineStyle: LineStyle.Dashed,
-      title: `LTP ₹${ltp.toFixed(2)}`,
-    });
 
-    // 2. Real-time candle tick: expand high/low and update close on the latest bar
-    if (optionCandles.length > 0) {
-      const last = optionCandles[optionCandles.length - 1];
+    // 2. Real-time candle tick: expand high/low and update close on the latest bar in-place
+    const candles = optionCandlesRef.current;
+    if (candles && candles.length > 0) {
+      const last = candles[candles.length - 1];
       try {
         series.update({
           time: last.time,
@@ -332,7 +349,7 @@ export const OptionCandlestickChart: React.FC<OptionCandlestickChartProps> = ({
         });
       } catch (err) {}
     }
-  }, [ltp, type, strike, optionCandles]);
+  }, [ltp, type]);
 
   const expiryTag = expiry ? expiry.split('-')?.[0] : '';
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Search, RefreshCw, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Layers, ShieldCheck, Activity, BarChart2, Clock, Zap } from 'lucide-react';
 import { useDashboard } from '../../contexts/DashboardContext';
 import { useSocketContext } from '../../context/SocketContext';
@@ -95,6 +95,7 @@ export const SmartMoneyTerminal: React.FC<{ stocks?: StockData[] }> = ({ stocks 
   const [activeSubTab, setActiveSubTab] = useState<SubTabMode>('radar');
   const [searchQuery, setSearchQuery] = useState('');
   const [dealFilter, setDealFilter] = useState<'ALL' | 'BUY' | 'SELL' | 'MEGA'>('ALL');
+  const lastComputeTimeRef = useRef<number>(0);
 
   const fetchFlowData = async () => {
     try {
@@ -137,15 +138,14 @@ export const SmartMoneyTerminal: React.FC<{ stocks?: StockData[] }> = ({ stocks 
     }
   };
 
-  // Re-compute client-side whenever fresh stocks arrive if server hasn't sent data
+  // Smoothly re-compute client-side whenever live stock ticks arrive (throttled to 2.5s)
   useEffect(() => {
     if (stocks && stocks.length > 0) {
-      setData(prev => {
-        if (prev && prev.topAccumulators && prev.topAccumulators.length > 0 && prev.totalInstitutionalInflowCr > 0) {
-          return prev;
-        }
-        return computeClientSmartMoneyFlow(stocks);
-      });
+      const now = Date.now();
+      if (now - lastComputeTimeRef.current >= 2500 || !data) {
+        lastComputeTimeRef.current = now;
+        setData(computeClientSmartMoneyFlow(stocks));
+      }
     }
   }, [stocks]);
 
