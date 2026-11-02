@@ -84,7 +84,7 @@ function extractAffectedStocks(title) {
   const prefixMatch = title.match(/^([A-Za-z0-9_\-\.]{2,15}):/i);
   if (prefixMatch) {
     const p = prefixMatch[1].toUpperCase();
-    const STOP_TOKENS = new Set(['ALERT', 'BREAKING', 'UPDATE', 'NEWS', 'EXCLUSIVE', 'JUST IN', 'REPORT', 'SOURCE', 'WATCH', 'MARKET', 'NIFTY', 'SENSEX']);
+    const STOP_TOKENS = new Set(['ALERT', 'BREAKING', 'UPDATE', 'NEWS', 'EXCLUSIVE', 'JUST IN', 'REPORT', 'SOURCE', 'WATCH', 'MARKET', 'NIFTY', 'SENSEX', 'REDBOXINDIA', 'YATINMOTA']);
     if (!STOP_TOKENS.has(p)) {
       matched.add(p);
     }
@@ -232,8 +232,18 @@ export default async function handler(req, res) {
 
     if (allTweets.length > 0) {
       allTweets.sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
-      const uniqueTweets = Array.from(new Map(allTweets.map(item => [item.id, item])).values()).slice(0, 100);
-      newsCache = uniqueTweets;
+      const titleMap = new Map();
+      const uniqueTweets = [];
+      for (const item of allTweets) {
+        const norm = (item.title || '')
+          .replace(/&apos;/g, "'").replace(/&#39;/g, "'").replace(/&amp;/g, '&').replace(/&quot;/g, '"')
+          .replace(/[^a-zA-Z0-9]/g, '').toLowerCase().substring(0, 45);
+        if (norm && !titleMap.has(norm)) {
+          titleMap.set(norm, true);
+          uniqueTweets.push(item);
+        }
+      }
+      newsCache = uniqueTweets.slice(0, 100);
       lastFetchTime = Date.now();
     }
 

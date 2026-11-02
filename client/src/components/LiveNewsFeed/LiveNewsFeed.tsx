@@ -233,7 +233,12 @@ export function LiveNewsFeed({ onStockClick }: LiveNewsFeedProps) {
                     {item.affectedStocks && item.affectedStocks.length > 0 && (
                       <div className="news-footer">
                         {sourceIcon}
-                        {item.affectedStocks.map(sym => (
+                        {item.affectedStocks
+                          .filter(sym => {
+                            const s = sym.toLowerCase().replace(/[@$]/g, '').trim();
+                            return s !== 'redboxindia' && s !== 'yatinmota' && s !== 'alert' && s !== 'news';
+                          })
+                          .map(sym => (
                           <span 
                             key={sym} 
                             className="news-chip"

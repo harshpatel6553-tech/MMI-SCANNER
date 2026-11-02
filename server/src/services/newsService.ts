@@ -86,7 +86,7 @@ class NewsService extends EventEmitter {
     const prefixMatch = title.match(/^([A-Za-z0-9_\-\.]{2,15}):/i);
     if (prefixMatch) {
       const p = prefixMatch[1].toUpperCase();
-      const STOP_TOKENS = new Set(['ALERT', 'BREAKING', 'UPDATE', 'NEWS', 'EXCLUSIVE', 'JUST IN', 'REPORT', 'SOURCE', 'WATCH', 'MARKET', 'NIFTY', 'SENSEX']);
+      const STOP_TOKENS = new Set(['ALERT', 'BREAKING', 'UPDATE', 'NEWS', 'EXCLUSIVE', 'JUST IN', 'REPORT', 'SOURCE', 'WATCH', 'MARKET', 'NIFTY', 'SENSEX', 'REDBOXINDIA', 'YATINMOTA']);
       if (!STOP_TOKENS.has(p) && !/^\d+$/.test(p)) {
         matched.add(p);
       }

@@ -74,38 +74,86 @@ function areNewsListsEqual(a: NewsItem[], b: NewsItem[]): boolean {
 }
 
 /**
+ * Normalizes title text to detect duplicate headlines across different formats,
+ * HTML encodings (&apos; vs '), and truncation variations.
+ */
+function getNormalizedTitleKey(title: string): string {
+  if (!title) return '';
+  const clean = title
+    .replace(/&apos;/g, "'")
+    .replace(/&#39;/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/https?:\/\/\S+/g, '')
+    .replace(/@[A-Za-z0-9_]+/g, '')
+    .replace(/[…\.]{2,}$/g, '')
+    .trim();
+  const alpha = clean.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+  return alpha.substring(0, 45);
+}
+
+/**
  * Extracts a normalized key for stable cross-source matching
  */
 function getTweetKey(item: NewsItem): string {
-  const tweetId = item.link?.match(/status\/(\d+)/)?.[1];
-  if (tweetId) return `t-${tweetId}`;
-  if (item.link) return `l-${item.link.toLowerCase()}`;
-  if (item.title) {
-    const cleanPrefix = item.title.replace(/[^a-zA-Z0-9]/g, '').substring(0, 30).toLowerCase();
-    if (cleanPrefix.length >= 12) return `p-${cleanPrefix}`;
+  const tweetIdFromLink = item.link?.match(/status\/(\d+)/)?.[1];
+  if (tweetIdFromLink) return `t-${tweetIdFromLink}`;
+
+  const tweetIdFromId = item.id?.match(/tweet-(\d+)/)?.[1];
+  if (tweetIdFromId) return `t-${tweetIdFromId}`;
+
+  const normTitle = getNormalizedTitleKey(item.title);
+  if (normTitle && normTitle.length >= 10) return `p-${normTitle}`;
+
+  if (item.link && !item.link.endsWith('/RedboxIndia') && !item.link.endsWith('/yatinmota')) {
+    return `l-${item.link.toLowerCase()}`;
   }
+
   return item.id;
 }
 
 /**
  * Merges an incoming item with an existing item, strictly preserving:
  * 1. Longer untruncated title
- * 2. All affected stock chips (never deletes chips)
+ * 2. All affected stock chips (never deletes chips, filters out source handles)
  * 3. AI classified sentiment and insights
  */
 function mergeNewsItem(incoming: NewsItem, existing?: NewsItem): NewsItem {
-  if (!existing) return incoming;
+  const IGNORE_SYMBOLS = new Set(['REDBOXINDIA', 'YATINMOTA', 'ALERT', 'BREAKING', 'UPDATE', 'NEWS']);
+
+  if (!existing) {
+    const cleanStocks = (incoming.affectedStocks || [])
+      .map(s => s?.replace(/^[@$]/, '').toUpperCase().trim())
+      .filter(s => s && !IGNORE_SYMBOLS.has(s));
+    return {
+      ...incoming,
+      affectedStocks: cleanStocks
+    };
+  }
 
   // Title: always keep the longer, non-cut title
   const title = (existing.title && existing.title.length > (incoming.title?.length || 0))
     ? existing.title
     : incoming.title;
 
-  // Affected stock chips: combine and deduplicate symbols, NEVER delete chips!
+  // Affected stock chips: combine and deduplicate symbols, strictly excluding source handles!
   const stockSet = new Set<string>();
-  (existing.affectedStocks || []).forEach(s => s && stockSet.add(s.toUpperCase()));
-  (incoming.affectedStocks || []).forEach(s => s && stockSet.add(s.toUpperCase()));
+  (existing.affectedStocks || []).forEach(s => {
+    const clean = s?.replace(/^[@$]/, '').toUpperCase().trim();
+    if (clean && !IGNORE_SYMBOLS.has(clean)) stockSet.add(clean);
+  });
+  (incoming.affectedStocks || []).forEach(s => {
+    const clean = s?.replace(/^[@$]/, '').toUpperCase().trim();
+    if (clean && !IGNORE_SYMBOLS.has(clean)) stockSet.add(clean);
+  });
   const affectedStocks = Array.from(stockSet);
+
+  // Link: prefer real status link over empty or profile link
+  const link = (incoming.link && incoming.link.includes('status/'))
+    ? incoming.link
+    : ((existing.link && existing.link.includes('status/')) ? existing.link : (incoming.link || existing.link));
 
   // Sentiment: preserve non-neutral sentiment if incoming defaulted to Neutral
   let sentiment = incoming.sentiment || existing.sentiment || 'Neutral';
@@ -118,6 +166,7 @@ function mergeNewsItem(incoming: NewsItem, existing?: NewsItem): NewsItem {
     ...incoming,
     id: existing.id || incoming.id,
     title,
+    link,
     affectedStocks,
     sentiment,
     isEarningsResult: incoming.isEarningsResult ?? existing.isEarningsResult,
@@ -137,39 +186,51 @@ export function useNews() {
   // Permanent title cache so a full title is never downgraded
   const fullTitleCacheRef = useRef<Map<string, string>>(new Map());
 
-  // Master merge function that prevents UI flickering and preserves all chips & titles
+  // Master merge function with cross-title deduplication (eliminates duplicates completely)
   const mergeLists = useCallback((incoming: NewsItem[], current: NewsItem[]): NewsItem[] => {
     const map = new Map<string, NewsItem>();
+    const titleToKey = new Map<string, string>();
 
-    // Index current items
-    for (const item of current) {
-      if (!isAllowedSource(item.source) || isNoisyOrBlacklisted(item)) continue;
-      const key = getTweetKey(item);
-      map.set(key, item);
-      if (item.title && !item.title.endsWith('…') && !item.title.endsWith('...')) {
-        fullTitleCacheRef.current.set(key, item.title);
+    const processItem = (item: NewsItem) => {
+      if (!isAllowedSource(item.source) || isNoisyOrBlacklisted(item)) return;
+
+      const normTitle = getNormalizedTitleKey(item.title);
+      const primaryKey = getTweetKey(item);
+
+      // Check if item exists by primaryKey OR by matching normalized headline title
+      const existingKey = map.has(primaryKey)
+        ? primaryKey
+        : (normTitle && titleToKey.has(normTitle) ? titleToKey.get(normTitle)! : null);
+
+      const targetKey = existingKey || primaryKey;
+      const existing = existingKey ? map.get(existingKey) : undefined;
+
+      // Restore cached full title if available
+      let itemToMerge = item;
+      const cachedFullTitle = normTitle ? fullTitleCacheRef.current.get(normTitle) : undefined;
+      if (cachedFullTitle && cachedFullTitle.length > (item.title?.length || 0)) {
+        itemToMerge = { ...item, title: cachedFullTitle };
       }
+
+      const merged = mergeNewsItem(itemToMerge, existing);
+      map.set(targetKey, merged);
+
+      if (normTitle) {
+        titleToKey.set(normTitle, targetKey);
+        if (merged.title && !merged.title.endsWith('…') && !merged.title.endsWith('...')) {
+          fullTitleCacheRef.current.set(normTitle, merged.title);
+        }
+      }
+    };
+
+    // Index current items first
+    for (const item of current) {
+      processItem(item);
     }
 
     // Merge incoming items
     for (const inc of incoming) {
-      if (!isAllowedSource(inc.source) || isNoisyOrBlacklisted(inc)) continue;
-      const key = getTweetKey(inc);
-      const existing = map.get(key);
-
-      // Restore cached full title if incoming is cut off
-      let itemToMerge = inc;
-      const cachedFullTitle = fullTitleCacheRef.current.get(key);
-      if (cachedFullTitle && cachedFullTitle.length > (inc.title?.length || 0)) {
-        itemToMerge = { ...inc, title: cachedFullTitle };
-      }
-
-      const merged = mergeNewsItem(itemToMerge, existing);
-      map.set(key, merged);
-
-      if (merged.title && !merged.title.endsWith('…') && !merged.title.endsWith('...')) {
-        fullTitleCacheRef.current.set(key, merged.title);
-      }
+      processItem(inc);
     }
 
     return Array.from(map.values())
@@ -247,38 +308,9 @@ export function useNews() {
   useEffect(() => {
     if (!socket) return;
 
-    // Real-time 0ms alert listener: instantly inject the news item into the feed the millisecond the alert fires!
-    const handleAlert = (alert: any) => {
-      if (alert.alertType === 'NEWS' || alert.title || alert.details) {
-        const src = (alert.source || alert.symbol || '').toLowerCase();
-        // Strictly allow only verified alpha sources (@RedboxIndia & @yatinmota)
-        if (!isAllowedSource(src)) {
-          return;
-        }
-
-        const titleText = alert.title || alert.details || alert.name || '';
-        if (titleText && !isNoisyOrBlacklisted({ source: src, title: titleText })) {
-          const newItem: NewsItem = {
-            id: alert.id || `alert-${Date.now()}`,
-            title: titleText,
-            link: alert.link || '',
-            pubDate: alert.pubDate || alert.createdAt || new Date().toISOString(),
-            source: alert.source || alert.symbol || 'REDBOXINDIA',
-            sentiment: alert.sentiment || 'Neutral',
-            affectedStocks: alert.affectedStocks || (alert.symbol && !alert.symbol.startsWith('@') ? [alert.symbol] : []),
-            isEarningsResult: alert.isEarningsResult,
-            isPromoterAction: alert.isPromoterAction
-          };
-
-          setNews(prev => {
-            const next = mergeLists([newItem], prev);
-            return areNewsListsEqual(prev, next) ? prev : next;
-          });
-        }
-
-        // Trigger background sync
-        fetchNews();
-      }
+    // When a real-time news alert or update arrives, trigger an immediate fresh fetch of the full authoritative news list
+    const handleNewsTrigger = () => {
+      fetchNews();
     };
 
     const handleSnapshot = (fullNews: NewsItem[]) => {
@@ -294,14 +326,16 @@ export function useNews() {
       }
     };
 
-    socket.on('alert:new', handleAlert);
+    socket.on('alert:new', handleNewsTrigger);
+    socket.on('news:update', handleNewsTrigger);
     socket.on('news:snapshot', handleSnapshot);
 
     // Initial snapshot request
     socket.emit('news:request_snapshot');
 
     return () => {
-      socket.off('alert:new', handleAlert);
+      socket.off('alert:new', handleNewsTrigger);
+      socket.off('news:update', handleNewsTrigger);
       socket.off('news:snapshot', handleSnapshot);
     };
   }, [socket, fetchNews, mergeLists]);
