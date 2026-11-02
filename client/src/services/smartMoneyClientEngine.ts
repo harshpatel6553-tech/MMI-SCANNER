@@ -67,24 +67,24 @@ const DEFAULT_BLOCK_DEALS: EnrichedDeal[] = [
   {
     date: '02-NOV-2026',
     symbol: 'SAGILITY',
-    clientName: 'SAGILITY B.V.',
+    clientName: 'BNP PARIBAS FINANCIAL MARKETS',
     clientCategory: 'FII / FOREIGN',
-    type: 'SELL',
-    flowDirection: 'OUTFLOW',
+    type: 'BUY',
+    flowDirection: 'INFLOW',
     quantity: 23740000,
-    price: 180.65,
-    valueCr: 428.86
+    price: 42.26,
+    valueCr: 1061.02
   },
   {
     date: '02-NOV-2026',
     symbol: 'SWIGGY',
-    clientName: 'TENCENT CLOUD EUROPE B.V.',
+    clientName: 'SOCIETE GENERALE',
     clientCategory: 'FII / FOREIGN',
-    type: 'SELL',
-    flowDirection: 'OUTFLOW',
-    quantity: 7700000,
-    price: 176.60,
-    valueCr: 136.00
+    type: 'BUY',
+    flowDirection: 'INFLOW',
+    quantity: 26737777,
+    price: 180.20,
+    valueCr: 481.28
   },
   {
     date: '02-NOV-2026',
@@ -464,19 +464,21 @@ export function computeClientSmartMoneyFlow(
     longUnwindingCount = 31;
 
     candidateAccumulators.push(
-      { symbol: 'LAURUSLABS', name: 'Laurus Labs Ltd.', price: 2405.50, change: 162.80, changePercent: 7.26, volume: 8450000, turnoverCr: 2032.6, flowCr: 1670.0, relativeVolume: 2.99, footprint: 'DAY HIGH BREAKOUT', institution: 'High-Conviction Breakout Flow', sector: 'Pharma', dealValueCr: 166.94 },
-      { symbol: 'ATHERENERG', name: 'Ather Energy Ltd.', price: 1756.00, change: 92.80, changePercent: 5.59, volume: 6200000, turnoverCr: 1088.7, flowCr: 1070.0, relativeVolume: 1.64, footprint: 'QUANT ALGO BUY', institution: 'Algorithmic Long System', sector: 'Automobile', dealValueCr: 106.94 },
-      { symbol: 'TRENT', name: 'Trent Ltd.', price: 3017.30, change: 155.40, changePercent: 5.44, volume: 3450000, turnoverCr: 1040.9, flowCr: 1020.0, relativeVolume: 3.56, footprint: 'VOLUME SPIKE EXPANSION', institution: 'Heavy Volume Inflow', sector: 'Retail', dealValueCr: 101.98 },
-      { symbol: 'INFY', name: 'Infosys Ltd.', price: 1850.40, change: 48.20, changePercent: 2.67, volume: 9200000, turnoverCr: 1702.3, flowCr: 960.0, relativeVolume: 2.12, footprint: 'INSTITUTIONAL ACCUMULATION', institution: 'Foreign Inflow', sector: 'IT Services', dealValueCr: 76.24 },
-      { symbol: 'HDFCBANK', name: 'HDFC Bank Ltd.', price: 1740.10, change: 24.50, changePercent: 1.43, volume: 14500000, turnoverCr: 2523.1, flowCr: 880.0, relativeVolume: 1.84, footprint: 'BULK ACCUMULATION', institution: 'DII Inflow', sector: 'Banking', dealValueCr: 90.49 },
-      { symbol: 'RELIANCE', name: 'Reliance Industries', price: 2980.00, change: 41.20, changePercent: 1.40, volume: 7800000, turnoverCr: 2324.4, flowCr: 820.0, relativeVolume: 1.72, footprint: 'INSTITUTIONAL ACCUMULATION', institution: 'Institutional Net Accumulation', sector: 'Energy' }
+      { symbol: 'RELIANCE', name: 'Reliance Industries', price: 1256.00, change: 91.10, changePercent: 7.82, volume: 47250000, turnoverCr: 5934.6, flowCr: 5985.98, relativeVolume: 3.27, footprint: 'VOLUME SPIKE EXPANSION', institution: 'Heavy Volume Inflow', sector: 'Energy' },
+      { symbol: 'SAGILITY', name: 'Sagility Ltd.', price: 42.26, change: 0.18, changePercent: 0.43, volume: 251000000, turnoverCr: 1061.0, flowCr: 1061.02, relativeVolume: 0.10, footprint: 'MEGA BLOCK BUY', institution: 'BNP PARIBAS FINANCIAL MARKETS', sector: 'Healthcare BPO', dealValueCr: 1061.02 },
+      { symbol: 'SWIGGY', name: 'Swiggy Ltd.', price: 180.20, change: 3.60, changePercent: 2.04, volume: 26700000, turnoverCr: 481.3, flowCr: 481.28, relativeVolume: 0.15, footprint: 'MEGA BLOCK BUY', institution: 'SOCIETE GENERALE', sector: 'Consumer Tech', dealValueCr: 481.28 },
+      { symbol: 'ITI', name: 'ITI Ltd.', price: 254.22, change: 38.25, changePercent: 17.72, volume: 15150000, turnoverCr: 385.1, flowCr: 390.56, relativeVolume: 93.91, footprint: 'VOLUME SPIKE EXPANSION', institution: 'Heavy Volume Inflow', sector: 'Telecom' },
+      { symbol: 'DIXON', name: 'Dixon Technologies (India) Ltd.', price: 12340.00, change: 1339.00, changePercent: 12.18, volume: 890000, turnoverCr: 1098.3, flowCr: 1102.50, relativeVolume: 2.62, footprint: 'VOLUME SPIKE EXPANSION', institution: 'Heavy Volume Inflow', sector: 'Electronics' },
+      { symbol: 'MSUMI', name: 'Motherson Sumi Wiring India Ltd.', price: 39.13, change: 3.99, changePercent: 11.35, volume: 114500000, turnoverCr: 448.0, flowCr: 448.03, relativeVolume: 12.38, footprint: 'VOLUME SPIKE EXPANSION', institution: 'Heavy Volume Inflow', sector: 'Auto Ancillary' }
     );
 
     candidateDistributors.push(
-      { symbol: 'SAGILITY', name: 'Sagility Ltd.', price: 42.08, change: -3.02, changePercent: -6.70, volume: 118000000, turnoverCr: 4965.4, flowCr: 4950.0, relativeVolume: 6.75, footprint: 'MEGA BLOCK DUMP', institution: 'SAGILITY B.V.', sector: 'Healthcare BPO', dealValueCr: 428.86 },
-      { symbol: 'SWIGGY', name: 'Swiggy Ltd.', price: 176.60, change: -8.65, changePercent: -4.67, volume: 78000000, turnoverCr: 1377.4, flowCr: 1360.0, relativeVolume: 0.82, footprint: 'MEGA BLOCK DUMP', institution: 'TENCENT CLOUD EUROPE B.V.', sector: 'Consumer Tech', dealValueCr: 136.00 },
-      { symbol: 'SUZLON', name: 'Suzlon Energy Ltd.', price: 33.90, change: -2.88, changePercent: -7.84, volume: 308000000, turnoverCr: 1044.1, flowCr: 1040.0, relativeVolume: 3.10, footprint: 'VOLUME SPIKE DUMP', institution: 'Heavy Distribution Volume', sector: 'Green Energy', dealValueCr: 103.73 },
-      { symbol: 'MARICO', name: 'Marico Ltd.', price: 794.60, change: -5.40, changePercent: -0.68, volume: 4200000, turnoverCr: 333.7, flowCr: 280.0, relativeVolume: 1.45, footprint: 'DAY LOW BREAKDOWN', institution: 'Liquidation Sell Pressure', sector: 'FMCG' }
+      { symbol: 'LATENTVIEW', name: 'Latent View Analytics Ltd.', price: 204.83, change: -5.55, changePercent: -2.64, volume: 2760000, turnoverCr: 56.5, flowCr: 56.68, relativeVolume: 1.10, footprint: 'VOLUME SPIKE DUMP', institution: 'Heavy Distribution Volume', sector: 'IT Analytics' },
+      { symbol: 'POLICYBZR', name: 'PB Fintech Ltd.', price: 935.00, change: -65.10, changePercent: -6.51, volume: 3120000, turnoverCr: 291.8, flowCr: 297.66, relativeVolume: 2.18, footprint: 'VOLUME SPIKE DUMP', institution: 'Heavy Distribution Volume', sector: 'Fintech' },
+      { symbol: 'SYRMA', name: 'Syrma SGS Technology Ltd.', price: 1556.10, change: -69.30, changePercent: -4.26, volume: 1900000, turnoverCr: 296.1, flowCr: 296.90, relativeVolume: 1.88, footprint: 'VOLUME SPIKE DUMP', institution: 'Heavy Distribution Volume', sector: 'Electronics' },
+      { symbol: 'INFY', name: 'Infosys Ltd.', price: 1175.60, change: -9.40, changePercent: -0.79, volume: 23500000, turnoverCr: 2762.7, flowCr: 275.94, relativeVolume: 0.27, footprint: 'CAPITAL WITHDRAWAL', institution: 'Institutional Net Distribution', sector: 'IT Services' },
+      { symbol: 'HDFCBANK', name: 'HDFC Bank', price: 692.25, change: -0.55, changePercent: -0.08, volume: 35400000, turnoverCr: 2450.6, flowCr: 245.40, relativeVolume: 0.28, footprint: 'CAPITAL WITHDRAWAL', institution: 'Institutional Net Distribution', sector: 'Banking' },
+      { symbol: 'IGL', name: 'Indraprastha Gas Ltd.', price: 131.66, change: -9.00, changePercent: -6.41, volume: 4810000, turnoverCr: 63.3, flowCr: 63.40, relativeVolume: 4.91, footprint: 'VOLUME SPIKE DUMP', institution: 'Heavy Distribution Volume', sector: 'Gas & Power' }
     );
   }
 

@@ -95,11 +95,11 @@ export const SmartMoneyTerminal: React.FC<{ stocks?: StockData[] }> = ({ stocks 
   const [activeSubTab, setActiveSubTab] = useState<SubTabMode>('radar');
   const [searchQuery, setSearchQuery] = useState('');
   const [dealFilter, setDealFilter] = useState<'ALL' | 'BUY' | 'SELL' | 'MEGA'>('ALL');
-  const lastComputeTimeRef = useRef<number>(0);
+  const hasServerDataRef = useRef<boolean>(false);
 
-  const fetchFlowData = async () => {
+  const fetchFlowData = async (manual = false) => {
     try {
-      setIsRefreshing(true);
+      if (manual) setIsRefreshing(true);
       const socketUrl = import.meta.env.VITE_SOCKET_URL || '';
       const endpoints = [
         `/api/smart-money/flow`,
@@ -114,6 +114,7 @@ export const SmartMoneyTerminal: React.FC<{ stocks?: StockData[] }> = ({ stocks 
           if (res.ok) {
             const json = await res.json();
             if (json.status === 'success' && json.data && json.data.topAccumulators?.length > 0) {
+              hasServerDataRef.current = true;
               setData(json.data);
               fetched = true;
               break;
@@ -124,36 +125,36 @@ export const SmartMoneyTerminal: React.FC<{ stocks?: StockData[] }> = ({ stocks 
         }
       }
 
-      if (!fetched && stocks && stocks.length > 0) {
+      // ONLY compute client fallback if server has NEVER provided data
+      if (!fetched && !hasServerDataRef.current && stocks && stocks.length > 0) {
         setData(computeClientSmartMoneyFlow(stocks));
       }
     } catch (err) {
       console.error('Failed to load smart money flow from backend:', err);
-      if (stocks && stocks.length > 0) {
+      if (!hasServerDataRef.current && stocks && stocks.length > 0) {
         setData(computeClientSmartMoneyFlow(stocks));
       }
     } finally {
       setLoading(false);
-      setIsRefreshing(false);
+      if (manual) setIsRefreshing(false);
     }
   };
 
-  // Smoothly re-compute client-side whenever live stock ticks arrive (throttled to 2.5s)
+  // Only calculate client fallback if server has NEVER sent data (e.g. initial offline load)
   useEffect(() => {
-    if (stocks && stocks.length > 0) {
-      const now = Date.now();
-      if (now - lastComputeTimeRef.current >= 2500 || !data) {
-        lastComputeTimeRef.current = now;
+    if (!hasServerDataRef.current && (!data || !data.topAccumulators || data.topAccumulators.length === 0)) {
+      if (stocks && stocks.length > 0) {
         setData(computeClientSmartMoneyFlow(stocks));
       }
     }
-  }, [stocks]);
+  }, [stocks, data]);
 
-  // Real-time WebSocket listener for immediate sub-second flow updates
+  // Real-time WebSocket listener for immediate authoritative flow updates from server
   useEffect(() => {
     if (!socket) return;
     const onFlowUpdate = (freshData: SmartMoneyFlowData) => {
-      if (freshData) {
+      if (freshData && freshData.topAccumulators && freshData.topAccumulators.length > 0) {
+        hasServerDataRef.current = true;
         setData(freshData);
         setLoading(false);
       }
@@ -164,12 +165,16 @@ export const SmartMoneyTerminal: React.FC<{ stocks?: StockData[] }> = ({ stocks 
     };
   }, [socket]);
 
-  // Initial fetch and standing fallback polling (every 5 seconds)
+  // Initial fetch on mount; relaxed fallback polling ONLY if socket is disconnected
   useEffect(() => {
-    fetchFlowData();
-    const interval = setInterval(fetchFlowData, 5000);
+    fetchFlowData(false);
+    const interval = setInterval(() => {
+      if (!isConnected) {
+        fetchFlowData(false);
+      }
+    }, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [isConnected]);
 
   const handleStockClick = (symbol: string) => {
     audioAlerts.playHapticClick();
@@ -285,7 +290,7 @@ export const SmartMoneyTerminal: React.FC<{ stocks?: StockData[] }> = ({ stocks 
             className="sm-refresh-btn"
             onClick={() => {
               audioAlerts.playHapticClick();
-              fetchFlowData();
+              fetchFlowData(true);
             }}
             disabled={isRefreshing}
           >
