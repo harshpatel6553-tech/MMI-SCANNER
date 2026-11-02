@@ -59,6 +59,7 @@ export const OptionCandlestickChart: React.FC<OptionCandlestickChartProps> = ({
   // Fetch real historical candles for the specific option contract from backend
   useEffect(() => {
     let isMounted = true;
+    setRealCandles(null); // Clear previous contract candles immediately on strike/type/tf change
     const fetchRealCandles = async () => {
       const endpoints = [
         `/api/fno/option-candles?underlying=${symbol}&strike=${strike}&type=${type}&expiry=${encodeURIComponent(expiry)}&tf=${activeTf}`,
@@ -147,7 +148,7 @@ export const OptionCandlestickChart: React.FC<OptionCandlestickChartProps> = ({
     }
 
     return candles;
-  }, [underlyingCandles, type, ltp, activeTf]);
+  }, [underlyingCandles, type, ltp, activeTf, strike]);
 
   const optionCandles = useMemo<Candle[]>(() => {
     if (realCandles && realCandles.length > 0) {
@@ -179,7 +180,7 @@ export const OptionCandlestickChart: React.FC<OptionCandlestickChartProps> = ({
 
   const displayedOhlc = hoverOhlc || sessionSummary;
 
-  // Mount & manage Lightweight Charts
+  // Mount & manage Lightweight Charts (Created once per option type)
   useEffect(() => {
     if (!containerRef.current) return;
 
@@ -238,33 +239,6 @@ export const OptionCandlestickChart: React.FC<OptionCandlestickChartProps> = ({
     candleSeriesRef.current = candleSeries;
     volumeSeriesRef.current = volumeSeries;
 
-    if (optionCandles.length > 0) {
-      candleSeries.setData(optionCandles.map(c => ({
-        time: c.time,
-        open: c.open,
-        high: c.high,
-        low: c.low,
-        close: c.close,
-      })));
-
-      volumeSeries.setData(optionCandles.map(c => ({
-        time: c.time,
-        value: c.volume || 100,
-        color: c.close >= c.open ? 'rgba(16, 185, 129, 0.25)' : 'rgba(244, 63, 94, 0.25)'
-      })));
-
-      // Add horizontal line at strike / entry
-      ltpPriceLineRef.current = candleSeries.createPriceLine({
-        price: ltp,
-        color: type === 'CE' ? '#f43f5e' : '#06b6d4',
-        lineWidth: 1,
-        lineStyle: LineStyle.Dashed,
-        title: `LTP ₹${ltp.toFixed(2)}`,
-      });
-
-      chart.timeScale().fitContent();
-    }
-
     // Crosshair move listener for live OHLC bar
     chart.subscribeCrosshairMove((param: any) => {
       if (!param || !param.time || !param.seriesData) {
@@ -301,14 +275,36 @@ export const OptionCandlestickChart: React.FC<OptionCandlestickChartProps> = ({
       candleSeriesRef.current = null;
       volumeSeriesRef.current = null;
     };
-  }, [optionCandles, type]);
+  }, [type]);
 
-  // ── Real-time Active Option Candle Tick Streamer ──
+  // Update Candlestick Data when optionCandles or strike updates
+  useEffect(() => {
+    if (!candleSeriesRef.current || !volumeSeriesRef.current || !chartRef.current) return;
+
+    if (optionCandles.length > 0) {
+      candleSeriesRef.current.setData(optionCandles.map(c => ({
+        time: c.time,
+        open: c.open,
+        high: c.high,
+        low: c.low,
+        close: c.close,
+      })));
+
+      volumeSeriesRef.current.setData(optionCandles.map(c => ({
+        time: c.time,
+        value: c.volume || 100,
+        color: c.close >= c.open ? 'rgba(16, 185, 129, 0.25)' : 'rgba(244, 63, 94, 0.25)'
+      })));
+
+      chartRef.current.timeScale().fitContent();
+    }
+  }, [optionCandles, strike]);
+
+  // Real-time Dashed LTP price line & live candle tick
   useEffect(() => {
     if (!candleSeriesRef.current || !ltp || ltp <= 0) return;
     const series = candleSeriesRef.current;
 
-    // 1. Move dashed LTP price line
     if (ltpPriceLineRef.current) {
       try {
         series.removePriceLine(ltpPriceLineRef.current);
@@ -336,7 +332,7 @@ export const OptionCandlestickChart: React.FC<OptionCandlestickChartProps> = ({
         });
       } catch (err) {}
     }
-  }, [ltp, type, optionCandles]);
+  }, [ltp, type, strike, optionCandles]);
 
   const expiryTag = expiry ? expiry.split('-')?.[0] : '';
 
@@ -382,7 +378,7 @@ export const OptionCandlestickChart: React.FC<OptionCandlestickChartProps> = ({
           <span className="tele-item">L <b className="num">{displayedOhlc.l?.toFixed(2)}</b></span>
           <span className="tele-item">C <b className="num">{displayedOhlc.c?.toFixed(2)}</b></span>
           <span className={`tele-item change ${change >= 0 ? 'up' : 'down'}`}>
-            Day {change >= 0 ? '+' : ''}{change} ({pChange >= 0 ? '+' : ''}{pChange}%)
+            Day {change >= 0 ? '+' : ''}{change.toFixed(2)} ({pChange >= 0 ? '+' : ''}{pChange.toFixed(2)}%)
           </span>
           <span className="tele-item muted">
             Vol <b className="num">{displayedOhlc.v && displayedOhlc.v >= 1000000 ? (displayedOhlc.v / 1000000).toFixed(2) + 'M' : displayedOhlc.v && displayedOhlc.v >= 100000 ? (displayedOhlc.v / 100000).toFixed(1) + 'L' : ((volume || 100000) / 100000).toFixed(1) + 'L'}</b>

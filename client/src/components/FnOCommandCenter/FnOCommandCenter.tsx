@@ -202,7 +202,7 @@ export const FnOCommandCenter: React.FC = () => {
     fetchData(selectedSymbol, selectedExpiry);
     const interval = setInterval(() => {
       fetchData(selectedSymbol, selectedExpiry);
-    }, 10000);
+    }, 4000);
     return () => clearInterval(interval);
   }, [selectedSymbol, selectedExpiry]);
 
@@ -281,15 +281,28 @@ export const FnOCommandCenter: React.FC = () => {
     return generated;
   };
 
-  // Active strike for the dual option charts (defaults to 23100 for NIFTY as in VolumeLens, or atmStrike)
+  // Format live session time dynamically from telemetry data
+  const formattedDateStr = useMemo(() => {
+    if (!data?.lastUpdated) return 'Live Session';
+    try {
+      const d = new Date(data.lastUpdated);
+      if (isNaN(d.getTime())) return 'Live Session';
+      const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
+      const day = d.getDate();
+      const month = d.toLocaleDateString('en-US', { month: 'short' });
+      const hours = String(d.getHours()).padStart(2, '0');
+      const minutes = String(d.getMinutes()).padStart(2, '0');
+      return `${dayName} ${day} ${month} ${hours}:${minutes}`;
+    } catch (e) {
+      return 'Live Session';
+    }
+  }, [data?.lastUpdated]);
+
+  // Active strike for the dual option charts (defaults to selectedStrike or ATM strike)
   const activeStrike = useMemo(() => {
     if (selectedStrike) return selectedStrike;
-    if (selectedSymbol === 'NIFTY') {
-      const has23100 = data?.strikes?.some(s => s.strikePrice === 23100);
-      if (has23100) return 23100;
-    }
     return data?.atmStrike || 23050;
-  }, [selectedStrike, selectedSymbol, data]);
+  }, [selectedStrike, data?.atmStrike]);
 
   // Find ATM strike and options
   const atmRow = useMemo(() => {
@@ -357,7 +370,7 @@ export const FnOCommandCenter: React.FC = () => {
     ctx.font = '600 11px system-ui, -apple-system, sans-serif';
     ctx.fillStyle = '#64748b';
     ctx.textAlign = 'right';
-    ctx.fillText(`OI Profile (Lot: ${getLotSize(selectedSymbol)} sh) Fri 30 Oct 15:30`, right, 20);
+    ctx.fillText(`OI Profile (Lot: ${getLotSize(selectedSymbol)} sh) ${formattedDateStr}`, right, 20);
     ctx.restore();
 
     // Max OI among visible strikes for width scaling
@@ -433,7 +446,7 @@ export const FnOCommandCenter: React.FC = () => {
       }
     }
     ctx.restore();
-  }, [data, pinnedStrike, hoveredStrikeRow]);
+  }, [data, pinnedStrike, hoveredStrikeRow, selectedSymbol, formattedDateStr]);
 
   const dragStartRef = useRef<{ x: number; y: number } | null>(null);
   const isDraggingRef = useRef<boolean>(false);
@@ -540,7 +553,7 @@ export const FnOCommandCenter: React.FC = () => {
     requestAnimationFrame(renderOIProfileCanvas);
   }, [renderOIProfileCanvas]);
 
-  // ── Main Chart Lifecycle (Mounts on symbol or timeframe change) ──
+  // ── Main Chart Lifecycle (Mounts once on symbol change) ──
   useEffect(() => {
     if (!mainChartContainerRef.current) return;
 
@@ -606,11 +619,37 @@ export const FnOCommandCenter: React.FC = () => {
     });
     ro.observe(container);
 
-    // Fetch and load candles directly
+    // If candles already exist in state, load them immediately
+    if (underlyingCandles.length > 0) {
+      candleSeries.setData(underlyingCandles.map(c => ({
+        time: c.time,
+        open: c.open,
+        high: c.high,
+        low: c.low,
+        close: c.close,
+      })));
+      chart.timeScale().fitContent();
+      requestAnimationFrame(() => renderOIRef.current());
+    }
+
+    return () => {
+      ro.disconnect();
+      if (mainChartRef.current) {
+        mainChartRef.current.remove();
+        mainChartRef.current = null;
+      }
+      candleSeriesRef.current = null;
+    };
+  }, [selectedSymbol]);
+
+  // Fetch candles when selectedSymbol or timeframe changes
+  useEffect(() => {
+    let isMounted = true;
     fetchIndexCandles(selectedSymbol, timeframe).then(candles => {
+      if (!isMounted) return;
       setUnderlyingCandles(candles);
-      if (candleSeries && candles.length > 0) {
-        candleSeries.setData(candles.map(c => ({
+      if (candleSeriesRef.current && candles.length > 0) {
+        candleSeriesRef.current.setData(candles.map(c => ({
           time: c.time,
           open: c.open,
           high: c.high,
@@ -619,8 +658,12 @@ export const FnOCommandCenter: React.FC = () => {
         })));
 
         const spotVal = data?.spot || candles[candles.length - 1]?.close;
-        if (spotVal) {
-          spotPriceLineRef.current = candleSeries.createPriceLine({
+        if (spotVal && candleSeriesRef.current) {
+          if (spotPriceLineRef.current) {
+            try { candleSeriesRef.current.removePriceLine(spotPriceLineRef.current); } catch (e) {}
+            spotPriceLineRef.current = null;
+          }
+          spotPriceLineRef.current = candleSeriesRef.current.createPriceLine({
             price: spotVal,
             color: '#06b6d4',
             lineWidth: 1,
@@ -630,18 +673,15 @@ export const FnOCommandCenter: React.FC = () => {
           });
         }
 
-        chart.timeScale().fitContent();
+        if (mainChartRef.current) {
+          mainChartRef.current.timeScale().fitContent();
+        }
         requestAnimationFrame(() => renderOIRef.current());
       }
     });
 
     return () => {
-      ro.disconnect();
-      if (mainChartRef.current) {
-        mainChartRef.current.remove();
-        mainChartRef.current = null;
-      }
-      candleSeriesRef.current = null;
+      isMounted = false;
     };
   }, [selectedSymbol, timeframe]);
 
@@ -737,15 +777,6 @@ export const FnOCommandCenter: React.FC = () => {
     return data.alerts.filter(a => a.strike === filterAlertStrike);
   }, [data?.alerts, filterAlertStrike]);
 
-  if (loading && !data) {
-    return (
-      <div className="fno-loading-container">
-        <div className="fno-spinner" />
-        <p>Loading {selectedSymbol} F&O Command Center Telemetry...</p>
-      </div>
-    );
-  }
-
   const spot = data?.spot || 23053.1;
   const likelyRange = data?.likelyRange || { low: 22822, high: 23284, straddlePremium: 231.2 };
   const ceiling = data?.ceiling || { strike: 23500, oi: 15040000, oiChange: 1220000 };
@@ -800,10 +831,17 @@ export const FnOCommandCenter: React.FC = () => {
         </div>
 
         <div className="fno-header-right">
-          <div className="fno-status-tag">
-            <span className="live-dot" />
-            <span>Market Live Telemetry</span>
-          </div>
+          {loading && !data ? (
+            <div className="fno-syncing-pill">
+              <div className="fno-spinner-sm" />
+              <span>Syncing live telemetry...</span>
+            </div>
+          ) : (
+            <div className="fno-status-tag">
+              <span className="live-dot" />
+              <span>Market Live Telemetry</span>
+            </div>
+          )}
 
           <button
             className={`fno-btn-icon ${refreshing ? 'spinning' : ''}`}
@@ -1021,7 +1059,7 @@ export const FnOCommandCenter: React.FC = () => {
                       </div>
                       <span className="flex-1" />
                       <span className="tt-lot-badge font-mono">Lot: {getLotSize(selectedSymbol)} sh</span>
-                      <span className="tt-time-label">as of Fri 30 Oct 15:30</span>
+                      <span className="tt-time-label">as of {formattedDateStr}</span>
                       <button
                         type="button"
                         className="tt-close-btn"
@@ -1274,7 +1312,10 @@ export const FnOCommandCenter: React.FC = () => {
                 <div
                   key={alert.id}
                   className={`alert-card ${(alert.side || '').toUpperCase().includes('RESISTANCE') || alert.side === 'ceiling side' ? 'alert-ceiling' : 'alert-floor'}`}
-                  onClick={() => setFilterAlertStrike(alert.strike)}
+                  onClick={() => {
+                    setFilterAlertStrike(alert.strike);
+                    setSelectedStrike(alert.strike);
+                  }}
                 >
                   <div className="alert-meta">
                     <span className="alert-time">{alert.timeFormatted}</span>
