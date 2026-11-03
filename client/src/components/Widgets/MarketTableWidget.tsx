@@ -170,8 +170,8 @@ export function MarketTableWidget({ fullView = false, watchlistOnly = false }: M
                 <th className="num-col">LTP (₹)</th>
                 <th className="num-col">Net Chg</th>
                 <th className="num-col">Chg %</th>
-                <th className="num-col">Dist Day High</th>
-                <th className="num-col">Dist Day Low</th>
+                <th className="num-col">Day High (₹)</th>
+                <th className="num-col">Day Low (₹)</th>
                 <th className="num-col">Volume Flow</th>
               </tr>
             </thead>
@@ -180,10 +180,11 @@ export function MarketTableWidget({ fullView = false, watchlistOnly = false }: M
                 const up = r.changePercent >= 0;
                 const starred = isWatchlisted(r.symbol);
                 const isNearHigh = r.dayHigh > 0 && (r.price >= r.dayHigh * 0.995);
+                const isNearLow = r.dayLow > 0 && (r.price <= r.dayLow * 1.005);
                 const isVolSurge = r.volume > 500000;
                 
-                const distHighPct = r.dayHigh > 0 ? ((r.dayHigh - r.price) / r.dayHigh) * 100 : 0;
-                const distLowPct = r.dayLow > 0 ? ((r.price - r.dayLow) / r.dayLow) * 100 : 0;
+                const distHighPct = r.dayHigh > 0 ? Math.max(0, ((r.dayHigh - r.price) / r.dayHigh) * 100) : 0;
+                const distLowPct = r.dayLow > 0 ? Math.max(0, ((r.price - r.dayLow) / r.dayLow) * 100) : 0;
 
                 return (
                   <tr 
@@ -220,7 +221,8 @@ export function MarketTableWidget({ fullView = false, watchlistOnly = false }: M
                         <StockLogo symbol={r.symbol} name={r.name} size={26} className="shrink-0" />
                         <span className="sym-ticker-text font-mono" style={{ fontWeight: 800 }}>{r.symbol}</span>
                         {isNearHigh && <LiveSignal type="breakout" label="HIGH" />}
-                        {isVolSurge && !isNearHigh && <LiveSignal type="spike" label="VOL" />}
+                        {isNearLow && <LiveSignal type="breakdown" label="LOW" />}
+                        {isVolSurge && !isNearHigh && !isNearLow && <LiveSignal type="spike" label="VOL" />}
                       </div>
                     </td>
 
@@ -239,37 +241,47 @@ export function MarketTableWidget({ fullView = false, watchlistOnly = false }: M
                     </td>
 
                     <td className="num-col font-mono tabular-nums">
-                      <span 
-                        style={{
-                          display: 'inline-block',
-                          padding: '2px 7px',
-                          borderRadius: 4,
-                          fontSize: 11,
-                          fontWeight: 700,
-                          background: distHighPct <= 0.5 ? 'rgba(0, 214, 163, 0.15)' : 'rgba(255, 255, 255, 0.03)',
-                          color: distHighPct <= 0.5 ? 'var(--up)' : 'var(--text-2)',
-                          border: distHighPct <= 0.5 ? '1px solid rgba(0, 214, 163, 0.3)' : '1px solid transparent'
-                        }}
-                      >
-                        -{distHighPct.toFixed(2)}%
-                      </span>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
+                        <span style={{ fontWeight: 700, color: isNearHigh ? 'var(--up)' : 'var(--text-1)' }}>
+                          ₹{r.dayHigh > 0 ? r.dayHigh.toFixed(2) : r.price.toFixed(2)}
+                        </span>
+                        <span 
+                          style={{
+                            display: 'inline-block',
+                            padding: '1px 6px',
+                            borderRadius: 4,
+                            fontSize: 10,
+                            fontWeight: 700,
+                            background: distHighPct <= 0.25 ? 'rgba(0, 214, 163, 0.18)' : 'rgba(255, 255, 255, 0.03)',
+                            color: distHighPct <= 0.25 ? 'var(--up)' : 'var(--text-3)',
+                            border: distHighPct <= 0.25 ? '1px solid rgba(0, 214, 163, 0.35)' : '1px solid transparent'
+                          }}
+                        >
+                          {distHighPct <= 0.05 ? 'AT HIGH' : `-${distHighPct.toFixed(2)}%`}
+                        </span>
+                      </div>
                     </td>
 
                     <td className="num-col font-mono tabular-nums">
-                      <span 
-                        style={{
-                          display: 'inline-block',
-                          padding: '2px 7px',
-                          borderRadius: 4,
-                          fontSize: 11,
-                          fontWeight: 700,
-                          background: distLowPct <= 0.5 ? 'rgba(255, 66, 104, 0.15)' : 'rgba(255, 255, 255, 0.03)',
-                          color: distLowPct <= 0.5 ? 'var(--down)' : 'var(--text-2)',
-                          border: distLowPct <= 0.5 ? '1px solid rgba(255, 66, 104, 0.3)' : '1px solid transparent'
-                        }}
-                      >
-                        +{distLowPct.toFixed(2)}%
-                      </span>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
+                        <span style={{ fontWeight: 700, color: isNearLow ? 'var(--down)' : 'var(--text-1)' }}>
+                          ₹{r.dayLow > 0 ? r.dayLow.toFixed(2) : r.price.toFixed(2)}
+                        </span>
+                        <span 
+                          style={{
+                            display: 'inline-block',
+                            padding: '1px 6px',
+                            borderRadius: 4,
+                            fontSize: 10,
+                            fontWeight: 700,
+                            background: distLowPct <= 0.25 ? 'rgba(255, 66, 104, 0.18)' : 'rgba(255, 255, 255, 0.03)',
+                            color: distLowPct <= 0.25 ? 'var(--down)' : 'var(--text-3)',
+                            border: distLowPct <= 0.25 ? '1px solid rgba(255, 66, 104, 0.35)' : '1px solid transparent'
+                          }}
+                        >
+                          {distLowPct <= 0.05 ? 'AT LOW' : `+${distLowPct.toFixed(2)}%`}
+                        </span>
+                      </div>
                     </td>
 
                     <td className="num-col font-mono tabular-nums text-cyan-300 font-semibold">{formatVol(r.volume)}</td>

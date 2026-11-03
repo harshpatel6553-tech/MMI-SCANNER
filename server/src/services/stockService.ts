@@ -34,9 +34,16 @@ export class StockService {
     const now = new Date();
     const istDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(now);
     if (this.currentTradingDay !== istDate) {
-      logger.info(`🌅 New trading day detected in StockService (${istDate}). Resetting locked previousClose state.`);
+      logger.info(`🌅 New trading day detected in StockService (${istDate}). Resetting high/low and locked previousClose state.`);
       this.currentTradingDay = istDate;
       this.lockedPrevCloseMap.clear();
+      // Reset dayHigh and dayLow in cache for all stocks so stale past-day values never carry into a new trading day
+      for (const stock of this.stockCache.values()) {
+        stock.dayHigh = stock.price;
+        stock.dayLow = stock.price;
+        stock.atDayHigh = false;
+        stock.atDayLow = false;
+      }
     }
   }
 
@@ -144,14 +151,9 @@ export class StockService {
           const rawHigh = q.regularMarketDayHigh ?? 0;
           const rawLow = q.regularMarketDayLow ?? 0;
 
-          let dayHigh = rawHigh > 0 ? rawHigh : (existing?.dayHigh && existing.dayHigh > 0 ? existing.dayHigh : price);
-          let dayLow = rawLow > 0 ? rawLow : (existing?.dayLow && existing.dayLow > 0 ? existing.dayLow : price);
-
-          if (price > dayHigh) dayHigh = price;
-          if (existing?.dayHigh && existing.dayHigh > dayHigh) dayHigh = existing.dayHigh;
-
-          if (price > 0 && price < dayLow) dayLow = price;
-          if (existing?.dayLow && existing.dayLow > 0 && existing.dayLow < dayLow) dayLow = existing.dayLow;
+          // Always respect today's official exchange session high & low; track live price peaks without stale past-day pollution
+          let dayHigh = rawHigh > 0 ? Math.max(rawHigh, price) : ((existing?.dayHigh && existing.dayHigh > 0) ? Math.max(existing.dayHigh, price) : price);
+          let dayLow = rawLow > 0 ? ((price > 0 && price < rawLow) ? price : rawLow) : ((existing?.dayLow && existing.dayLow > 0) ? (price > 0 ? Math.min(existing.dayLow, price) : existing.dayLow) : price);
 
           const openPrice = q.regularMarketOpen ?? (existing?.open || price);
           const volume = q.regularMarketVolume ?? (existing?.volume || 0);
@@ -161,8 +163,8 @@ export class StockService {
           const changePercent = prevClose > 0 ? Number(((change / prevClose) * 100).toFixed(2)) : 0;
 
           const hasSpread = dayHigh > dayLow && (dayHigh - dayLow) > 0.05;
-          const atDayHigh = hasSpread && price >= dayHigh;
-          const atDayLow = hasSpread && price <= dayLow;
+          const atDayHigh = hasSpread && (price >= dayHigh || (dayHigh > 0 && (dayHigh - price) / dayHigh <= 0.0015));
+          const atDayLow = hasSpread && (price <= dayLow || (dayLow > 0 && (price - dayLow) / dayLow <= 0.0015));
 
           const fullDayAvgVol = q.averageDailyVolume10Day || q.averageDailyVolume3Month || volume || 1;
 
@@ -279,14 +281,9 @@ export class StockService {
           const rawHigh = meta.regularMarketDayHigh ?? 0;
           const rawLow = meta.regularMarketDayLow ?? 0;
 
-          let dayHigh = rawHigh > 0 ? rawHigh : (existing?.dayHigh && existing.dayHigh > 0 ? existing.dayHigh : price);
-          let dayLow = rawLow > 0 ? rawLow : (existing?.dayLow && existing.dayLow > 0 ? existing.dayLow : price);
-
-          if (price > dayHigh) dayHigh = price;
-          if (existing?.dayHigh && existing.dayHigh > dayHigh) dayHigh = existing.dayHigh;
-
-          if (price > 0 && price < dayLow) dayLow = price;
-          if (existing?.dayLow && existing.dayLow > 0 && existing.dayLow < dayLow) dayLow = existing.dayLow;
+          // Always respect today's official exchange session high & low; track live price peaks without stale past-day pollution
+          let dayHigh = rawHigh > 0 ? Math.max(rawHigh, price) : ((existing?.dayHigh && existing.dayHigh > 0) ? Math.max(existing.dayHigh, price) : price);
+          let dayLow = rawLow > 0 ? ((price > 0 && price < rawLow) ? price : rawLow) : ((existing?.dayLow && existing.dayLow > 0) ? (price > 0 ? Math.min(existing.dayLow, price) : existing.dayLow) : price);
           
           let openPrice = meta.regularMarketOpen;
           if (!openPrice) {
@@ -305,8 +302,8 @@ export class StockService {
           const changePercent = prevClose > 0 ? Number(((change / prevClose) * 100).toFixed(2)) : 0;
 
           const hasSpread = dayHigh > dayLow && (dayHigh - dayLow) > 0.05;
-          const atDayHigh = hasSpread && price >= dayHigh;
-          const atDayLow = hasSpread && price <= dayLow;
+          const atDayHigh = hasSpread && (price >= dayHigh || (dayHigh > 0 && (dayHigh - price) / dayHigh <= 0.0015));
+          const atDayLow = hasSpread && (price <= dayLow || (dayLow > 0 && (price - dayLow) / dayLow <= 0.0015));
 
           const fullDayAvgVol = this.averageVolumeMap.get(baseStock.symbol) || volume || 1;
 
@@ -541,14 +538,8 @@ export class StockService {
             const rawHigh: number = (isSensex && bseSensex) ? bseSensex.dayHigh : (meta.regularMarketDayHigh ?? 0);
             const rawLow: number = (isSensex && bseSensex) ? bseSensex.dayLow : (meta.regularMarketDayLow ?? 0);
 
-            let dayHigh = rawHigh > 0 ? rawHigh : (existing?.dayHigh && existing.dayHigh > 0 ? existing.dayHigh : price);
-            let dayLow = rawLow > 0 ? rawLow : (existing?.dayLow && existing.dayLow > 0 ? existing.dayLow : price);
-
-            if (price > dayHigh) dayHigh = price;
-            if (existing?.dayHigh && existing.dayHigh > dayHigh) dayHigh = existing.dayHigh;
-
-            if (price > 0 && price < dayLow) dayLow = price;
-            if (existing?.dayLow && existing.dayLow > 0 && existing.dayLow < dayLow) dayLow = existing.dayLow;
+            let dayHigh = rawHigh > 0 ? Math.max(rawHigh, price) : ((existing?.dayHigh && existing.dayHigh > 0) ? Math.max(existing.dayHigh, price) : price);
+            let dayLow = rawLow > 0 ? ((price > 0 && price < rawLow) ? price : rawLow) : ((existing?.dayLow && existing.dayLow > 0) ? (price > 0 ? Math.min(existing.dayLow, price) : existing.dayLow) : price);
 
             let open: number = (isSensex && bseSensex) ? bseSensex.open : meta.regularMarketOpen;
             if (!open) {
@@ -561,8 +552,8 @@ export class StockService {
             }
 
             const hasSpread = dayHigh > dayLow && (dayHigh - dayLow) > 0.05;
-            const atDayHigh = hasSpread && price >= dayHigh;
-            const atDayLow = hasSpread && price <= dayLow;
+            const atDayHigh = hasSpread && (price >= dayHigh || (dayHigh > 0 && (dayHigh - price) / dayHigh <= 0.0015));
+            const atDayLow = hasSpread && (price <= dayLow || (dayLow > 0 && (price - dayLow) / dayLow <= 0.0015));
 
             const indexData: StockData = {
               symbol: idx.displaySymbol,
@@ -636,14 +627,8 @@ export class StockService {
           const rawHigh = (isSensex && bseSensex) ? bseSensex.dayHigh : (q.regularMarketDayHigh ?? 0);
           const rawLow = (isSensex && bseSensex) ? bseSensex.dayLow : (q.regularMarketDayLow ?? 0);
 
-          let dayHigh = rawHigh > 0 ? rawHigh : (existing?.dayHigh && existing.dayHigh > 0 ? existing.dayHigh : price);
-          let dayLow = rawLow > 0 ? rawLow : (existing?.dayLow && existing.dayLow > 0 ? existing.dayLow : price);
-
-          if (price > dayHigh) dayHigh = price;
-          if (existing?.dayHigh && existing.dayHigh > dayHigh) dayHigh = existing.dayHigh;
-
-          if (price > 0 && price < dayLow) dayLow = price;
-          if (existing?.dayLow && existing.dayLow > 0 && existing.dayLow < dayLow) dayLow = existing.dayLow;
+          let dayHigh = rawHigh > 0 ? Math.max(rawHigh, price) : ((existing?.dayHigh && existing.dayHigh > 0) ? Math.max(existing.dayHigh, price) : price);
+          let dayLow = rawLow > 0 ? ((price > 0 && price < rawLow) ? price : rawLow) : ((existing?.dayLow && existing.dayLow > 0) ? (price > 0 ? Math.min(existing.dayLow, price) : existing.dayLow) : price);
 
           const hasSpread = dayHigh > dayLow && (dayHigh - dayLow) > 0.05;
           const atDayHigh = hasSpread && price >= dayHigh;
