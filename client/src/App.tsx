@@ -23,7 +23,9 @@ import { AdminDashboard } from './components/AdminDashboard/AdminDashboard';
 import { ChartView } from './components/ChartView/ChartView';
 import { FnOCommandCenter } from './components/FnOCommandCenter/FnOCommandCenter';
 
-// Alerts disabled per user request: will be rebuilt from scratch
+import { AlertPanel } from './components/Alerts/AlertPanel';
+import { AlertToast } from './components/Alerts/AlertToast';
+import { useAlerts } from './hooks/useAlerts';
 import { FundamentalsModal } from './components/FundamentalsModal/FundamentalsModal';
 import { AnnouncementModal } from './components/Announcement/AnnouncementModal';
 import { useStocks } from './hooks/useStocks';
@@ -162,7 +164,7 @@ function AppContent() {
     index: 'ALL', priceMin: 0, priceMax: 0, volumeMin: 0, search: searchQuery
   }, 'volume', 'desc');
 
-  // Alerts hook temporarily disabled per user request
+  const { toasts, alertHistory, dismissToast, clearAll } = useAlerts(allStocks);
 
   const advancers = allStocks.filter(s => s.change >= 0).length;
   const decliners = allStocks.length - advancers;
@@ -180,7 +182,7 @@ function AppContent() {
 
       <Sidebar />
       <div className="main">
-        <Topbar allStocks={allStocks} />
+        <Topbar allStocks={allStocks} alertCount={alertHistory.length} />
 
         <div className="content" style={activeTab === 'Charts' ? { padding: 0, overflow: 'hidden', height: '100%' } : {}}>
           {activeTab !== 'Charts' && (() => {
@@ -250,8 +252,10 @@ function AppContent() {
         </div>
       </div>
 
-      {/* Alert Overlay Components (Disabled per user request) */}
+      {/* Alert Overlay Components: Pop-up toasts + Radar Alert Drawer */}
+      <AlertPanel alerts={alertHistory} onClearAll={clearAll} />
       <FundamentalsModal stocks={allStocks} />
+      <AlertToast toasts={toasts} onDismiss={dismissToast} />
 
       {/* Floating Customize Button */}
       <div

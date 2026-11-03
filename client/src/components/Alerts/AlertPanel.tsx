@@ -206,30 +206,11 @@ export function AlertPanel({ alerts, onClearAll }: AlertPanelProps) {
               </button>
               
               <button 
-                className={`filter-chip fno-chip ${filter === 'FNO' ? 'active' : ''}`} 
-                onClick={() => { audioAlerts.playHapticClick(); setFilter('FNO'); }}
-                style={{ borderColor: filter === 'FNO' ? 'var(--cyan)' : undefined }}
-              >
-                <CyberIcon name="overview" size={13} active={filter === 'FNO'} />
-                <span>F&O BIG MONEY</span>
-                <span className="chip-cnt" style={{ background: 'rgba(40, 207, 255, 0.2)', color: 'var(--cyan)' }}>{counts.FNO}</span>
-              </button>
-              
-              <button 
-                className={`filter-chip indices-chip ${filter === 'INDICES' ? 'active' : ''}`} 
-                onClick={() => { audioAlerts.playHapticClick(); setFilter('INDICES'); }}
-              >
-                <CyberIcon name="sectors" size={13} active={filter === 'INDICES'} />
-                <span>INDICES</span>
-                <span className="chip-cnt">{counts.INDICES}</span>
-              </button>
-              
-              <button 
                 className={`filter-chip high-chip ${filter === 'HIGH' ? 'active' : ''}`} 
                 onClick={() => { audioAlerts.playHapticClick(); setFilter('HIGH'); }}
               >
                 <CyberIcon name="pulse_up" size={13} active={filter === 'HIGH'} />
-                <span>HIGHS</span>
+                <span>DAY HIGHS</span>
                 <span className="chip-cnt">{counts.HIGH}</span>
               </button>
               
@@ -238,8 +219,27 @@ export function AlertPanel({ alerts, onClearAll }: AlertPanelProps) {
                 onClick={() => { audioAlerts.playHapticClick(); setFilter('LOW'); }}
               >
                 <CyberIcon name="pulse_down" size={13} active={filter === 'LOW'} />
-                <span>LOWS</span>
+                <span>DAY LOWS</span>
                 <span className="chip-cnt">{counts.LOW}</span>
+              </button>
+
+              <button 
+                className={`filter-chip indices-chip ${filter === 'INDICES' ? 'active' : ''}`} 
+                onClick={() => { audioAlerts.playHapticClick(); setFilter('INDICES'); }}
+              >
+                <CyberIcon name="sectors" size={13} active={filter === 'INDICES'} />
+                <span>INDICES</span>
+                <span className="chip-cnt">{counts.INDICES}</span>
+              </button>
+
+              <button 
+                className={`filter-chip fno-chip ${filter === 'FNO' ? 'active' : ''}`} 
+                onClick={() => { audioAlerts.playHapticClick(); setFilter('FNO'); }}
+                style={{ borderColor: filter === 'FNO' ? 'var(--cyan)' : undefined }}
+              >
+                <CyberIcon name="overview" size={13} active={filter === 'FNO'} />
+                <span>F&O BIG MONEY</span>
+                <span className="chip-cnt" style={{ background: 'rgba(40, 207, 255, 0.2)', color: 'var(--cyan)' }}>{counts.FNO}</span>
               </button>
               
               <button 

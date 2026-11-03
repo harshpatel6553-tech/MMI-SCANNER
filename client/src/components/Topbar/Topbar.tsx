@@ -4,7 +4,7 @@ import { CommandSearch } from './CommandSearch';
 import { HeaderIndices } from './HeaderIndices';
 import { useIndices } from '../../hooks/useIndices';
 import type { StockData } from '../../types';
-import { ArrowRight, Volume2, VolumeX } from 'lucide-react';
+import { ArrowRight, Volume2, VolumeX, Bell } from 'lucide-react';
 import { isMarketOpen } from '../../utils/marketHours';
 import { audioAlerts } from '../../utils/audioAlerts';
 import { CyberIcon } from '../common/CyberIcon';
@@ -154,7 +154,39 @@ export function Topbar({ allStocks, alertCount }: TopbarProps) {
           )}
         </div>
 
-        {/* Live Alerts Drawer Button removed per user request */}
+        {/* Live Alerts Drawer Button */}
+        <div 
+          className="icon-btn"
+          onClick={() => {
+            audioAlerts.playHapticClick();
+            setIsAlertPanelOpen(!isAlertPanelOpen);
+          }}
+          title="Toggle Radar Alerts Drawer"
+          style={{ cursor: 'pointer', position: 'relative' }}
+        >
+          {alertCount !== undefined && alertCount > 0 && (
+            <span style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              fontSize: '10px', 
+              minWidth: '17px', 
+              height: '17px', 
+              padding: '0 4px', 
+              background: 'var(--down)', 
+              color: '#fff', 
+              borderRadius: '9999px', 
+              position: 'absolute', 
+              top: '-4px', 
+              right: '-4px', 
+              fontWeight: '800',
+              boxShadow: '0 0 10px rgba(244, 63, 94, 0.7)'
+            }}>
+              {alertCount > 99 ? '99+' : alertCount}
+            </span>
+          )}
+          <Bell size={16} />
+        </div>
 
       </div>
     </header>
