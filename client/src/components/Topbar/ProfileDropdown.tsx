@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useDashboard } from '../../contexts/DashboardContext';
-import { LogOut, User, ChevronUp, Edit3, Shield } from 'lucide-react';
+import { LogOut, LogIn, User, ChevronUp } from 'lucide-react';
 import './ProfileDropdown.css';
 
 const AVATARS = [
@@ -14,7 +15,8 @@ const AVATARS = [
 ];
 
 export function ProfileDropdown() {
-  const { user, profile, signOut, revokeAdmin } = useAuth();
+  const navigate = useNavigate();
+  const { user, profile, signOut } = useAuth();
   const { setActiveTab } = useDashboard();
   const [isOpen, setIsOpen] = useState(false);
   const [selectedAvatar, setSelectedAvatar] = useState<string | null>(null);
@@ -24,12 +26,6 @@ export function ProfileDropdown() {
   useEffect(() => {
     const saved = localStorage.getItem('mmi-user-avatar');
     if (saved) setSelectedAvatar(saved);
-
-    const handleAvatarChange = (e: any) => {
-      if (e?.detail?.avatar) setSelectedAvatar(e.detail.avatar);
-    };
-    window.addEventListener('mmi:name_changed', handleAvatarChange);
-    return () => window.removeEventListener('mmi:name_changed', handleAvatarChange);
   }, []);
 
   // Close dropdown when clicking outside
@@ -50,27 +46,13 @@ export function ProfileDropdown() {
     } else {
       localStorage.removeItem('mmi-user-avatar');
     }
-    window.dispatchEvent(new CustomEvent('mmi:name_changed', {
-      detail: { avatar: url, name: currentName }
-    }));
   };
-
-  const currentName = localStorage.getItem('mmi_user_name') || user?.email || 'Guest Trader';
 
   const getInitials = () => {
-    if (currentName && currentName !== 'Guest Trader') {
-      const parts = currentName.trim().split(' ');
-      if (parts.length >= 2) {
-        return (parts[0][0] + parts[1][0]).toUpperCase();
-      }
-      return currentName.substring(0, 2).toUpperCase();
+    if (user?.email) {
+      return user.email.substring(0, 2).toUpperCase();
     }
     return 'MM';
-  };
-
-  const handleEditName = () => {
-    setIsOpen(false);
-    window.dispatchEvent(new CustomEvent('mmi:open_name_modal'));
   };
 
   const handleLogout = async () => {
@@ -81,9 +63,16 @@ export function ProfileDropdown() {
       console.error('Logout error:', err);
     } finally {
       setActiveTab('Overview');
-      window.dispatchEvent(new CustomEvent('mmi:open_name_modal'));
+      navigate('/login');
     }
   };
+
+  const handleSignIn = () => {
+    setIsOpen(false);
+    navigate('/login');
+  };
+
+  const username = user?.email ? user.email.split('@')[0] : 'Guest Trader';
 
   return (
     <div className="profile-dropdown-container" ref={dropdownRef}>
@@ -91,25 +80,25 @@ export function ProfileDropdown() {
       <div 
         className={`profile-user-card ${isOpen ? 'is-open' : ''}`}
         onClick={() => setIsOpen(!isOpen)}
-        title={currentName}
+        title={user ? user.email : 'Terminal Open Access'}
       >
         <div className="profile-card-avatar">
           {selectedAvatar ? (
             <img src={selectedAvatar} alt="User Avatar" className="avatar-image" />
           ) : (
             <div className="avatar-initials">
-              {getInitials()}
+              {user ? getInitials() : <User size={16} />}
             </div>
           )}
           <div className="status-indicator online" />
         </div>
 
         <div className="profile-user-info">
-          <div className="profile-user-name" title={currentName}>
-            {currentName}
+          <div className="profile-user-name" title={user?.email || 'Guest Trader'}>
+            {user?.email || 'Guest Trader'}
           </div>
           <div className="profile-user-sub">
-            {profile?.is_admin ? 'Administrator' : 'Active Trader'}
+            {user ? (profile?.is_admin ? 'Administrator' : 'Active Member') : 'Terminal Open Access'}
           </div>
         </div>
 
@@ -129,15 +118,15 @@ export function ProfileDropdown() {
         <div className="profile-dropdown-menu">
           <div className="dropdown-header">
             <div className="dropdown-header-top">
-              <span className="user-email-title" title={currentName}>
-                {currentName}
+              <span className="user-email-title" title={user?.email || 'Active Member'}>
+                {user?.email || 'Active Member'}
               </span>
               <span className={`user-role-badge ${profile?.is_admin ? 'admin' : ''}`}>
-                {profile?.is_admin ? 'ADMIN' : 'TRADER'}
+                {profile?.is_admin ? 'ADMIN' : 'MEMBER'}
               </span>
             </div>
             <p className="user-status">
-              Live Terminal Access · Real-Time Feed
+              Terminal Open Access · Real-Time Feed
             </p>
           </div>
 
@@ -163,31 +152,15 @@ export function ProfileDropdown() {
             </div>
           </div>
 
-          <div className="dropdown-divider"></div>
-
-          <button className="logout-button" onClick={handleEditName} style={{ color: 'var(--text-1)' }}>
-            <Edit3 size={15} />
-            <span>Change Name / Identity</span>
-          </button>
-
-          {profile?.is_admin && (
-            <button
-              className="logout-button"
-              onClick={() => {
-                revokeAdmin();
-                setIsOpen(false);
-              }}
-              style={{ color: '#f59e0b' }}
-            >
-              <Shield size={15} />
-              <span>Exit Admin Mode</span>
-            </button>
+          {user && (
+            <>
+              <div className="dropdown-divider"></div>
+              <button className="logout-button" onClick={handleLogout}>
+                <LogOut size={15} />
+                <span>Log Out</span>
+              </button>
+            </>
           )}
-
-          <button className="logout-button" onClick={handleLogout}>
-            <LogOut size={15} />
-            <span>Switch Trader</span>
-          </button>
         </div>
       )}
     </div>

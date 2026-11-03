@@ -57,43 +57,28 @@ function filterStocksBySubscription(
   return stocks.filter((s) => s.indexName === subscription);
 }
 
-export interface OnlineUser {
-  name: string;
-  email: string;
-  connectedAt: string;
-  avatar?: string;
-  isAdmin?: boolean;
-}
-
-/** Track online users: socketId -> OnlineUser */
-const onlineUsers: Map<string, OnlineUser> = new Map();
+/** Track online users: socketId -> { email, connectedAt } */
+const onlineUsers: Map<string, { email: string; connectedAt: string; avatar?: string }> = new Map();
 
 /** Set of admin socket IDs that should receive live user updates */
 const adminSockets: Set<string> = new Set();
 
-/** Whitelist of authorized administrator identifiers */
+/** Whitelist of authorized administrator emails */
 const ADMIN_EMAILS = new Set([
   'hp4302033@gmail.com',
   'harshpatel6553@gmail.com',
   'dhruvilpatel017@gmail.com',
   'karanpatel.kp16@gmail.com',
   'drakula6553@gmail.com',
-  'harsh',
-  'harsh patel',
-  'admin',
-  'drakula',
-  'dhruvil',
-  'karan',
 ]);
 
 /** Helper: get the deduplicated online user list */
-function getOnlineUserList(): OnlineUser[] {
+function getOnlineUserList(): { email: string; connectedAt: string; avatar?: string }[] {
   const seen = new Set<string>();
-  const result: OnlineUser[] = [];
+  const result: { email: string; connectedAt: string; avatar?: string }[] = [];
   for (const user of onlineUsers.values()) {
-    const key = (user.name || user.email || '').toLowerCase().trim();
-    if (key && !seen.has(key)) {
-      seen.add(key);
+    if (!seen.has(user.email)) {
+      seen.add(user.email);
       result.push(user);
     }
   }
@@ -159,37 +144,38 @@ export function setupSocketHandlers(io: TypedServer): void {
 
     // Handle user identification
     socket.on('auth:identify', (data) => {
-      const displayName = (data?.name || data?.email || 'Trader').trim();
-      const userKey = displayName.toLowerCase();
-      const isVerifiedAdmin =
-        data?.isAdmin === true ||
-        data?.adminKey === 'mmiadmin' ||
-        ADMIN_EMAILS.has(userKey) ||
-        ADMIN_EMAILS.has((data?.email || '').toLowerCase().trim());
+      if (data?.email) {
+        onlineUsers.set(socket.id, {
+          email: data.email,
+          connectedAt: new Date().toISOString(),
+          avatar: data.avatar,
+        });
+        logger.info(`👤 User identified: ${data.email} (${socket.id})`);
 
-      onlineUsers.set(socket.id, {
-        name: displayName,
-        email: displayName,
-        connectedAt: new Date().toISOString(),
-        avatar: data?.avatar,
-        isAdmin: isVerifiedAdmin,
-      });
-      logger.info(`👤 User identified: "${displayName}" (Admin: ${isVerifiedAdmin}) [${socket.id}]`);
+        // If user claims admin, verify against whitelist
+        const userEmail = (data.email || '').toLowerCase().trim();
+        const isVerifiedAdmin = ADMIN_EMAILS.has(userEmail);
 
-      if (isVerifiedAdmin) {
-        adminSockets.add(socket.id);
-        logger.info(`🛡️ Admin socket registered: ${displayName} (${socket.id})`);
+        if (data.isAdmin && isVerifiedAdmin) {
+          adminSockets.add(socket.id);
+          logger.info(`🛡️ Verified admin socket registered: ${userEmail} (${socket.id})`);
+        } else if (data.isAdmin && !isVerifiedAdmin) {
+          logger.warn(`⚠️ Rejected unverified admin privilege claim: ${userEmail} (${socket.id})`);
+        }
+
+        // Notify all admins about the updated user list
+        broadcastOnlineUsersToAdmins(io);
       }
-
-      // Notify all admins about the updated user list
-      broadcastOnlineUsersToAdmins(io);
     });
 
     // Handle admin requesting online users
     socket.on('admin:request-online-users', () => {
-      adminSockets.add(socket.id);
-      const userList = getOnlineUserList();
-      socket.emit('admin:online-users', userList);
+      if (adminSockets.has(socket.id)) {
+        const userList = getOnlineUserList();
+        socket.emit('admin:online-users', userList);
+      } else {
+        logger.warn(`⚠️ Unauthorized online users request from: ${socket.id}`);
+      }
     });
 
     // Handle admin forcing all clients to refresh
@@ -263,7 +249,7 @@ export function setupSocketHandlers(io: TypedServer): void {
       const userData = onlineUsers.get(socket.id);
       onlineUsers.delete(socket.id);
       adminSockets.delete(socket.id);
-      logger.info(`🔌 Client disconnected: ${socket.id}${userData ? ` (${userData.name})` : ''} (${reason})`);
+      logger.info(`🔌 Client disconnected: ${socket.id}${userData ? ` (${userData.email})` : ''} (${reason})`);
 
       // Notify all admins about the updated user list
       broadcastOnlineUsersToAdmins(io);

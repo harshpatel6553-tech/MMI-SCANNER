@@ -1,17 +1,15 @@
-import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { io, type Socket } from 'socket.io-client';
 import { useAuth } from './AuthContext';
 
 interface SocketContextType {
   socket: Socket | null;
   isConnected: boolean;
-  identifyUser: (customName?: string) => void;
 }
 
 const SocketContext = createContext<SocketContextType>({
   socket: null,
   isConnected: false,
-  identifyUser: () => {},
 });
 
 export function SocketProvider({ children }: { children: ReactNode }) {
@@ -48,53 +46,19 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const identifyUser = useCallback((customName?: string) => {
-    if (!socket) return;
-    const userName = (customName || localStorage.getItem('mmi_user_name') || user?.email || 'Guest Trader').trim();
-    const isAdmin =
-      localStorage.getItem('mmi_admin_authorized') === 'true' ||
-      profile?.is_admin ||
-      ['harsh', 'harsh patel', 'admin', 'drakula', 'dhruvil', 'karan'].includes(userName.toLowerCase());
-    const avatar = localStorage.getItem('mmi-user-avatar') || undefined;
-
-    socket.emit('auth:identify', {
-      name: userName,
-      email: userName,
-      isAdmin: !!isAdmin,
-      avatar,
-      adminKey: isAdmin ? 'mmiadmin' : undefined
-    });
-  }, [socket, user?.email, profile?.is_admin]);
-
-  // Identify user on connection or auth change
+  // Separate effect: identify the user whenever auth resolves or changes without tearing down the socket
   useEffect(() => {
-    if (socket && isConnected) {
-      identifyUser();
+    if (socket && isConnected && user?.email) {
+      socket.emit('auth:identify', {
+        email: user.email,
+        isAdmin: profile?.is_admin || false,
+        avatar: localStorage.getItem('mmi-user-avatar') || undefined,
+      });
     }
-  }, [socket, isConnected, identifyUser]);
-
-  // Listen for local name changes or admin authorizations
-  useEffect(() => {
-    const handleNameChange = (e: any) => {
-      const detailName = e?.detail?.name;
-      identifyUser(detailName);
-    };
-
-    const handleAdminAuth = () => {
-      identifyUser();
-    };
-
-    window.addEventListener('mmi:name_changed', handleNameChange);
-    window.addEventListener('mmi:admin_authorized', handleAdminAuth);
-
-    return () => {
-      window.removeEventListener('mmi:name_changed', handleNameChange);
-      window.removeEventListener('mmi:admin_authorized', handleAdminAuth);
-    };
-  }, [identifyUser]);
+  }, [socket, isConnected, user?.email, profile?.is_admin]);
 
   return (
-    <SocketContext.Provider value={{ socket, isConnected, identifyUser }}>
+    <SocketContext.Provider value={{ socket, isConnected }}>
       {children}
     </SocketContext.Provider>
   );
