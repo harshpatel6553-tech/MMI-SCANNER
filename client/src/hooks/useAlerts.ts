@@ -54,7 +54,7 @@ export function useAlerts(stocks?: StockData[]) {
   const toastTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const lastSoundPlayedRef = useRef<Record<string, number>>({});
   
-  // Tracking symbol alert state: symbol -> { lastHighPrice, lastLowPrice, lastHighTime, lastLowTime }
+  // Tracking symbol alert state to avoid repetitive spam while guaranteeing fresh pop-ups
   const symbolAlertState = useRef<Map<string, {
     lastHighPrice?: number;
     lastLowPrice?: number;
@@ -62,8 +62,8 @@ export function useAlerts(stocks?: StockData[]) {
     lastLowTime?: number;
   }>>(new Map());
 
-  // Avoid blasting 50 toasts on the very first render
-  const isInitialScanDone = useRef<boolean>(false);
+  // Set of keys that already toasted in this session
+  const alertedToastKeysRef = useRef<Set<string>>(new Set());
 
   // Request browser desktop notification permission on mount
   useEffect(() => {
@@ -76,9 +76,9 @@ export function useAlerts(stocks?: StockData[]) {
   const triggerLiveAlert = useCallback((alert: StockAlert) => {
     const nowMs = Date.now();
 
-    // 1. Audio Debounce (minimum 600ms between audio alerts)
+    // 1. Audio Debounce (minimum 500ms between audio alerts)
     const lastAudio = lastSoundPlayedRef.current[alert.alertType] || 0;
-    if (nowMs - lastAudio > 600) {
+    if (nowMs - lastAudio > 500) {
       lastSoundPlayedRef.current[alert.alertType] = nowMs;
       if (alert.alertType === 'DAY_HIGH') {
         audioAlerts.playBreakoutChime();
@@ -90,7 +90,7 @@ export function useAlerts(stocks?: StockData[]) {
     }
 
     const isIdx = isIndexSymbol(alert.symbol) || alert.alertType === 'INDEX_MILESTONE';
-    const durationMs = isIdx ? 7500 : 5500;
+    const durationMs = isIdx ? 7500 : 6000;
     const toast: Toast = { ...alert, dismissAt: nowMs + durationMs };
     const toastKey = `${alert.symbol}_${alert.alertType}`;
 
@@ -252,7 +252,10 @@ export function useAlerts(stocks?: StockData[]) {
 
       for (const s of stocks) {
         if (!s || s.price <= 0 || s.dayHigh <= 0 || s.dayLow <= 0) continue;
-        if (s.dayHigh < s.dayLow || s.dayHigh === s.dayLow) continue;
+        if (s.dayHigh <= s.dayLow) continue;
+
+        // CRITICAL: Reject stale quotes from previous month/session (e.g. October 30th quotes)
+        if (s.lastUpdated && s.lastUpdated.includes('2026-10-')) continue;
 
         const spread = s.dayHigh - s.dayLow;
         if (spread <= 0.05) continue;
@@ -260,14 +263,20 @@ export function useAlerts(stocks?: StockData[]) {
         const distHighPct = Math.max(0, ((s.dayHigh - s.price) / s.dayHigh) * 100);
         const distLowPct = Math.max(0, ((s.price - s.dayLow) / s.dayLow) * 100);
 
-        // Strict Day High & Day Low Hit thresholds
+        // ══════════════════════════════════════════════════════════════════════
+        // STRICT POSITIVE/NEGATIVE MOMENTUM FILTER:
+        // - A Day High alert MUST have positive change (changePercent > 0.05% and change > 0).
+        //   Flat stocks like HEG (+0.00%) or down stocks like INFY (-0.21%) are STRICTLY BLOCKED.
+        // - A Day Low alert MUST have negative change (changePercent < -0.05% and change < 0).
+        // ══════════════════════════════════════════════════════════════════════
+        const isGaining = (s.changePercent ?? 0) > 0.05 && (s.change ?? 0) > 0;
+        const isDeclining = (s.changePercent ?? 0) < -0.05 && (s.change ?? 0) < 0;
+
         const isBreakoutHigh = s.price >= s.dayHigh || s.atDayHigh === true;
-        const isNearHigh = distHighPct <= 0.20; // Within 0.20% of High
-        const isDayHighHit = isBreakoutHigh || isNearHigh;
+        const isDayHighHit = isGaining && (isBreakoutHigh || distHighPct <= 0.15);
 
         const isBreakdownLow = s.price <= s.dayLow || s.atDayLow === true;
-        const isNearLow = distLowPct <= 0.20; // Within 0.20% of Low
-        const isDayLowHit = isBreakdownLow || isNearLow;
+        const isDayLowHit = isDeclining && (isBreakdownLow || distLowPct <= 0.15);
 
         // Timestamp hygiene: if stock timestamp is older than 10 mins, stamp with current time
         const quoteTime = s.lastUpdated ? new Date(s.lastUpdated).getTime() : 0;
@@ -276,9 +285,7 @@ export function useAlerts(stocks?: StockData[]) {
 
         const symState = symbolAlertState.current.get(s.symbol) || {};
 
-        // ═══════════════════════════════════════════════════════
-        // 🚀 DAY HIGH ALERT: Panel card + Live Toast Pop-up
-        // ═══════════════════════════════════════════════════════
+        // 🚀 DAY HIGH ALERT: Add to Panel & Pop Up Toast
         if (isDayHighHit) {
           const highKey = `${s.symbol}_DAY_HIGH`;
           const alertObj: StockAlert = {
@@ -296,28 +303,24 @@ export function useAlerts(stocks?: StockData[]) {
           };
           nextMap.set(highKey, alertObj);
 
-          // Pop-up Toast Trigger Condition
-          if (isInitialScanDone.current) {
-            const hasPushedPeak = symState.lastHighPrice === undefined || s.price > symState.lastHighPrice;
-            const cooldownPassed = !symState.lastHighTime || (nowMs - symState.lastHighTime > 60000);
+          // Pop-up Toast Trigger Logic
+          const isFirstTime = !alertedToastKeysRef.current.has(highKey);
+          const hasPushedPeak = symState.lastHighPrice !== undefined && s.price > symState.lastHighPrice;
+          const cooldownPassed = !symState.lastHighTime || (nowMs - symState.lastHighTime > 60000);
 
-            if ((hasPushedPeak && isBreakoutHigh) || (!symState.lastHighTime && isDayHighHit) || (cooldownPassed && isBreakoutHigh)) {
-              triggerLiveAlert({
-                ...alertObj,
-                id: `dh-pop-${s.symbol}-${nowMs}`,
-              });
-              symState.lastHighPrice = s.price;
-              symState.lastHighTime = nowMs;
-            }
-          } else {
-            // Calibrate initial state
+          if (isFirstTime || hasPushedPeak || (cooldownPassed && isBreakoutHigh)) {
+            alertedToastKeysRef.current.add(highKey);
             symState.lastHighPrice = s.price;
+            symState.lastHighTime = nowMs;
+
+            triggerLiveAlert({
+              ...alertObj,
+              id: `dh-pop-${s.symbol}-${nowMs}`,
+            });
           }
         }
 
-        // ═══════════════════════════════════════════════════════
-        // 🔻 DAY LOW ALERT: Panel card + Live Toast Pop-up
-        // ═══════════════════════════════════════════════════════
+        // 🔻 DAY LOW ALERT: Add to Panel & Pop Up Toast
         if (isDayLowHit) {
           const lowKey = `${s.symbol}_DAY_LOW`;
           const alertObj: StockAlert = {
@@ -335,28 +338,24 @@ export function useAlerts(stocks?: StockData[]) {
           };
           nextMap.set(lowKey, alertObj);
 
-          // Pop-up Toast Trigger Condition
-          if (isInitialScanDone.current) {
-            const hasPushedTrough = symState.lastLowPrice === undefined || s.price < symState.lastLowPrice;
-            const cooldownPassed = !symState.lastLowTime || (nowMs - symState.lastLowTime > 60000);
+          // Pop-up Toast Trigger Logic
+          const isFirstTime = !alertedToastKeysRef.current.has(lowKey);
+          const hasPushedTrough = symState.lastLowPrice !== undefined && s.price < symState.lastLowPrice;
+          const cooldownPassed = !symState.lastLowTime || (nowMs - symState.lastLowTime > 60000);
 
-            if ((hasPushedTrough && isBreakdownLow) || (!symState.lastLowTime && isDayLowHit) || (cooldownPassed && isBreakdownLow)) {
-              triggerLiveAlert({
-                ...alertObj,
-                id: `dl-pop-${s.symbol}-${nowMs}`,
-              });
-              symState.lastLowPrice = s.price;
-              symState.lastLowTime = nowMs;
-            }
-          } else {
-            // Calibrate initial state
+          if (isFirstTime || hasPushedTrough || (cooldownPassed && isBreakdownLow)) {
+            alertedToastKeysRef.current.add(lowKey);
             symState.lastLowPrice = s.price;
+            symState.lastLowTime = nowMs;
+
+            triggerLiveAlert({
+              ...alertObj,
+              id: `dl-pop-${s.symbol}-${nowMs}`,
+            });
           }
         }
 
-        // ═══════════════════════════════════════════════════════
         // ⚡ VOLUME SURGE ALERT
-        // ═══════════════════════════════════════════════════════
         if (s.volumeSpike || (s.relativeVolume && s.relativeVolume >= 2.0)) {
           const spikeKey = `${s.symbol}_VOLUME_SPIKE`;
           nextMap.set(spikeKey, {
@@ -373,13 +372,6 @@ export function useAlerts(stocks?: StockData[]) {
         }
 
         symbolAlertState.current.set(s.symbol, symState);
-      }
-
-      // Mark initial calibration completed after scanning the universe once
-      if (!isInitialScanDone.current) {
-        setTimeout(() => {
-          isInitialScanDone.current = true;
-        }, 1200);
       }
 
       return nextMap;

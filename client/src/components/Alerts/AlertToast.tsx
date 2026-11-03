@@ -20,7 +20,13 @@ interface AlertToastProps {
 
 function isIndexSymbol(symbol: string): boolean {
   const s = symbol.toUpperCase();
-  return s.includes('NIFTY') || s.includes('BANKNIFTY') || s.includes('SENSEX') || s.includes('INDIA VIX');
+  return (
+    s.includes('NIFTY') ||
+    s.includes('BANKNIFTY') ||
+    s.includes('SENSEX') ||
+    s.includes('INDIA VIX') ||
+    s.includes('INDEX')
+  );
 }
 
 function getToastLabel(alertType: StockAlert['alertType']): string {
@@ -34,7 +40,7 @@ function getToastLabel(alertType: StockAlert['alertType']): string {
 }
 
 export function AlertToast({ toasts, onDismiss }: AlertToastProps) {
-  const { setActiveTab, setChartSymbol, setSelectedStock } = useDashboard();
+  const { setActiveTab, setChartSymbol, setSelectedStock, isAlertPanelOpen } = useDashboard();
 
   const handleToastClick = (symbol: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -45,7 +51,21 @@ export function AlertToast({ toasts, onDismiss }: AlertToastProps) {
   };
 
   return (
-    <div className="fixed top-[74px] right-[20px] z-[9999] flex flex-col gap-2.5 pointer-events-none w-[360px] max-w-[92vw]">
+    <div 
+      style={{
+        position: 'fixed',
+        top: '74px',
+        right: isAlertPanelOpen ? '460px' : '20px',
+        zIndex: 99999,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '10px',
+        pointerEvents: 'none',
+        width: '360px',
+        maxWidth: '92vw',
+        transition: 'right 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+      }}
+    >
       <AnimatePresence>
         {toasts.slice(0, 3).map(toast => {
           const isHigh = toast.alertType === 'DAY_HIGH';
@@ -114,6 +134,7 @@ export function AlertToast({ toasts, onDismiss }: AlertToastProps) {
                   <button 
                     onClick={(e) => {
                       e.stopPropagation();
+                      audioAlerts.playHapticClick();
                       onDismiss(toast.id);
                     }}
                     className="text-slate-400 hover:text-white p-1 rounded transition-colors"
@@ -140,38 +161,25 @@ export function AlertToast({ toasts, onDismiss }: AlertToastProps) {
                   </div>
                 </div>
 
-                <div className="flex flex-col items-end flex-shrink-0 font-mono tabular-nums">
-                  <span 
-                    className="font-extrabold text-sm"
-                    style={{ color: isHigh ? 'var(--up)' : isLow ? 'var(--down)' : '#fff' }}
-                  >
-                    {formatPrice(toast.price)}
-                  </span>
-                  {toast.changePercent !== undefined && (
-                    <span 
-                      className="text-[10.5px] font-bold"
-                      style={{ color: toast.changePercent >= 0 ? 'var(--up)' : 'var(--down)' }}
-                    >
-                      {toast.changePercent >= 0 ? '+' : '−'}{Math.abs(toast.changePercent).toFixed(2)}%
+                {toast.price > 0 && (
+                  <div className="flex flex-col items-end shrink-0">
+                    <span className="font-mono font-bold text-sm text-white tabular-nums">
+                      {formatPrice(toast.price)}
                     </span>
-                  )}
-                </div>
+                    {toast.changePercent !== undefined && (
+                      <span className={`text-[10px] font-mono font-bold tabular-nums ${toast.changePercent >= 0 ? 'text-[#00D6A3]' : 'text-[#FF4268]'}`}>
+                        {toast.changePercent >= 0 ? '+' : ''}{toast.changePercent.toFixed(2)}%
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
 
-              {/* Hover Cue */}
-              <div className="mt-2 pt-1.5 border-t border-white/5 flex items-center justify-between text-[9.5px] text-slate-400 group-hover:text-cyan-400 transition-colors">
-                <span className="font-mono">INSTANT CHARTS TELEMETRY</span>
+              {/* Subtle hover prompt */}
+              <div className="mt-2.5 pt-2 border-t border-white/5 flex items-center justify-between text-[10px] text-slate-400 group-hover:text-cyan-400 transition-colors">
+                <span className="font-mono">CLICK TO INSPECT REAL-TIME CHART</span>
                 <ExternalLink size={10} />
               </div>
-
-              {/* Auto Dismiss Progress Bar */}
-              <motion.div 
-                initial={{ width: '100%' }}
-                animate={{ width: '0%' }}
-                transition={{ duration: 5, ease: 'linear' }}
-                className="absolute bottom-0 left-0 h-[2.5px] opacity-70"
-                style={{ background: accentColor }}
-              />
             </motion.div>
           );
         })}
