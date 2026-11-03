@@ -579,6 +579,51 @@ a {
     margin-left: 1px;
   }
 
+  .index-chip-hl-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 9.5px;
+    margin-top: 3px;
+    padding-top: 2px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  .chip-hl-item {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 3px;
+  }
+
+  .chip-hl-lbl {
+    font-size: 8.5px;
+    font-weight: 700;
+    color: var(--text-3);
+    opacity: 0.85;
+    text-transform: uppercase;
+  }
+
+  .chip-hl-val {
+    font-size: 9.5px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .chip-hl-val.up {
+    color: var(--up);
+  }
+
+  .chip-hl-val.down {
+    color: var(--down);
+  }
+
+  .chip-hl-divider {
+    color: rgba(255, 255, 255, 0.2);
+    font-size: 9px;
+  }
+
   .search-box{
     flex:none; display:flex; align-items:center; gap:8px;
     background:var(--bg-surface-2); border:1px solid var(--border-soft);

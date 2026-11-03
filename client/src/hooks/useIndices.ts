@@ -18,13 +18,7 @@ export function useIndices(allStocks: StockData[]) {
     let sensexItem: StockData | undefined;
 
     for (const item of items) {
-      // Discard stale data older than 5 minutes
-      if (item.lastUpdated) {
-        const itemTime = new Date(item.lastUpdated).getTime();
-        if (!isNaN(itemTime) && now - itemTime > 300000) {
-          continue;
-        }
-      }
+      if (!item || !item.price || item.price <= 0) continue;
 
       if (item.symbol === 'NIFTY 50' || item.name === 'NIFTY 50') {
         niftyItem = item;

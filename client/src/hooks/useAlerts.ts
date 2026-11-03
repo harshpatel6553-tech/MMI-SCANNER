@@ -58,31 +58,46 @@ export function useAlerts() {
     const fetchAlertHistory = async () => {
       try {
         let alertsData: StockAlert[] = [];
+        const socketUrl = import.meta.env.VITE_SOCKET_URL || 'https://35.226.242.164.sslip.io';
+        const baseUrl = socketUrl.endsWith('/') ? socketUrl.slice(0, -1) : socketUrl;
+
+        // Try relative first if in same domain, then direct baseUrl
+        let fetched = false;
         try {
           const res = await fetch('/api/stocks/alerts?limit=300');
           if (res.ok) {
             const result = await res.json();
             if (result?.success && Array.isArray(result.data)) {
               alertsData = result.data;
+              fetched = true;
             }
           }
         } catch {
-          // Fallback to socketUrl if relative fetch fails
-          const socketUrl = import.meta.env.VITE_SOCKET_URL || '';
-          const baseUrl = socketUrl.endsWith('/') ? socketUrl.slice(0, -1) : socketUrl;
-          if (baseUrl) {
+          // relative failed, will try baseUrl
+        }
+
+        if (!fetched && baseUrl) {
+          try {
             const res = await fetch(`${baseUrl}/api/stocks/alerts?limit=300`);
-            const result = await res.json();
-            if (result?.success && Array.isArray(result.data)) {
-              alertsData = result.data;
+            if (res.ok) {
+              const result = await res.json();
+              if (result?.success && Array.isArray(result.data)) {
+                alertsData = result.data;
+                fetched = true;
+              }
             }
+          } catch (e) {
+            console.error('Remote alert fetch error:', e);
           }
         }
 
         // Also fetch live F&O OI alerts directly
         try {
-          const fnoRes = await fetch('/api/fno/oi-alerts');
-          if (fnoRes.ok) {
+          let fnoRes = await fetch('/api/fno/oi-alerts').catch(() => null);
+          if (!fnoRes || !fnoRes.ok) {
+            fnoRes = await fetch(`${baseUrl}/api/fno/oi-alerts`).catch(() => null);
+          }
+          if (fnoRes && fnoRes.ok) {
             const fnoJson = await fnoRes.json();
             if (fnoJson?.success && Array.isArray(fnoJson.alerts)) {
               const mappedFno: StockAlert[] = fnoJson.alerts.map((a: any) => ({
