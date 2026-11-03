@@ -206,6 +206,20 @@ app.post('/api/admin/force-refresh', authenticateAdmin, (req: Request, res: Resp
   res.json({ success: true, message: 'Refresh command broadcasted to all users.' });
 });
 
+app.post('/api/admin/restart-polling', authenticateAdmin, (req: Request, res: Response) => {
+  isNifty50Polling = false;
+  isNifty500Polling = false;
+  isIndicesPolling = false;
+  lastNifty50PollStart = 0;
+  lastNifty500PollStart = 0;
+  lastIndicesPollStart = 0;
+  logger.info('Admin unlocked and restarted polling loops.');
+  pollIndices(true).catch(() => {});
+  pollNifty50(true).catch(() => {});
+  pollNifty500(true).catch(() => {});
+  res.json({ success: true, message: 'Polling watchdog locks released and new cycle initiated.' });
+});
+
 app.post('/api/admin/broadcast', authenticateAdmin, (req: Request, res: Response) => {
   const { title, message, type } = req.body;
   if (!title || !message) {
