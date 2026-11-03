@@ -89,6 +89,10 @@ export function useAlerts(stocks?: StockData[]) {
         audioAlerts.playBreakdownTone();
       } else if (alert.alertType === 'VOLUME_SPIKE') {
         audioAlerts.playSpikeAlert();
+      } else if (alert.alertType === 'NEWS') {
+        audioAlerts.playSpikeAlert();
+      } else if (alert.alertType === 'FNO_OI') {
+        audioAlerts.playBreakoutChime();
       }
     }
 
@@ -400,7 +404,7 @@ export function useAlerts(stocks?: StockData[]) {
         if (isTrueSpike) {
           const spikeKey = `${s.symbol}_VOLUME_SPIKE`;
           const existingAlert = prevMap.get(spikeKey);
-          nextMap.set(spikeKey, {
+          const alertObj: StockAlert = {
             id: `vs-${s.symbol}`,
             symbol: s.symbol,
             name: s.name,
@@ -410,7 +414,18 @@ export function useAlerts(stocks?: StockData[]) {
             changePercent: s.changePercent,
             details: `Volume Surge: ${(s.relativeVolume || 2).toFixed(1)}x institutional velocity`,
             createdAt: existingAlert?.createdAt || freshTimestamp,
-          });
+          };
+          nextMap.set(spikeKey, alertObj);
+
+          // Pop-up Toast Trigger Logic for Volume Surges
+          const isFirstTime = !alertedToastKeysRef.current.has(spikeKey);
+          if (isFirstTime && (s.relativeVolume ?? 0) >= 2.0) {
+            alertedToastKeysRef.current.add(spikeKey);
+            triggerLiveAlert({
+              ...alertObj,
+              id: `vs-pop-${s.symbol}-${nowMs}`,
+            });
+          }
         }
 
         symbolAlertState.current.set(s.symbol, symState);
