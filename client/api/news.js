@@ -30,6 +30,8 @@ const BLACKLISTED_TITLE_PATTERNS = [
   /brokerage radar/i,
 ];
 
+const fullTweetApiCache = new Map();
+
 function extractFullTweetText(item) {
   let rawDesc = item.description || item['content:encoded'] || '';
   if (typeof rawDesc === 'object' && rawDesc?.__cdata) {
@@ -49,6 +51,7 @@ function extractFullTweetText(item) {
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'")
     .replace(/\s+/g, ' ')
     .trim();
 
@@ -57,14 +60,58 @@ function extractFullTweetText(item) {
     title = title.__cdata;
   }
   title = typeof title === 'string' ? title.trim() : '';
+  title = title
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'")
+    .trim();
+
+  const titleIsTrunc = title.endsWith('…') || title.endsWith('...') || title.endsWith('..');
+  const cleanIsTrunc = clean.endsWith('…') || clean.endsWith('...') || clean.endsWith('..');
 
   if (clean && clean.length > 0) {
-    if (title.length > clean.length && !title.endsWith('…') && !title.endsWith('...')) {
+    if (!cleanIsTrunc) {
+      return clean;
+    }
+    if (!titleIsTrunc && title.length >= clean.length) {
       return title;
     }
-    return clean;
+    return clean.length >= title.length ? clean : title;
   }
   return title;
+}
+
+async function resolveUntruncatedTweetText(username, idStr, currentText) {
+  if (!idStr) return currentText;
+  const cached = fullTweetApiCache.get(idStr);
+  if (cached) return cached;
+
+  try {
+    const res = await fetch(`https://api.fxtwitter.com/${encodeURIComponent(username)}/status/${idStr}`, {
+      headers: { 'User-Agent': 'Mozilla/5.0' },
+      signal: AbortSignal.timeout(3500)
+    });
+    if (res.ok) {
+      const json = await res.json();
+      const full = json?.tweet?.text || json?.tweet?.raw_text?.text;
+      if (full && typeof full === 'string' && full.trim().length > 0) {
+        const cleanFull = full
+          .replace(/https?:\/\/t\.co\/\S+/g, '')
+          .replace(/\s+/g, ' ')
+          .trim();
+        if (cleanFull.length >= currentText.length) {
+          fullTweetApiCache.set(idStr, cleanFull);
+          return cleanFull;
+        }
+      }
+    }
+  } catch {
+    // Return existing text if network fallback fails
+  }
+  return currentText;
 }
 
 function computeQuickSentiment(title) {
@@ -201,11 +248,16 @@ export default async function handler(req, res) {
 
           if (items.length === 0) continue;
 
-          return items.map((item) => {
+          const mapped = await Promise.all(items.map(async (item) => {
             const link = item.link || item.guid || '';
             const idMatch = String(link).match(/status\/(\d+)/);
             const id_str = idMatch ? idMatch[1] : '';
-            const fullText = extractFullTweetText(item);
+            let fullText = extractFullTweetText(item);
+
+            if (id_str && (fullText.endsWith('…') || fullText.endsWith('...') || fullText.endsWith('..'))) {
+              fullText = await resolveUntruncatedTweetText(account, id_str, fullText);
+            }
+
             const pubDate = item.pubDate ? new Date(item.pubDate).toISOString() : new Date().toISOString();
 
             return {
@@ -219,7 +271,9 @@ export default async function handler(req, res) {
               isEarningsResult: earningsRegex.test(fullText),
               isPromoterAction: blockDealRegex.test(fullText)
             };
-          }).filter(t => t.title && t.title.length > 5 && !BLACKLISTED_TITLE_PATTERNS.some(p => p.test(t.title)));
+          }));
+
+          return mapped.filter(t => t.title && t.title.length > 5 && !BLACKLISTED_TITLE_PATTERNS.some(p => p.test(t.title)));
         } catch {
           continue;
         }

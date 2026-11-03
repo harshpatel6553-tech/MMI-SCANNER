@@ -101,6 +101,70 @@ export function StockLogo({ symbol, name, size = 24, className = '', style = {} 
     );
   }
 
+  if (clean.includes('REDBOX') || clean === '@REDBOXINDIA' || clean === 'REDBOXINDIA') {
+    return (
+      <div
+        className={`stock-logo-circle stock-logo-redbox ${className}`}
+        style={{
+          width: size,
+          height: size,
+          minWidth: size,
+          minHeight: size,
+          borderRadius: '50%',
+          background: 'linear-gradient(135deg, #881337 0%, #e11d48 100%)',
+          border: '1.5px solid rgba(244, 63, 94, 0.45)',
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: '#ffffff',
+          fontWeight: 900,
+          fontFamily: "'Space Grotesk', monospace, sans-serif",
+          fontSize: Math.max(9, Math.floor(size * 0.44)),
+          letterSpacing: '-0.02em',
+          flexShrink: 0,
+          boxShadow: '0 2px 6px rgba(225, 29, 72, 0.35)',
+          userSelect: 'none',
+          ...style,
+        }}
+        title="@RedboxIndia Verified News"
+      >
+        RB
+      </div>
+    );
+  }
+
+  if (clean.includes('YATIN') || clean === '@YATINMOTA' || clean === 'YATINMOTA') {
+    return (
+      <div
+        className={`stock-logo-circle stock-logo-yatin ${className}`}
+        style={{
+          width: size,
+          height: size,
+          minWidth: size,
+          minHeight: size,
+          borderRadius: '50%',
+          background: 'linear-gradient(135deg, #0c4a6e 0%, #0284c7 100%)',
+          border: '1.5px solid rgba(56, 189, 248, 0.45)',
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: '#ffffff',
+          fontWeight: 900,
+          fontFamily: "'Space Grotesk', monospace, sans-serif",
+          fontSize: Math.max(9, Math.floor(size * 0.44)),
+          letterSpacing: '-0.02em',
+          flexShrink: 0,
+          boxShadow: '0 2px 6px rgba(2, 132, 199, 0.35)',
+          userSelect: 'none',
+          ...style,
+        }}
+        title="@yatinmota Verified News"
+      >
+        YM
+      </div>
+    );
+  }
+
   // Institutional Index Emblems
   if (clean === 'NIFTY' || clean === 'NIFTY50' || clean === 'NIFTY 50' || clean === '50') {
     return (

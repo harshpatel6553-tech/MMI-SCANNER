@@ -133,10 +133,20 @@ function mergeNewsItem(incoming: NewsItem, existing?: NewsItem): NewsItem {
     };
   }
 
-  // Title: always keep the longer, non-cut title
-  const title = (existing.title && existing.title.length > (incoming.title?.length || 0))
-    ? existing.title
-    : incoming.title;
+  // Title: always keep the untruncated, complete title
+  const incomingTrunc = incoming.title?.endsWith('…') || incoming.title?.endsWith('...') || incoming.title?.endsWith('..');
+  const existingTrunc = existing.title?.endsWith('…') || existing.title?.endsWith('...') || existing.title?.endsWith('..');
+
+  let title = incoming.title;
+  if (existingTrunc && !incomingTrunc) {
+    title = incoming.title;
+  } else if (!existingTrunc && incomingTrunc) {
+    title = existing.title;
+  } else {
+    title = (existing.title && existing.title.length > (incoming.title?.length || 0))
+      ? existing.title
+      : incoming.title;
+  }
 
   // Affected stock chips: combine and deduplicate symbols, strictly excluding source handles!
   const stockSet = new Set<string>();
@@ -208,7 +218,8 @@ export function useNews() {
       // Restore cached full title if available
       let itemToMerge = item;
       const cachedFullTitle = normTitle ? fullTitleCacheRef.current.get(normTitle) : undefined;
-      if (cachedFullTitle && cachedFullTitle.length > (item.title?.length || 0)) {
+      const itemIsTrunc = item.title?.endsWith('…') || item.title?.endsWith('...') || item.title?.endsWith('..');
+      if (cachedFullTitle && (cachedFullTitle.length > (item.title?.length || 0) || (itemIsTrunc && !cachedFullTitle.endsWith('…') && !cachedFullTitle.endsWith('...')))) {
         itemToMerge = { ...item, title: cachedFullTitle };
       }
 

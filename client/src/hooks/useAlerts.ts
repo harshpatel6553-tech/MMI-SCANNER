@@ -65,6 +65,9 @@ export function useAlerts(stocks?: StockData[]) {
   // Set of keys that already toasted in this session
   const alertedToastKeysRef = useRef<Set<string>>(new Set());
 
+  // Permanent timestamp tracking to persist "Clear All" across 5s poll cycles
+  const clearedBeforeTimestampRef = useRef<number>(0);
+
   // Request browser desktop notification permission on mount
   useEffect(() => {
     if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
@@ -206,15 +209,50 @@ export function useAlerts(stocks?: StockData[]) {
           // Ignore F&O fetch errors
         }
 
+        // Also fetch recent breaking news alerts to populate the NEWS tab immediately
+        try {
+          let newsRes = await fetch(`/api/news?_t=${Date.now()}`).catch(() => null);
+          if (!newsRes || !newsRes.ok) {
+            newsRes = await fetch(`${baseUrl}/api/news?_t=${Date.now()}`).catch(() => null);
+          }
+          if (newsRes && newsRes.ok) {
+            const newsJson = await newsRes.json();
+            if (newsJson?.success && Array.isArray(newsJson.data)) {
+              const mappedNews: StockAlert[] = newsJson.data
+                .filter((item: any) => isAllowedNewsSource(item.source))
+                .slice(0, 30)
+                .map((n: any) => ({
+                  id: `news-${n.id}`,
+                  symbol: n.source.startsWith('@') ? n.source : `@${n.source}`,
+                  name: n.title,
+                  alertType: 'NEWS',
+                  price: 0,
+                  details: 'Institutional News Wire',
+                  createdAt: n.pubDate || new Date().toISOString(),
+                }));
+
+              const existingIds = new Set(alertsData.map(a => a.id));
+              mappedNews.forEach(nw => {
+                if (!existingIds.has(nw.id)) {
+                  alertsData.push(nw);
+                }
+              });
+            }
+          }
+        } catch {
+          // Ignore news fetch errors
+        }
+
         if (!isMounted) return;
 
-        // Deduplicate server alerts
+        // Deduplicate server alerts preserving individual F&O strikes and News items
         const dedupedMap = new Map<string, StockAlert>();
         alertsData.forEach(a => {
-          if (a.alertType === 'NEWS') {
-            if (isAllowedNewsSource(a.symbol)) {
-              dedupedMap.set(a.id, a);
-            }
+          if (clearedBeforeTimestampRef.current && new Date(a.createdAt).getTime() <= clearedBeforeTimestampRef.current) {
+            return;
+          }
+          if (a.alertType === 'NEWS' || a.alertType === 'FNO_OI' || a.alertType === 'SMART_MONEY') {
+            dedupedMap.set(a.id, a);
           } else {
             const key = `${a.symbol}_${a.alertType}`;
             const existing = dedupedMap.get(key);
@@ -288,6 +326,7 @@ export function useAlerts(stocks?: StockData[]) {
         // 🚀 DAY HIGH ALERT: Add to Panel & Pop Up Toast
         if (isDayHighHit) {
           const highKey = `${s.symbol}_DAY_HIGH`;
+          const existingAlert = prevMap.get(highKey);
           const alertObj: StockAlert = {
             id: `dh-${s.symbol}`,
             symbol: s.symbol,
@@ -299,7 +338,7 @@ export function useAlerts(stocks?: StockData[]) {
             details: isBreakoutHigh
               ? `Cleared previous Day High · New Session Peak at ₹${s.price.toFixed(2)}`
               : `At Day High Level · Within ${distHighPct.toFixed(2)}% of High (₹${s.dayHigh.toFixed(2)})`,
-            createdAt: freshTimestamp,
+            createdAt: existingAlert?.createdAt || freshTimestamp,
           };
           nextMap.set(highKey, alertObj);
 
@@ -323,6 +362,7 @@ export function useAlerts(stocks?: StockData[]) {
         // 🔻 DAY LOW ALERT: Add to Panel & Pop Up Toast
         if (isDayLowHit) {
           const lowKey = `${s.symbol}_DAY_LOW`;
+          const existingAlert = prevMap.get(lowKey);
           const alertObj: StockAlert = {
             id: `dl-${s.symbol}`,
             symbol: s.symbol,
@@ -334,7 +374,7 @@ export function useAlerts(stocks?: StockData[]) {
             details: isBreakdownLow
               ? `Broke Day Low level · New Session Low at ₹${s.price.toFixed(2)}`
               : `At Day Low Level · Within ${distLowPct.toFixed(2)}% of Low (₹${s.dayLow.toFixed(2)})`,
-            createdAt: freshTimestamp,
+            createdAt: existingAlert?.createdAt || freshTimestamp,
           };
           nextMap.set(lowKey, alertObj);
 
@@ -355,9 +395,11 @@ export function useAlerts(stocks?: StockData[]) {
           }
         }
 
-        // ⚡ VOLUME SURGE ALERT
-        if (s.volumeSpike || (s.relativeVolume && s.relativeVolume >= 2.0)) {
+        // ⚡ VOLUME SURGE ALERT: High velocity flow (Requires >= 1.75x institutional velocity)
+        const isTrueSpike = (s.relativeVolume && s.relativeVolume >= 1.75) || (s.volumeSpike && (s.relativeVolume ?? 1) >= 1.5);
+        if (isTrueSpike) {
           const spikeKey = `${s.symbol}_VOLUME_SPIKE`;
+          const existingAlert = prevMap.get(spikeKey);
           nextMap.set(spikeKey, {
             id: `vs-${s.symbol}`,
             symbol: s.symbol,
@@ -367,7 +409,7 @@ export function useAlerts(stocks?: StockData[]) {
             change: s.change,
             changePercent: s.changePercent,
             details: `Volume Surge: ${(s.relativeVolume || 2).toFixed(1)}x institutional velocity`,
-            createdAt: freshTimestamp,
+            createdAt: existingAlert?.createdAt || freshTimestamp,
           });
         }
 
@@ -420,12 +462,20 @@ export function useAlerts(stocks?: StockData[]) {
 
     // Layer server alerts
     serverAlerts.forEach(a => {
-      const key = a.alertType === 'NEWS' ? a.id : `${a.symbol}_${a.alertType}`;
+      if (clearedBeforeTimestampRef.current && new Date(a.createdAt).getTime() <= clearedBeforeTimestampRef.current) {
+        return;
+      }
+      const key = (a.alertType === 'NEWS' || a.alertType === 'FNO_OI' || a.alertType === 'SMART_MONEY')
+        ? a.id
+        : `${a.symbol}_${a.alertType}`;
       combinedMap.set(key, a);
     });
 
     // Layer active stock & index radar alerts (takes precedence for live Day High / Day Low prices)
     radarAlerts.forEach((a, key) => {
+      if (clearedBeforeTimestampRef.current && new Date(a.createdAt).getTime() <= clearedBeforeTimestampRef.current) {
+        return;
+      }
       combinedMap.set(key, a);
     });
 
@@ -457,6 +507,7 @@ export function useAlerts(stocks?: StockData[]) {
   }, []);
 
   const clearAll = useCallback(() => {
+    clearedBeforeTimestampRef.current = Date.now();
     setServerAlerts([]);
     setRadarAlerts(new Map());
     setToasts([]);

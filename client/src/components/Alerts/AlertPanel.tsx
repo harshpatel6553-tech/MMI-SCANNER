@@ -42,6 +42,12 @@ export function AlertPanel({ alerts, onClearAll }: AlertPanelProps) {
     setTimeout(() => setCopiedId(null), 1500);
   };
 
+  const handleNewsClick = () => {
+    audioAlerts.playHapticClick();
+    setActiveTab('LiveNews');
+    setIsAlertPanelOpen(false);
+  };
+
   const handleCardClick = (sym: string) => {
     audioAlerts.playHapticClick();
     setChartSymbol(sym);
@@ -420,8 +426,8 @@ export function AlertPanel({ alerts, onClearAll }: AlertPanelProps) {
                         exit={{ opacity: 0, x: -16, scale: 0.95 }}
                         transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
                         className={`alert-card ${typeClass}`}
-                        onClick={() => handleCardClick(alert.symbol)}
-                        title="Click to open interactive chart"
+                        onClick={() => isNews ? handleNewsClick() : handleCardClick(alert.symbol)}
+                        title={isNews ? "Click to open Live Breaking News Feed" : "Click to open interactive chart"}
                         style={{ position: 'relative', overflow: 'hidden', flexShrink: 0 }}
                       >
                         <div className="alert-light-streak" />
@@ -440,11 +446,11 @@ export function AlertPanel({ alerts, onClearAll }: AlertPanelProps) {
                           <div className="alert-card-meta">
                             <span className="alert-time tabular-nums">{formatTime(alert.createdAt)}</span>
                             
-                            {/* Quick Copy Ticker Button */}
+                            {/* Quick Copy Ticker or News text Button */}
                             <button 
                               className="btn-quick-copy"
-                              onClick={(e) => handleCopy(alert.symbol, alert.id, e)}
-                              title="Copy symbol to clipboard"
+                              onClick={(e) => handleCopy(isNews ? alert.name : alert.symbol, alert.id, e)}
+                              title={isNews ? "Copy headline" : "Copy symbol to clipboard"}
                             >
                               {copiedId === alert.id ? <Check size={12} color="var(--up)" /> : <Copy size={12} />}
                             </button>
@@ -452,44 +458,65 @@ export function AlertPanel({ alerts, onClearAll }: AlertPanelProps) {
                         </div>
 
                         <div className="alert-bottom">
-                          <div className="alert-ticker-block">
-                            <div className="alert-sym-row">
-                              <span className="alert-sym">{alert.symbol}</span>
-                              <span className="alert-co-name">{alert.name}</span>
-                            </div>
-
-                            <span 
-                              className="alert-details-sub"
-                              style={{ 
-                                fontSize: 11, 
-                                color: isHigh ? 'var(--up)' : isLow ? 'var(--down)' : 'var(--cyan)', 
-                                fontWeight: 600,
-                                marginTop: 2
-                              }}
-                            >
-                              {alert.details || (isHigh ? 'Cleared previous Day High · New Session Peak' : isLow ? 'Broke Day Low level · New Session Low' : 'High-velocity flow alert')}
-                            </span>
-                          </div>
-
                           {isNews ? (
-                            <span className="alert-news" title={alert.name}>{alert.name}</span>
-                          ) : (
-                            <div className="alert-numbers-block">
-                              <span className={`alert-price tabular-nums ${typeClass}`}>
-                                {formatPrice(alert.price)}
-                              </span>
-                              
-                              {alert.change !== undefined && alert.changePercent !== undefined && (
-                                <span className={`chg-badge tabular-nums ${alert.changePercent >= 0 ? 'up' : 'down'}`}>
-                                  {alert.change >= 0 ? '+' : '−'}{Math.abs(alert.change).toFixed(1)} ({alert.changePercent >= 0 ? '+' : '−'}{Math.abs(alert.changePercent).toFixed(2)}%)
+                            <div className="alert-ticker-block" style={{ width: '100%' }}>
+                              <div className="alert-sym-row" style={{ marginBottom: 4 }}>
+                                <span className="alert-sym" style={{ color: 'var(--gold, #F59E0B)' }}>{alert.symbol}</span>
+                                <span className="alert-details-sub" style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: 10, fontWeight: 700 }}>
+                                  INSTITUTIONAL WIRE
                                 </span>
-                              )}
+                              </div>
+                              <div 
+                                style={{ 
+                                  fontSize: 12.5, 
+                                  color: '#F1F5FC', 
+                                  lineHeight: 1.45, 
+                                  fontWeight: 500,
+                                  wordBreak: 'break-word',
+                                  whiteSpace: 'pre-wrap'
+                                }}
+                              >
+                                {alert.name}
+                              </div>
                             </div>
+                          ) : (
+                            <>
+                              <div className="alert-ticker-block">
+                                <div className="alert-sym-row">
+                                  <span className="alert-sym">{alert.symbol}</span>
+                                  <span className="alert-co-name">{alert.name}</span>
+                                </div>
+
+                                <span 
+                                  className="alert-details-sub"
+                                  style={{ 
+                                    fontSize: 11, 
+                                    color: isHigh ? 'var(--up)' : isLow ? 'var(--down)' : 'var(--cyan)', 
+                                    fontWeight: 600,
+                                    marginTop: 2
+                                  }}
+                                >
+                                  {alert.details || (isHigh ? 'Cleared previous Day High · New Session Peak' : isLow ? 'Broke Day Low level · New Session Low' : 'High-velocity flow alert')}
+                                </span>
+                              </div>
+
+                              <div className="alert-numbers-block">
+                                <span className={`alert-price tabular-nums ${typeClass}`}>
+                                  {formatPrice(alert.price)}
+                                </span>
+                                
+                                {alert.change !== undefined && alert.changePercent !== undefined && (
+                                  <span className={`chg-badge tabular-nums ${alert.changePercent >= 0 ? 'up' : 'down'}`}>
+                                    {alert.change >= 0 ? '+' : '−'}{Math.abs(alert.change).toFixed(1)} ({alert.changePercent >= 0 ? '+' : '−'}{Math.abs(alert.changePercent).toFixed(2)}%)
+                                  </span>
+                                )}
+                              </div>
+                            </>
                           )}
                         </div>
 
                         <div className="card-hover-action">
-                          <span>OPEN CHART <ExternalLink size={11} /></span>
+                          <span>{isNews ? 'OPEN LIVE NEWS WIRE' : 'OPEN CHART'} <ExternalLink size={11} /></span>
                         </div>
                       </motion.div>
                     );

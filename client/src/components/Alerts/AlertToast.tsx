@@ -42,12 +42,20 @@ function getToastLabel(alertType: StockAlert['alertType']): string {
 export function AlertToast({ toasts, onDismiss }: AlertToastProps) {
   const { setActiveTab, setChartSymbol, setSelectedStock, isAlertPanelOpen } = useDashboard();
 
-  const handleToastClick = (symbol: string, e: React.MouseEvent) => {
+  const handleToastClick = (toast: Toast, e: React.MouseEvent) => {
     e.stopPropagation();
     audioAlerts.playHapticClick();
-    setChartSymbol(symbol);
-    setSelectedStock(symbol);
-    setActiveTab('Charts');
+    if (toast.alertType === 'NEWS') {
+      setActiveTab('LiveNews');
+    } else if (toast.alertType === 'FNO_OI') {
+      setActiveTab('OptionsLens');
+    } else if (toast.alertType === 'SMART_MONEY') {
+      setActiveTab('Promoter');
+    } else {
+      setChartSymbol(toast.symbol);
+      setSelectedStock(toast.symbol);
+      setActiveTab('Charts');
+    }
   };
 
   return (
@@ -84,7 +92,7 @@ export function AlertToast({ toasts, onDismiss }: AlertToastProps) {
               animate={{ opacity: 1, x: 0, scale: 1 }}
               exit={{ opacity: 0, x: 80, scale: 0.9 }}
               transition={{ type: 'spring', stiffness: 420, damping: 28 }}
-              onClick={(e) => handleToastClick(toast.symbol, e)}
+              onClick={(e) => handleToastClick(toast, e)}
               className="relative overflow-hidden pointer-events-auto p-3.5 rounded-xl border bg-[#0B1220]/95 backdrop-blur-2xl cursor-pointer group shadow-[0_16px_36px_-10px_rgba(0,0,0,0.85)]"
               style={{
                 borderLeft: `4px solid ${accentColor}`,
@@ -177,7 +185,15 @@ export function AlertToast({ toasts, onDismiss }: AlertToastProps) {
 
               {/* Subtle hover prompt */}
               <div className="mt-2.5 pt-2 border-t border-white/5 flex items-center justify-between text-[10px] text-slate-400 group-hover:text-cyan-400 transition-colors">
-                <span className="font-mono">CLICK TO INSPECT REAL-TIME CHART</span>
+                <span className="font-mono">
+                  {toast.alertType === 'NEWS'
+                    ? 'CLICK TO VIEW LIVE NEWS FEED'
+                    : toast.alertType === 'FNO_OI'
+                    ? 'CLICK TO INSPECT F&O OPTIONS LENS'
+                    : toast.alertType === 'SMART_MONEY'
+                    ? 'CLICK TO INSPECT SMART MONEY RADAR'
+                    : 'CLICK TO INSPECT REAL-TIME CHART'}
+                </span>
                 <ExternalLink size={10} />
               </div>
             </motion.div>

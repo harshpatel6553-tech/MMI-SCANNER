@@ -31,6 +31,7 @@ class TwitterService {
   }
 
   private tweetCache = new Map<string, { data: any; timestamp: number }>();
+  private fullTweetApiCache = new Map<string, string>(); // Caches id_str -> full untruncated text
   private idCache = new Map<string, string>([
     ['RedboxIndia', '1092883822473924608'],
     ['yatinmota', '1933369219']
@@ -38,7 +39,10 @@ class TwitterService {
   private readonly CACHE_TTL_MS = 0; // Caching disabled: always fetch fresh data 
 
   private extractFullTweetText(item: any): string {
-    let rawDesc = item.description || '';
+    let rawDesc = item.description || item['content:encoded'] || '';
+    if (typeof rawDesc === 'object' && (rawDesc as any)?.__cdata) {
+      rawDesc = (rawDesc as any).__cdata;
+    }
     if (typeof rawDesc !== 'string') rawDesc = String(rawDesc || '');
 
     // Strip HTML and clean entities from RSS description to get untruncated tweet text
@@ -53,18 +57,75 @@ class TwitterService {
       .replace(/&gt;/g, '>')
       .replace(/&quot;/g, '"')
       .replace(/&#39;/g, "'")
+      .replace(/&apos;/g, "'")
       .replace(/\s+/g, ' ')
       .trim();
 
-    const title = typeof item.title === 'string' ? item.title.trim() : '';
+    let title = typeof item.title === 'string' ? item.title.trim() : '';
+    if (typeof item.title === 'object' && (item.title as any)?.__cdata) {
+      title = String((item.title as any).__cdata).trim();
+    }
+    title = title
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&apos;/g, "'")
+      .trim();
+
+    const titleIsTrunc = title.endsWith('…') || title.endsWith('...') || title.endsWith('..');
+    const cleanIsTrunc = clean.endsWith('…') || clean.endsWith('...') || clean.endsWith('..');
+
     // If clean description is available, it has the untruncated full tweet text
     if (clean && clean.length > 0) {
-      if (title.length > clean.length && !title.endsWith('…') && !title.endsWith('...')) {
+      if (!cleanIsTrunc) {
+        return clean;
+      }
+      if (!titleIsTrunc && title.length >= clean.length) {
         return title;
       }
-      return clean;
+      return clean.length >= title.length ? clean : title;
     }
     return title;
+  }
+
+  /**
+   * Fetches the complete, 100% untruncated tweet text for long / note-tweets
+   */
+  private async resolveUntruncatedTweetText(username: string, idStr: string, currentText: string): Promise<string> {
+    if (!idStr) return currentText;
+    const cached = this.fullTweetApiCache.get(idStr);
+    if (cached) return cached;
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3500);
+      const res = await fetch(`https://api.fxtwitter.com/${encodeURIComponent(username)}/status/${idStr}`, {
+        headers: { 'User-Agent': 'Mozilla/5.0' },
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+
+      if (res.ok) {
+        const json = await res.json();
+        const full = json?.tweet?.text || json?.tweet?.raw_text?.text;
+        if (full && typeof full === 'string' && full.trim().length > 0) {
+          const cleanFull = full
+            .replace(/https?:\/\/t\.co\/\S+/g, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+          if (cleanFull.length >= currentText.length) {
+            this.fullTweetApiCache.set(idStr, cleanFull);
+            return cleanFull;
+          }
+        }
+      }
+    } catch {
+      // Return existing text if network fallback fails
+    }
+
+    return currentText;
   }
 
   /**
@@ -114,11 +175,17 @@ class TwitterService {
           continue;
         }
 
-        const tweets = items.map((item: any) => {
+        const mappedTweets = await Promise.all(items.map(async (item: any) => {
           const link = item.link || item.guid || '';
           const idMatch = String(link).match(/status\/(\d+)/);
           const id_str = idMatch ? idMatch[1] : '';
-          const text = this.extractFullTweetText(item);
+          let text = this.extractFullTweetText(item);
+
+          // If text is truncated with ellipsis or dots, automatically resolve the 100% full text
+          if (id_str && (text.endsWith('…') || text.endsWith('...') || text.endsWith('..'))) {
+            text = await this.resolveUntruncatedTweetText(username, id_str, text);
+          }
+
           return {
             id: id_str,
             id_str: id_str,
@@ -128,7 +195,9 @@ class TwitterService {
             link: link,
             _sourceAccount: username
           };
-        }).filter((t: any) => t.full_text && t.full_text.length > 0);
+        }));
+
+        const tweets = mappedTweets.filter((t: any) => t.full_text && t.full_text.length > 0);
 
         if (tweets.length > 0) {
           const result = { tweets };
