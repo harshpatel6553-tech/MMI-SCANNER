@@ -172,19 +172,22 @@ export function Sidebar() {
           </div>
         </div>
 
-        {profile?.is_admin && (
-          <div className="nav-group">
-            <div className="nav-label">Terminal System</div>
-            
-            <div 
-              className={`nav-item ${activeTab === 'Admin' ? 'active' : ''}`} 
-              onClick={() => handleTabChange('Admin')}
-            >
-              <CyberIcon name="admin" size={20} active={activeTab === 'Admin'} />
-              <span>Admin Console</span>
-            </div>
+        <div className="nav-group">
+          <div className="nav-label">Terminal System</div>
+          
+          <div 
+            className={`nav-item ${activeTab === 'Admin' ? 'active' : ''}`} 
+            onClick={() => handleTabChange('Admin')}
+          >
+            <CyberIcon name="admin" size={20} active={activeTab === 'Admin'} />
+            <span>Admin Console</span>
+            {profile?.is_admin && (
+              <span style={{ marginLeft: 'auto', fontSize: 9, fontWeight: 800, padding: '1px 5px', borderRadius: 4, background: 'rgba(0, 245, 155, 0.15)', color: 'var(--up)' }}>
+                ADMIN
+              </span>
+            )}
           </div>
-        )}
+        </div>
       </div>
 
       {/* Footer User Profile */}

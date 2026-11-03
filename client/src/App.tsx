@@ -30,9 +30,7 @@ import { AnnouncementModal } from './components/Announcement/AnnouncementModal';
 import { useAlerts } from './hooks/useAlerts';
 import { useStocks } from './hooks/useStocks';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import { Login } from './components/Login/Login';
-import { Paywall } from './components/Paywall/Paywall';
-import { MaintenanceCountdown, TARGET_LAUNCH_TIME } from './components/Maintenance/MaintenanceCountdown';
+import { NameEntryModal } from './components/common/NameEntryModal';
 import { AnimatedBackground } from './components/AnimatedBackground/AnimatedBackground';
 
 
@@ -319,85 +317,36 @@ function AppContent() {
   );
 }
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading, isTrialExpired } = useAuth();
-
-  if (loading) {
-    return (
-      <div style={{
-        display: 'flex',
-        height: '100vh',
-        width: '100vw',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: '#04060c',
-        color: '#00f59b',
-        fontFamily: 'monospace',
-        fontSize: '14px',
-        letterSpacing: '0.1em'
-      }}>
-        INITIALIZING TERMINAL...
-      </div>
-    );
-  }
-
-  // Strictly block unauthenticated visitors - redirect directly to login
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-
-  // Check trial expiration
-  if (isTrialExpired) {
-    return <Paywall />;
-  }
-
-  return <>{children}</>;
-}
-
-function MaintenanceGate({ children }: { children: React.ReactNode }) {
-  const [isUnlocked, setIsUnlocked] = useState(() => {
-    return Date.now() >= TARGET_LAUNCH_TIME;
-  });
-
-  // Strict Total Lockdown: NOT EVEN ADMIN IS PERMITTED IN UNTIL 09:18 AM IST
-  if (!isUnlocked) {
-    return <MaintenanceCountdown onUnlock={() => setIsUnlocked(true)} />;
-  }
-
-  return <>{children}</>;
-}
-
 export default function App() {
   return (
-    <SocketProvider>
-      <AuthProvider>
+    <AuthProvider>
+      <SocketProvider>
         <DashboardProvider>
           <AnnouncementModal />
-          <MaintenanceGate>
-            <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route path="/paywall" element={<Paywall />} />
-              <Route path="/overview" element={<Navigate to="/" replace />} />
-              <Route path="/" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
-              <Route path="/table" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
-              <Route path="/heatmap" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
-              <Route path="/sectors" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
-              <Route path="/charts" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
-              <Route path="/options-lens" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
-              <Route path="/fno" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
-              <Route path="/technical" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
-              <Route path="/watchlist" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
-              <Route path="/news" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
-              <Route path="/results" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
-              <Route path="/promoter" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
-              <Route path="/papertrading" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
-              <Route path="/admin" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </MaintenanceGate>
+          <NameEntryModal />
+          <Routes>
+            <Route path="/login" element={<Navigate to="/" replace />} />
+            <Route path="/paywall" element={<Navigate to="/" replace />} />
+            <Route path="/overview" element={<Navigate to="/" replace />} />
+            <Route path="/" element={<AppContent />} />
+            <Route path="/table" element={<AppContent />} />
+            <Route path="/heatmap" element={<AppContent />} />
+            <Route path="/sectors" element={<AppContent />} />
+            <Route path="/charts" element={<AppContent />} />
+            <Route path="/options-lens" element={<AppContent />} />
+            <Route path="/fno" element={<AppContent />} />
+            <Route path="/technical" element={<AppContent />} />
+            <Route path="/watchlist" element={<AppContent />} />
+            <Route path="/news" element={<AppContent />} />
+            <Route path="/results" element={<AppContent />} />
+            <Route path="/promoter" element={<AppContent />} />
+            <Route path="/papertrading" element={<AppContent />} />
+            <Route path="/admin" element={<AppContent />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
         </DashboardProvider>
-      </AuthProvider>
-    </SocketProvider>
+      </SocketProvider>
+    </AuthProvider>
   );
 }
 

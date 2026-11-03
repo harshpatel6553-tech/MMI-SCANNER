@@ -18,13 +18,23 @@ type FilterState = {
   status: string;
 };
 
+interface OnlineUser {
+  name?: string;
+  email: string;
+  connectedAt: string;
+  avatar?: string;
+  isAdmin?: boolean;
+}
+
 export function AdminDashboard() {
   const navigate = useNavigate();
-  const { user, profile, signOut } = useAuth();
+  const { user, profile, signOut, authorizeAdmin } = useAuth();
   const { setActiveTab } = useDashboard();
   const [users, setUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
-  const [onlineUsers, setOnlineUsers] = useState<{ email: string; connectedAt: string; avatar?: string }[]>([]);
+  const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
+  const [adminPasskey, setAdminPasskey] = useState('');
+  const [passkeyError, setPasskeyError] = useState<string | null>(null);
   const { socket } = useSocketContext();
   
   const [filters, setFilters] = useState<FilterState>({ email: '', status: 'all' });
@@ -44,12 +54,21 @@ export function AdminDashboard() {
   }, [profile?.is_admin]);
 
   useEffect(() => {
-    if (!socket || !profile?.is_admin) return;
-    socket.emit('admin:request-online-users');
-    socket.on('admin:online-users', (users: { email: string; connectedAt: string; avatar?: string }[]) => {
+    if (!socket) return;
+    if (profile?.is_admin) {
+      socket.emit('auth:identify', {
+        name: localStorage.getItem('mmi_user_name') || 'Admin',
+        email: localStorage.getItem('mmi_user_name') || 'Admin',
+        isAdmin: true,
+        adminKey: 'mmiadmin'
+      });
+      socket.emit('admin:request-online-users');
+    }
+    const handleOnlineUsers = (users: OnlineUser[]) => {
       setOnlineUsers(users);
-    });
-    return () => { socket.off('admin:online-users'); };
+    };
+    socket.on('admin:online-users', handleOnlineUsers);
+    return () => { socket.off('admin:online-users', handleOnlineUsers); };
   }, [socket, profile?.is_admin]);
 
   const fetchUsers = async () => {
@@ -67,19 +86,74 @@ export function AdminDashboard() {
   if (!profile?.is_admin) {
     return (
       <div className="admin-container" style={{ padding: '60px 20px', textAlign: 'center' }}>
-        <div style={{ maxWidth: 520, margin: '0 auto', background: 'rgba(239, 68, 68, 0.06)', border: '1px solid rgba(239, 68, 68, 0.25)', borderRadius: 16, padding: '40px 24px' }}>
-          <div style={{ fontSize: '3rem', marginBottom: 16 }}>🛡️</div>
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 700, color: '#ef4444', marginBottom: 10 }}>Administrative Access Restricted</h2>
-          <p style={{ color: 'var(--text-muted, #94a3b8)', fontSize: '0.9rem', lineHeight: 1.6, marginBottom: 24 }}>
-            You do not have administrative credentials to view or manage user accounts and system telemetry.
+        <div style={{ maxWidth: 440, margin: '0 auto', background: '#090e17', border: '1px solid rgba(0, 245, 155, 0.3)', borderRadius: 20, padding: '36px 28px', boxShadow: '0 20px 40px rgba(0,0,0,0.7)' }}>
+          <div style={{ fontSize: '2.5rem', marginBottom: 12 }}>🛡️</div>
+          <h2 style={{ fontSize: '1.3rem', fontWeight: 800, color: '#ffffff', marginBottom: 8, letterSpacing: '-0.02em' }}>Admin Console Verification</h2>
+          <p style={{ color: 'var(--text-muted, #94a3b8)', fontSize: '0.88rem', lineHeight: 1.5, marginBottom: 22 }}>
+            Enter your administrative passkey to inspect live active traders, connected sessions, and system telemetry.
           </p>
-          <button 
-            className="beast-btn"
-            style={{ padding: '10px 24px', borderRadius: 8, cursor: 'pointer' }}
-            onClick={() => setActiveTab('Overview')}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              const ok = authorizeAdmin(adminPasskey);
+              if (ok) {
+                setPasskeyError(null);
+                if (socket) {
+                  socket.emit('auth:identify', {
+                    name: localStorage.getItem('mmi_user_name') || 'Admin',
+                    email: localStorage.getItem('mmi_user_name') || 'Admin',
+                    isAdmin: true,
+                    adminKey: 'mmiadmin'
+                  });
+                  socket.emit('admin:request-online-users');
+                }
+              } else {
+                setPasskeyError('Invalid admin passkey. Please check credentials.');
+              }
+            }}
+            style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
           >
-            Return to Dashboard
-          </button>
+            <input
+              type="password"
+              placeholder="Enter Admin Passkey..."
+              value={adminPasskey}
+              onChange={(e) => {
+                setAdminPasskey(e.target.value);
+                if (passkeyError) setPasskeyError(null);
+              }}
+              autoFocus
+              style={{
+                width: '100%',
+                background: '#0d1522',
+                border: '1px solid rgba(255,255,255,0.15)',
+                borderRadius: 12,
+                padding: '12px 16px',
+                color: '#fff',
+                fontSize: 14,
+                outline: 'none'
+              }}
+            />
+            {passkeyError && (
+              <span style={{ fontSize: 12, color: '#ef4444', textAlign: 'left', fontWeight: 600 }}>{passkeyError}</span>
+            )}
+            <div style={{ display: 'flex', gap: 10, marginTop: 6 }}>
+              <button
+                type="button"
+                className="beast-btn"
+                style={{ flex: 1, padding: '12px', borderRadius: 10 }}
+                onClick={() => setActiveTab('Overview')}
+              >
+                Back to Dashboard
+              </button>
+              <button
+                type="submit"
+                className="beast-btn"
+                style={{ flex: 1, padding: '12px', borderRadius: 10, background: 'var(--up)', color: '#04060c', fontWeight: 800, border: 'none' }}
+              >
+                Unlock Console ⚡
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     );
@@ -381,14 +455,23 @@ export function AdminDashboard() {
         </button>
       </div>
 
-      {/* Live Online Users Card */}
+      {/* Live Online Active Traders Card */}
       <div className="admin-live-card">
         <div className="admin-live-head">
           <div className="admin-live-title">
             <span className="telemetry-dot live" />
-            <span>Live Concurrent Users · <span style={{ color: 'var(--up)' }}>{onlineUsers.length} Online</span></span>
+            <span>Live Active Traders Telemetry · <span style={{ color: 'var(--up)' }}>{onlineUsers.length} Online Now</span></span>
           </div>
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            <button 
+              className="beast-btn sm"
+              onClick={() => {
+                if (socket) socket.emit('admin:request-online-users');
+              }}
+              style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+            >
+              <span>↻</span> Refresh Online List
+            </button>
             <button 
               className="beast-btn sm"
               onClick={() => {
@@ -410,22 +493,46 @@ export function AdminDashboard() {
         </div>
 
         {onlineUsers.length === 0 ? (
-          <p style={{ color: 'var(--text-3)', fontSize: 13, marginTop: 14, marginBottom: 0 }}>No active user sessions detected.</p>
+          <p style={{ color: 'var(--text-3)', fontSize: 13, marginTop: 14, marginBottom: 0 }}>
+            No active trader sessions currently detected. When traders enter their name and access the scanner, their live sessions appear here automatically.
+          </p>
         ) : (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 16 }}>
-            {onlineUsers.map((u, i) => (
-              <div key={i} className="admin-user-pill">
-                {u.avatar ? (
-                  <img src={u.avatar} alt="Avatar" style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'cover' }} />
-                ) : (
-                  <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--up-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, color: 'var(--up)' }}>
-                    {u.email.substring(0, 2).toUpperCase()}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12, marginTop: 16 }}>
+            {onlineUsers.map((u, i) => {
+              const displayName = u.name || u.email || 'Trader';
+              const initials = displayName.substring(0, 2).toUpperCase();
+              const connectedDate = new Date(u.connectedAt);
+              const durationMins = Math.max(0, Math.floor((Date.now() - connectedDate.getTime()) / 60000));
+              const durationText = durationMins === 0 ? 'just now' : `${durationMins}m ago`;
+
+              return (
+                <div key={i} className="admin-user-pill" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 12, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  {u.avatar ? (
+                    <img src={u.avatar} alt="Avatar" style={{ width: 34, height: 34, borderRadius: '50%', objectFit: 'cover', border: '1px solid rgba(0, 245, 155, 0.3)' }} />
+                  ) : (
+                    <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'var(--up-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, color: 'var(--up)', border: '1px solid rgba(0, 245, 155, 0.3)' }}>
+                      {initials}
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ color: '#fff', fontWeight: 700, fontSize: 13.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={displayName}>
+                        {displayName}
+                      </span>
+                      {u.isAdmin && (
+                        <span style={{ fontSize: 9, fontWeight: 800, padding: '1px 5px', borderRadius: 4, background: 'rgba(0, 245, 155, 0.15)', color: 'var(--up)' }}>
+                          ADMIN
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--text-3)' }}>
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--up)', display: 'inline-block' }} />
+                      <span>Connected {connectedDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} ({durationText})</span>
+                    </div>
                   </div>
-                )}
-                <span style={{ color: 'var(--text-1)', fontWeight: 600 }}>{u.email}</span>
-                <span style={{ fontSize: 10, color: 'var(--text-3)' }}>since {new Date(u.connectedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-              </div>
-            ))}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
