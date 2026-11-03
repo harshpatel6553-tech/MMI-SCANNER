@@ -55,8 +55,10 @@ export function useAlerts(stocks?: StockData[]) {
     }
   }, []);
 
-  // 1. Initial fetch from REST API on mount
+  // 1. Initial & Perpetual Background Fetch from REST API (Runs every 5s, no hard refresh needed)
   useEffect(() => {
+    let isMounted = true;
+
     const fetchAlertHistory = async () => {
       try {
         let alertsData: StockAlert[] = [];
@@ -87,7 +89,7 @@ export function useAlerts(stocks?: StockData[]) {
                 fetched = true;
               }
             }
-          } catch (e) {
+          } catch {
             // remote fetch failed
           }
         }
@@ -127,7 +129,9 @@ export function useAlerts(stocks?: StockData[]) {
           // Ignore F&O alert fetch errors
         }
 
-        // Deduplicate initial server alerts by symbol + alertType
+        if (!isMounted) return;
+
+        // Deduplicate server alerts by symbol + alertType
         const dedupedMap = new Map<string, StockAlert>();
         alertsData.forEach(a => {
           if (a.alertType === 'NEWS') {
@@ -148,7 +152,14 @@ export function useAlerts(stocks?: StockData[]) {
         console.error('Failed to fetch initial alert history:', err);
       }
     };
+
     fetchAlertHistory();
+    const pollTimer = setInterval(fetchAlertHistory, 5000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(pollTimer);
+    };
   }, []);
 
   // Trigger audio, toasts, and desktop notifications
@@ -237,6 +248,11 @@ export function useAlerts(stocks?: StockData[]) {
         const isBreakdownLow = s.price <= s.dayLow || s.atDayLow;
         const isNearLow = distLowPct <= 0.35;
 
+        // Check timestamp age: if stock quote is older than 15 mins, stamp with current time
+        const quoteTime = s.lastUpdated ? new Date(s.lastUpdated).getTime() : 0;
+        const quoteAgeMs = Math.abs(now.getTime() - quoteTime);
+        const freshTimestamp = (quoteTime > 0 && quoteAgeMs < 15 * 60 * 1000) ? s.lastUpdated! : nowIso;
+
         // Check if price ticked up to a new peak
         const prevPrice = lastStockPrices.current.get(s.symbol);
         if (prevPrice !== undefined && s.price > prevPrice && isBreakoutHigh) {
@@ -249,7 +265,19 @@ export function useAlerts(stocks?: StockData[]) {
             change: s.change,
             changePercent: s.changePercent,
             details: `Cleared session high at ₹${s.price.toFixed(2)} (+${s.changePercent.toFixed(2)}%)`,
-            createdAt: nowIso,
+            createdAt: freshTimestamp,
+          });
+        } else if (prevPrice !== undefined && s.price < prevPrice && isBreakdownLow) {
+          triggerLiveAlert({
+            id: `dl-live-${s.symbol}-${Date.now()}`,
+            symbol: s.symbol,
+            name: s.name,
+            alertType: 'DAY_LOW',
+            price: s.price,
+            change: s.change,
+            changePercent: s.changePercent,
+            details: `Broke session low at ₹${s.price.toFixed(2)} (${s.changePercent.toFixed(2)}%)`,
+            createdAt: freshTimestamp,
           });
         }
         lastStockPrices.current.set(s.symbol, s.price);
@@ -268,7 +296,7 @@ export function useAlerts(stocks?: StockData[]) {
             details: isBreakoutHigh
               ? `Cleared previous Day High · New Session Peak at ₹${s.price.toFixed(2)}`
               : `Testing Day High · Within ${distHighPct.toFixed(2)}% of High (₹${s.dayHigh.toFixed(2)})`,
-            createdAt: s.lastUpdated || nowIso,
+            createdAt: freshTimestamp,
           });
         }
 
@@ -286,12 +314,12 @@ export function useAlerts(stocks?: StockData[]) {
             details: isBreakdownLow
               ? `Broke Day Low level · New Session Low at ₹${s.price.toFixed(2)}`
               : `Testing Day Low · Within ${distLowPct.toFixed(2)}% of Low (₹${s.dayLow.toFixed(2)})`,
-            createdAt: s.lastUpdated || nowIso,
+            createdAt: freshTimestamp,
           });
         }
 
         // ── Volume Surge Alert ──
-        if (s.volumeSpike) {
+        if (s.volumeSpike || (s.relativeVolume && s.relativeVolume >= 2.0)) {
           const key = `${s.symbol}_VOLUME_SPIKE`;
           nextMap.set(key, {
             id: `vs-${s.symbol}`,
@@ -302,7 +330,7 @@ export function useAlerts(stocks?: StockData[]) {
             change: s.change,
             changePercent: s.changePercent,
             details: `Volume Surge: ${(s.relativeVolume || 2).toFixed(1)}x institutional velocity`,
-            createdAt: s.lastUpdated || nowIso,
+            createdAt: freshTimestamp,
           });
         }
       }

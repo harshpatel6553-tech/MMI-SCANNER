@@ -129,6 +129,7 @@ export function setupSocketHandlers(io: TypedServer): void {
       socket.data.subscription
     );
     socket.emit('stocks:update', filtered);
+    socket.emit('stocks:update:full', filtered);
 
     // Send connection status
     socket.emit('connection:status', {

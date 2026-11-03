@@ -34,9 +34,17 @@ export class StockService {
     const now = new Date();
     const istDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(now);
     if (this.currentTradingDay !== istDate) {
-      logger.info(`🌅 New trading day detected in StockService (${istDate}). Resetting locked previousClose state.`);
+      logger.info(`🌅 New trading day detected in StockService (${istDate}). Resetting locked previousClose state & daily ranges.`);
       this.currentTradingDay = istDate;
       this.lockedPrevCloseMap.clear();
+      for (const stock of this.stockCache.values()) {
+        if (stock.price > 0) {
+          stock.dayHigh = stock.price;
+          stock.dayLow = stock.price;
+          stock.atDayHigh = false;
+          stock.atDayLow = false;
+        }
+      }
     }
   }
 
@@ -148,10 +156,7 @@ export class StockService {
           let dayLow = rawLow > 0 ? rawLow : (existing?.dayLow && existing.dayLow > 0 ? existing.dayLow : price);
 
           if (price > dayHigh) dayHigh = price;
-          if (existing?.dayHigh && existing.dayHigh > dayHigh) dayHigh = existing.dayHigh;
-
-          if (price > 0 && price < dayLow) dayLow = price;
-          if (existing?.dayLow && existing.dayLow > 0 && existing.dayLow < dayLow) dayLow = existing.dayLow;
+          if (price > 0 && (dayLow === 0 || price < dayLow)) dayLow = price;
 
           const openPrice = q.regularMarketOpen ?? (existing?.open || price);
           const volume = q.regularMarketVolume ?? (existing?.volume || 0);

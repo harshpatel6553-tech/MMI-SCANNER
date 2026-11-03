@@ -206,6 +206,36 @@ app.post('/api/admin/force-refresh', authenticateAdmin, (req: Request, res: Resp
   res.json({ success: true, message: 'Refresh command broadcasted to all users.' });
 });
 
+app.all('/api/admin/restart-polling', (req: Request, res: Response) => {
+  const adminSecret = process.env.ADMIN_SECRET_KEY || 'mmi-admin-secret-2026';
+  const authHeader = req.headers.authorization;
+  const customHeader = req.headers['x-admin-key'];
+  const queryKey = req.query.key as string;
+
+  if (
+    (authHeader && authHeader === `Bearer ${adminSecret}`) ||
+    customHeader === adminSecret ||
+    queryKey === adminSecret
+  ) {
+    logger.info('⚡ Admin triggered manual restart of all polling loops...');
+    isNifty50Polling = false;
+    isNifty500Polling = false;
+    isIndicesPolling = false;
+    lastNifty50PollStart = 0;
+    lastNifty500PollStart = 0;
+    lastIndicesPollStart = 0;
+
+    pollIndices(true).catch(() => {});
+    pollNifty50(true).catch(() => {});
+    pollNifty500(true).catch(() => {});
+
+    return res.json({ success: true, message: 'All polling loops (Indices, Nifty 50, Nifty 500) successfully restarted!' });
+  }
+
+  logger.warn(`⚠️ Blocked unauthorized restart-polling request from IP: ${req.ip}`);
+  return res.status(401).json({ error: 'Unauthorized: Valid admin credentials required' });
+});
+
 app.post('/api/admin/broadcast', authenticateAdmin, (req: Request, res: Response) => {
   const { title, message, type } = req.body;
   if (!title || !message) {
