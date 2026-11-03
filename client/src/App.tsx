@@ -29,6 +29,7 @@ import { FundamentalsModal } from './components/FundamentalsModal/FundamentalsMo
 import { AnnouncementModal } from './components/Announcement/AnnouncementModal';
 import { useAlerts } from './hooks/useAlerts';
 import { useStocks } from './hooks/useStocks';
+import { useIndices } from './hooks/useIndices';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { Login } from './components/Login/Login';
 import { Paywall } from './components/Paywall/Paywall';
@@ -158,12 +159,13 @@ function getTabHeader(tab: string, advancers: number, decliners: number, total: 
 
 function AppContent() {
   const { preferences, toggleWidget, activeTab, isCustomizing, setIsCustomizing, searchQuery } = useDashboard();
-  const { toasts, alertHistory, dismissToast, clearAll } = useAlerts();
-
   // Initialize WebSocket and fetch stocks
   const { allStocks, stats, sectorData, stocks } = useStocks({
     index: 'ALL', priceMin: 0, priceMax: 0, volumeMin: 0, search: searchQuery
   }, 'volume', 'desc');
+
+  const { allIndices } = useIndices(allStocks);
+  const { toasts, alertHistory, dismissToast, clearAll } = useAlerts(allStocks, allIndices);
 
   const advancers = allStocks.filter(s => s.change >= 0).length;
   const decliners = allStocks.length - advancers;

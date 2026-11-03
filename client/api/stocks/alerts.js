@@ -13,8 +13,22 @@ export default async function handler(req, res) {
       headers: { 'Accept': 'application/json' }
     });
     if (upstream.ok) {
-      const data = await upstream.json();
-      return res.status(200).json(data);
+      const json = await upstream.json();
+      const raw = Array.isArray(json) ? json : json.data || [];
+      
+      // Strict stock deduplication by symbol + alertType
+      const dedupMap = new Map();
+      for (const a of raw) {
+        if (!a || !a.symbol) continue;
+        const key = `${a.symbol}_${a.alertType}`;
+        const existing = dedupMap.get(key);
+        if (!existing || new Date(a.createdAt).getTime() > new Date(existing.createdAt).getTime()) {
+          dedupMap.set(key, a);
+        }
+      }
+
+      const cleanAlerts = Array.from(dedupMap.values());
+      return res.status(200).json({ success: true, count: cleanAlerts.length, data: cleanAlerts });
     }
   } catch (err) {
     // Upstream failed
