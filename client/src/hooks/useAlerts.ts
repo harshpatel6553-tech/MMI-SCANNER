@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useSocketContext } from '../context/SocketContext';
-import type { StockAlert } from '../types';
+import type { StockAlert, StockData } from '../types';
 import { audioAlerts } from '../utils/audioAlerts';
 
 interface Toast extends StockAlert {
@@ -35,16 +35,18 @@ const BLACKLISTED_TITLE_PATTERNS = [
 ];
 
 function isIndexSymbol(symbol: string): boolean {
-  const s = symbol.toUpperCase();
+  const s = (symbol || '').toUpperCase();
   return s.includes('NIFTY') || s.includes('BANKNIFTY') || s.includes('SENSEX') || s.includes('INDIA VIX');
 }
 
-export function useAlerts() {
+export function useAlerts(stocks?: StockData[]) {
   const { socket } = useSocketContext();
   const [toasts, setToasts] = useState<Toast[]>([]);
-  const [alertHistory, setAlertHistory] = useState<StockAlert[]>([]);
+  const [serverAlerts, setServerAlerts] = useState<StockAlert[]>([]);
+  const [stockRadarAlerts, setStockRadarAlerts] = useState<Map<string, StockAlert>>(new Map());
   const timersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const lastAudioPlayedRef = useRef<Record<string, number>>({});
+  const lastStockPrices = useRef<Map<string, number>>(new Map());
 
   // Request browser desktop notification permission on mount
   useEffect(() => {
@@ -53,36 +55,50 @@ export function useAlerts() {
     }
   }, []);
 
-  // Fetch initial alert history from REST API on mount
+  // 1. Initial fetch from REST API on mount
   useEffect(() => {
     const fetchAlertHistory = async () => {
       try {
         let alertsData: StockAlert[] = [];
+        const socketUrl = import.meta.env.VITE_SOCKET_URL || 'https://35.226.242.164.sslip.io';
+        const baseUrl = socketUrl.endsWith('/') ? socketUrl.slice(0, -1) : socketUrl;
+
+        let fetched = false;
         try {
           const res = await fetch('/api/stocks/alerts?limit=300');
           if (res.ok) {
             const result = await res.json();
             if (result?.success && Array.isArray(result.data)) {
               alertsData = result.data;
+              fetched = true;
             }
           }
         } catch {
-          // Fallback to socketUrl if relative fetch fails
-          const socketUrl = import.meta.env.VITE_SOCKET_URL || '';
-          const baseUrl = socketUrl.endsWith('/') ? socketUrl.slice(0, -1) : socketUrl;
-          if (baseUrl) {
+          // relative failed, will try baseUrl
+        }
+
+        if (!fetched && baseUrl) {
+          try {
             const res = await fetch(`${baseUrl}/api/stocks/alerts?limit=300`);
-            const result = await res.json();
-            if (result?.success && Array.isArray(result.data)) {
-              alertsData = result.data;
+            if (res.ok) {
+              const result = await res.json();
+              if (result?.success && Array.isArray(result.data)) {
+                alertsData = result.data;
+                fetched = true;
+              }
             }
+          } catch (e) {
+            // remote fetch failed
           }
         }
 
         // Also fetch live F&O OI alerts directly
         try {
-          const fnoRes = await fetch('/api/fno/oi-alerts');
-          if (fnoRes.ok) {
+          let fnoRes = await fetch('/api/fno/oi-alerts').catch(() => null);
+          if (!fnoRes || !fnoRes.ok) {
+            fnoRes = await fetch(`${baseUrl}/api/fno/oi-alerts`).catch(() => null);
+          }
+          if (fnoRes && fnoRes.ok) {
             const fnoJson = await fnoRes.json();
             if (fnoJson?.success && Array.isArray(fnoJson.alerts)) {
               const mappedFno: StockAlert[] = fnoJson.alerts.map((a: any) => ({
@@ -99,7 +115,6 @@ export function useAlerts() {
                 contracts: a.contracts,
               }));
 
-              // Merge without duplicates
               const existingIds = new Set(alertsData.map(a => a.id));
               mappedFno.forEach(f => {
                 if (!existingIds.has(f.id)) {
@@ -112,13 +127,23 @@ export function useAlerts() {
           // Ignore F&O alert fetch errors
         }
 
-        alertsData.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-
-        const cleanHistory = alertsData.filter((a: StockAlert) => {
-          if (a.alertType !== 'NEWS') return true;
-          return isAllowedSource(a.symbol);
+        // Deduplicate initial server alerts by symbol + alertType
+        const dedupedMap = new Map<string, StockAlert>();
+        alertsData.forEach(a => {
+          if (a.alertType === 'NEWS') {
+            if (isAllowedSource(a.symbol)) {
+              dedupedMap.set(a.id, a);
+            }
+          } else {
+            const key = `${a.symbol}_${a.alertType}`;
+            const existing = dedupedMap.get(key);
+            if (!existing || new Date(a.createdAt).getTime() > new Date(existing.createdAt).getTime()) {
+              dedupedMap.set(key, a);
+            }
+          }
         });
-        setAlertHistory(cleanHistory);
+
+        setServerAlerts(Array.from(dedupedMap.values()));
       } catch (err) {
         console.error('Failed to fetch initial alert history:', err);
       }
@@ -126,6 +151,167 @@ export function useAlerts() {
     fetchAlertHistory();
   }, []);
 
+  // Trigger audio, toasts, and desktop notifications
+  const triggerLiveAlert = useCallback((alert: StockAlert) => {
+    const nowMs = Date.now();
+
+    // Audio Debounce (minimum 800ms)
+    const lastAudio = lastAudioPlayedRef.current[alert.alertType] || 0;
+    if (nowMs - lastAudio > 800) {
+      lastAudioPlayedRef.current[alert.alertType] = nowMs;
+      if (alert.alertType === 'DAY_HIGH') {
+        audioAlerts.playBreakoutChime();
+      } else if (alert.alertType === 'DAY_LOW') {
+        audioAlerts.playBreakdownTone();
+      } else if (alert.alertType === 'VOLUME_SPIKE') {
+        audioAlerts.playSpikeAlert();
+      }
+    }
+
+    const isIdx = isIndexSymbol(alert.symbol) || alert.alertType === 'INDEX_MILESTONE';
+    const durationMs = isIdx ? 8000 : 5000;
+    const toast: Toast = { ...alert, dismissAt: nowMs + durationMs };
+    const toastKey = `${alert.symbol}_${alert.alertType}`;
+
+    // Desktop Notification
+    if ('Notification' in window && Notification.permission === 'granted') {
+      try {
+        const title = alert.alertType === 'NEWS'
+          ? `⚡ BREAKING NEWS: ${alert.symbol}`
+          : alert.alertType === 'INDEX_MILESTONE'
+          ? `🎯 INDEX MILESTONE: ${alert.symbol}`
+          : isIdx
+          ? `📊 INDEX ALERT: ${alert.symbol}`
+          : `⚡ ALERT: ${alert.symbol}`;
+        const body = alert.details || `${alert.symbol} ${alert.alertType === 'DAY_HIGH' ? 'reached Day High' : 'reached Day Low'} at ₹${alert.price.toLocaleString('en-IN')}`;
+        new Notification(title, { body, silent: true });
+      } catch {
+        // Ignore desktop notification error
+      }
+    }
+
+    // Deduplicate toast cards
+    setToasts(prev => {
+      const index = prev.findIndex(t => (t.id === toast.id) || (t.symbol === toast.symbol && t.alertType === toast.alertType));
+      if (index >= 0) {
+        const next = [...prev];
+        next[index] = { ...toast, id: prev[index].id };
+        return next;
+      }
+      return [toast, ...prev].slice(0, 6);
+    });
+
+    // Reset auto-dismiss timer
+    const existingTimer = timersRef.current.get(toastKey);
+    if (existingTimer) clearTimeout(existingTimer);
+    const timer = setTimeout(() => {
+      setToasts(prev => prev.filter(t => !(t.symbol === alert.symbol && t.alertType === alert.alertType)));
+      timersRef.current.delete(toastKey);
+    }, durationMs);
+    timersRef.current.set(toastKey, timer);
+  }, []);
+
+  // 2. Real-Time Stock Radar Scanner:
+  // Detects Day Highs, Day Lows, and Volume Surges across the active 523 securities
+  useEffect(() => {
+    if (!stocks || stocks.length === 0) return;
+
+    const now = new Date();
+    const nowIso = now.toISOString();
+
+    setStockRadarAlerts(prevMap => {
+      const nextMap = new Map(prevMap);
+
+      for (const s of stocks) {
+        if (!s || s.price <= 0 || s.dayHigh <= 0 || s.dayLow <= 0) continue;
+        if (s.dayHigh < s.dayLow || s.dayHigh === s.dayLow) continue;
+
+        const spread = s.dayHigh - s.dayLow;
+        if (spread <= 0.05) continue;
+
+        const distHighPct = Math.max(0, ((s.dayHigh - s.price) / s.dayHigh) * 100);
+        const distLowPct = Math.max(0, ((s.price - s.dayLow) / s.dayLow) * 100);
+
+        const isBreakoutHigh = s.price >= s.dayHigh || s.atDayHigh;
+        const isNearHigh = distHighPct <= 0.35;
+        const isBreakdownLow = s.price <= s.dayLow || s.atDayLow;
+        const isNearLow = distLowPct <= 0.35;
+
+        // Check if price ticked up to a new peak
+        const prevPrice = lastStockPrices.current.get(s.symbol);
+        if (prevPrice !== undefined && s.price > prevPrice && isBreakoutHigh) {
+          triggerLiveAlert({
+            id: `dh-live-${s.symbol}-${Date.now()}`,
+            symbol: s.symbol,
+            name: s.name,
+            alertType: 'DAY_HIGH',
+            price: s.price,
+            change: s.change,
+            changePercent: s.changePercent,
+            details: `Cleared session high at ₹${s.price.toFixed(2)} (+${s.changePercent.toFixed(2)}%)`,
+            createdAt: nowIso,
+          });
+        }
+        lastStockPrices.current.set(s.symbol, s.price);
+
+        // ── Day High Alert ──
+        if (isBreakoutHigh || isNearHigh) {
+          const key = `${s.symbol}_DAY_HIGH`;
+          nextMap.set(key, {
+            id: `dh-${s.symbol}`,
+            symbol: s.symbol,
+            name: s.name,
+            alertType: 'DAY_HIGH',
+            price: s.price,
+            change: s.change,
+            changePercent: s.changePercent,
+            details: isBreakoutHigh
+              ? `Cleared previous Day High · New Session Peak at ₹${s.price.toFixed(2)}`
+              : `Testing Day High · Within ${distHighPct.toFixed(2)}% of High (₹${s.dayHigh.toFixed(2)})`,
+            createdAt: s.lastUpdated || nowIso,
+          });
+        }
+
+        // ── Day Low Alert ──
+        if (isBreakdownLow || isNearLow) {
+          const key = `${s.symbol}_DAY_LOW`;
+          nextMap.set(key, {
+            id: `dl-${s.symbol}`,
+            symbol: s.symbol,
+            name: s.name,
+            alertType: 'DAY_LOW',
+            price: s.price,
+            change: s.change,
+            changePercent: s.changePercent,
+            details: isBreakdownLow
+              ? `Broke Day Low level · New Session Low at ₹${s.price.toFixed(2)}`
+              : `Testing Day Low · Within ${distLowPct.toFixed(2)}% of Low (₹${s.dayLow.toFixed(2)})`,
+            createdAt: s.lastUpdated || nowIso,
+          });
+        }
+
+        // ── Volume Surge Alert ──
+        if (s.volumeSpike) {
+          const key = `${s.symbol}_VOLUME_SPIKE`;
+          nextMap.set(key, {
+            id: `vs-${s.symbol}`,
+            symbol: s.symbol,
+            name: s.name,
+            alertType: 'VOLUME_SPIKE',
+            price: s.price,
+            change: s.change,
+            changePercent: s.changePercent,
+            details: `Volume Surge: ${(s.relativeVolume || 2).toFixed(1)}x institutional velocity`,
+            createdAt: s.lastUpdated || nowIso,
+          });
+        }
+      }
+
+      return nextMap;
+    });
+  }, [stocks, triggerLiveAlert]);
+
+  // 3. Live Socket.IO Alerts Listener (handles News Alerts & Server-Broadcasted Alerts)
   useEffect(() => {
     if (!socket) return;
 
@@ -142,98 +328,55 @@ export function useAlerts() {
         }
       }
 
-      const nowMs = Date.now();
+      triggerLiveAlert(alert);
 
-      // Debounce audio playback (minimum 800ms between identical chimes) to prevent audio clutter
-      const lastAudio = lastAudioPlayedRef.current[alert.alertType] || 0;
-      if (nowMs - lastAudio > 800) {
-        lastAudioPlayedRef.current[alert.alertType] = nowMs;
-        if (alert.alertType === 'DAY_HIGH') {
-          audioAlerts.playBreakoutChime();
-        } else if (alert.alertType === 'DAY_LOW') {
-          audioAlerts.playBreakdownTone();
-        } else if (alert.alertType === 'VOLUME_SPIKE') {
-          audioAlerts.playSpikeAlert();
+      // Merge into server alerts list
+      setServerAlerts(prev => {
+        const next = [...prev];
+        const key = alert.alertType === 'NEWS' ? alert.id : `${alert.symbol}_${alert.alertType}`;
+        const existingIdx = next.findIndex(a => (a.alertType === 'NEWS' ? a.id === key : `${a.symbol}_${a.alertType}` === key));
+        if (existingIdx >= 0) {
+          next[existingIdx] = alert;
+        } else {
+          next.unshift(alert);
         }
-      }
-
-      const isIdx = isIndexSymbol(alert.symbol) || alert.alertType === 'INDEX_MILESTONE';
-      const durationMs = isIdx ? 8000 : 5000;
-      const toast: Toast = { ...alert, dismissAt: nowMs + durationMs };
-      const toastKey = `${alert.symbol}_${alert.alertType}`;
-
-      // Show native desktop notification if permitted
-      if ('Notification' in window && Notification.permission === 'granted') {
-        try {
-          const title = alert.alertType === 'NEWS'
-            ? `⚡ BREAKING NEWS: ${alert.symbol}`
-            : alert.alertType === 'INDEX_MILESTONE'
-            ? `🎯 INDEX MILESTONE: ${alert.symbol}`
-            : isIdx
-            ? `📊 INDEX ALERT: ${alert.symbol}`
-            : `⚡ ALERT: ${alert.symbol}`;
-          const body = alert.alertType === 'NEWS'
-            ? (alert.name || alert.details || '')
-            : alert.details 
-            ? `${alert.symbol} - ${alert.details} @ ₹${alert.price.toLocaleString('en-IN')}`
-            : `${alert.symbol} ${alert.alertType === 'DAY_HIGH' ? 'reached Day High' : 'reached Day Low'} at ₹${alert.price.toLocaleString('en-IN')}`;
-
-          new Notification(title, { body, silent: true });
-        } catch {
-          // Ignore desktop notification error
-        }
-      }
-
-      // Deduplicate toast cards: update in-place if already on screen instead of stacking duplicates
-      setToasts(prev => {
-        const index = prev.findIndex(t => (t.id === toast.id) || (t.symbol === toast.symbol && t.alertType === toast.alertType));
-        if (index >= 0) {
-          const next = [...prev];
-          next[index] = {
-            ...toast,
-            id: prev[index].id, // preserve key for seamless in-place price update without layout re-trigger
-          };
-          return next;
-        }
-        return [toast, ...prev].slice(0, 6);
+        return next.slice(0, 500);
       });
-
-      // Update alert history: if the same stock triggered the same alert type within 60s, update it with the latest price instead of stacking double cards
-      setAlertHistory(prev => {
-        const alertTime = new Date(alert.createdAt).getTime();
-        const index = prev.findIndex(a =>
-          a.id === alert.id ||
-          (a.symbol === alert.symbol && a.alertType === alert.alertType && Math.abs(alertTime - new Date(a.createdAt).getTime()) < 60000)
-        );
-        if (index >= 0) {
-          const next = [...prev];
-          next[index] = alert;
-          return next;
-        }
-        return [alert, ...prev].slice(0, 500);
-      });
-
-      // Reset / start auto-dismiss timer for this stock & alert type
-      const existingTimer = timersRef.current.get(toastKey);
-      if (existingTimer) {
-        clearTimeout(existingTimer);
-      }
-
-      const timer = setTimeout(() => {
-        setToasts(prev => prev.filter(t => !(t.symbol === alert.symbol && t.alertType === alert.alertType)));
-        timersRef.current.delete(toastKey);
-      }, durationMs);
-      timersRef.current.set(toastKey, timer);
     };
 
     socket.on('alert:new', handleAlert);
 
     return () => {
       socket.off('alert:new', handleAlert);
-      timersRef.current.forEach(t => clearTimeout(t));
-      timersRef.current.clear();
     };
-  }, [socket]);
+  }, [socket, triggerLiveAlert]);
+
+  // 4. Combined, perfectly unified Alert History with Stock Alerts
+  const alertHistory = useMemo(() => {
+    const combinedMap = new Map<string, StockAlert>();
+
+    // Add server alerts (including News and F&O)
+    serverAlerts.forEach(a => {
+      const key = a.alertType === 'NEWS' ? a.id : `${a.symbol}_${a.alertType}`;
+      combinedMap.set(key, a);
+    });
+
+    // Layer active stock radar alerts (takes precedence for live prices)
+    stockRadarAlerts.forEach((a, key) => {
+      combinedMap.set(key, a);
+    });
+
+    const list = Array.from(combinedMap.values());
+
+    // Sort: Fresh breakouts first, then by timestamp descending
+    list.sort((a, b) => {
+      const timeA = new Date(a.createdAt).getTime() || 0;
+      const timeB = new Date(b.createdAt).getTime() || 0;
+      return timeB - timeA;
+    });
+
+    return list;
+  }, [serverAlerts, stockRadarAlerts]);
 
   const dismissToast = useCallback((id: string) => {
     setToasts(prev => {
@@ -251,7 +394,8 @@ export function useAlerts() {
   }, []);
 
   const clearAll = useCallback(() => {
-    setAlertHistory([]);
+    setServerAlerts([]);
+    setStockRadarAlerts(new Map());
     setToasts([]);
     timersRef.current.forEach(t => clearTimeout(t));
     timersRef.current.clear();

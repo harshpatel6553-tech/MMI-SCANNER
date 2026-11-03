@@ -158,12 +158,13 @@ function getTabHeader(tab: string, advancers: number, decliners: number, total: 
 
 function AppContent() {
   const { preferences, toggleWidget, activeTab, isCustomizing, setIsCustomizing, searchQuery } = useDashboard();
-  const { toasts, alertHistory, dismissToast, clearAll } = useAlerts();
 
   // Initialize WebSocket and fetch stocks
   const { allStocks, stats, sectorData, stocks } = useStocks({
     index: 'ALL', priceMin: 0, priceMax: 0, volumeMin: 0, search: searchQuery
   }, 'volume', 'desc');
+
+  const { toasts, alertHistory, dismissToast, clearAll } = useAlerts(allStocks);
 
   const advancers = allStocks.filter(s => s.change >= 0).length;
   const decliners = allStocks.length - advancers;
