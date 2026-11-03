@@ -57,18 +57,6 @@ export function HeaderIndices({ nifty50, bankNifty, sensex, flashes }: HeaderInd
             </span>
           </span>
         </div>
-
-        <div className="index-chip-hl-row font-mono tabular-nums">
-          <span className="chip-hl-item">
-            <span className="chip-hl-lbl">H</span>
-            <span className="chip-hl-val up">₹{nifty50?.dayHigh ? nifty50.dayHigh.toLocaleString('en-IN', { maximumFractionDigits: 1 }) : '---'}</span>
-          </span>
-          <span className="chip-hl-divider">·</span>
-          <span className="chip-hl-item">
-            <span className="chip-hl-lbl">L</span>
-            <span className="chip-hl-val down">₹{nifty50?.dayLow ? nifty50.dayLow.toLocaleString('en-IN', { maximumFractionDigits: 1 }) : '---'}</span>
-          </span>
-        </div>
       </div>
 
       {/* ── BANK NIFTY INDEX CHIP ── */}
@@ -106,18 +94,6 @@ export function HeaderIndices({ nifty50, bankNifty, sensex, flashes }: HeaderInd
             </span>
           </span>
         </div>
-
-        <div className="index-chip-hl-row font-mono tabular-nums">
-          <span className="chip-hl-item">
-            <span className="chip-hl-lbl">H</span>
-            <span className="chip-hl-val up">₹{bankNifty?.dayHigh ? bankNifty.dayHigh.toLocaleString('en-IN', { maximumFractionDigits: 1 }) : '---'}</span>
-          </span>
-          <span className="chip-hl-divider">·</span>
-          <span className="chip-hl-item">
-            <span className="chip-hl-lbl">L</span>
-            <span className="chip-hl-val down">₹{bankNifty?.dayLow ? bankNifty.dayLow.toLocaleString('en-IN', { maximumFractionDigits: 1 }) : '---'}</span>
-          </span>
-        </div>
       </div>
 
       {/* ── SENSEX INDEX CHIP ── */}
@@ -153,18 +129,6 @@ export function HeaderIndices({ nifty50, bankNifty, sensex, flashes }: HeaderInd
             <span className="index-chip-pct">
               ({sensex ? `${sensexUp ? '+' : ''}${(sensex.changePercent ?? 0).toFixed(2)}%` : '0.00%'})
             </span>
-          </span>
-        </div>
-
-        <div className="index-chip-hl-row font-mono tabular-nums">
-          <span className="chip-hl-item">
-            <span className="chip-hl-lbl">H</span>
-            <span className="chip-hl-val up">₹{sensex?.dayHigh ? sensex.dayHigh.toLocaleString('en-IN', { maximumFractionDigits: 1 }) : '---'}</span>
-          </span>
-          <span className="chip-hl-divider">·</span>
-          <span className="chip-hl-item">
-            <span className="chip-hl-lbl">L</span>
-            <span className="chip-hl-val down">₹{sensex?.dayLow ? sensex.dayLow.toLocaleString('en-IN', { maximumFractionDigits: 1 }) : '---'}</span>
           </span>
         </div>
       </div>
