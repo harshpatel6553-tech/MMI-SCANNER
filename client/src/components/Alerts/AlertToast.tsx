@@ -88,6 +88,7 @@ export function AlertToast({ toasts, onDismiss }: AlertToastProps) {
           return (
             <motion.div
               key={toast.id}
+              data-testid="alert-toast-item"
               initial={{ opacity: 0, x: 80, scale: 0.92 }}
               animate={{ opacity: 1, x: 0, scale: 1 }}
               exit={{ opacity: 0, x: 80, scale: 0.9 }}
