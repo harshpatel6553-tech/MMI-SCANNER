@@ -48,7 +48,15 @@ const BLACKLISTED_TITLE_PATTERNS = [
 export function useAlerts(stocks?: StockData[]) {
   const { socket } = useSocketContext();
   const [toasts, setToasts] = useState<Toast[]>([]);
-  const [serverAlerts, setServerAlerts] = useState<StockAlert[]>([]);
+  const [serverAlerts, setServerAlerts] = useState<StockAlert[]>(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const cached = sessionStorage.getItem('mmi_server_alerts_cache');
+        if (cached) return JSON.parse(cached);
+      }
+    } catch {}
+    return [];
+  });
   const [radarAlerts, setRadarAlerts] = useState<Map<string, StockAlert>>(new Map());
 
   const toastTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
@@ -67,6 +75,16 @@ export function useAlerts(stocks?: StockData[]) {
 
   // Permanent timestamp tracking to persist "Clear All" across 5s poll cycles
   const clearedBeforeTimestampRef = useRef<number>(0);
+
+  // Hydration guard: suppresses pop-up toasts for the first 2.5s on initial mount / hard refresh
+  const isHydratedRef = useRef(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      isHydratedRef.current = true;
+    }, 2500);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Request browser desktop notification permission on mount
   useEffect(() => {
@@ -266,7 +284,15 @@ export function useAlerts(stocks?: StockData[]) {
           }
         });
 
-        setServerAlerts(Array.from(dedupedMap.values()));
+        const freshList = Array.from(dedupedMap.values());
+        setServerAlerts(freshList);
+        try {
+          if (typeof window !== 'undefined' && freshList.length > 0) {
+            sessionStorage.setItem('mmi_server_alerts_cache', JSON.stringify(freshList.slice(0, 200)));
+          }
+        } catch {
+          // sessionStorage full or disabled
+        }
       } catch {
         // Fallback silently
       }
@@ -346,13 +372,12 @@ export function useAlerts(stocks?: StockData[]) {
           };
           nextMap.set(highKey, alertObj);
 
-          // Pop-up Toast Trigger Logic
+          // Pop-up Toast Trigger Logic (Suppressed on initial mount hydration)
           const isFirstTime = !alertedToastKeysRef.current.has(highKey);
           const hasPushedPeak = symState.lastHighPrice !== undefined && s.price > symState.lastHighPrice;
           const cooldownPassed = !symState.lastHighTime || (nowMs - symState.lastHighTime > 60000);
 
-          if (isFirstTime || hasPushedPeak || (cooldownPassed && isBreakoutHigh)) {
-            alertedToastKeysRef.current.add(highKey);
+          if (isHydratedRef.current && (hasPushedPeak || (cooldownPassed && isBreakoutHigh))) {
             symState.lastHighPrice = s.price;
             symState.lastHighTime = nowMs;
 
@@ -360,6 +385,12 @@ export function useAlerts(stocks?: StockData[]) {
               ...alertObj,
               id: `dh-pop-${s.symbol}-${nowMs}`,
             });
+          }
+
+          if (isFirstTime) {
+            alertedToastKeysRef.current.add(highKey);
+            symState.lastHighPrice = s.price;
+            symState.lastHighTime = nowMs;
           }
         }
 
@@ -382,13 +413,12 @@ export function useAlerts(stocks?: StockData[]) {
           };
           nextMap.set(lowKey, alertObj);
 
-          // Pop-up Toast Trigger Logic
+          // Pop-up Toast Trigger Logic (Suppressed on initial mount hydration)
           const isFirstTime = !alertedToastKeysRef.current.has(lowKey);
           const hasPushedTrough = symState.lastLowPrice !== undefined && s.price < symState.lastLowPrice;
           const cooldownPassed = !symState.lastLowTime || (nowMs - symState.lastLowTime > 60000);
 
-          if (isFirstTime || hasPushedTrough || (cooldownPassed && isBreakdownLow)) {
-            alertedToastKeysRef.current.add(lowKey);
+          if (isHydratedRef.current && (hasPushedTrough || (cooldownPassed && isBreakdownLow))) {
             symState.lastLowPrice = s.price;
             symState.lastLowTime = nowMs;
 
@@ -396,6 +426,12 @@ export function useAlerts(stocks?: StockData[]) {
               ...alertObj,
               id: `dl-pop-${s.symbol}-${nowMs}`,
             });
+          }
+
+          if (isFirstTime) {
+            alertedToastKeysRef.current.add(lowKey);
+            symState.lastLowPrice = s.price;
+            symState.lastLowTime = nowMs;
           }
         }
 
@@ -417,14 +453,16 @@ export function useAlerts(stocks?: StockData[]) {
           };
           nextMap.set(spikeKey, alertObj);
 
-          // Pop-up Toast Trigger Logic for Volume Surges
+          // Pop-up Toast Trigger Logic for Volume Surges (Suppressed on initial mount hydration)
           const isFirstTime = !alertedToastKeysRef.current.has(spikeKey);
-          if (isFirstTime && (s.relativeVolume ?? 0) >= 2.0) {
+          if (isHydratedRef.current && isFirstTime && (s.relativeVolume ?? 0) >= 2.0) {
             alertedToastKeysRef.current.add(spikeKey);
             triggerLiveAlert({
               ...alertObj,
               id: `vs-pop-${s.symbol}-${nowMs}`,
             });
+          } else if (isFirstTime) {
+            alertedToastKeysRef.current.add(spikeKey);
           }
         }
 
@@ -449,7 +487,14 @@ export function useAlerts(stocks?: StockData[]) {
         }
       }
 
-      triggerLiveAlert(alert);
+      // Check if this alert was created recently (within the last 2 minutes)
+      const alertTime = new Date(alert.createdAt).getTime();
+      const isFresh = !alertTime || (Date.now() - alertTime < 2 * 60 * 1000);
+
+      // Only toast if hydrated and fresh
+      if (isHydratedRef.current && isFresh) {
+        triggerLiveAlert(alert);
+      }
 
       setServerAlerts(prev => {
         const copy = [...prev];
@@ -491,7 +536,16 @@ export function useAlerts(stocks?: StockData[]) {
       if (clearedBeforeTimestampRef.current && new Date(a.createdAt).getTime() <= clearedBeforeTimestampRef.current) {
         return;
       }
-      combinedMap.set(key, a);
+      const existing = combinedMap.get(key);
+      if (existing) {
+        combinedMap.set(key, {
+          ...a,
+          id: existing.id || a.id,
+          createdAt: existing.createdAt || a.createdAt,
+        });
+      } else {
+        combinedMap.set(key, a);
+      }
     });
 
     const list = Array.from(combinedMap.values());
