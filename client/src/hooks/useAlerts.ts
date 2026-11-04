@@ -71,6 +71,7 @@ export function useAlerts(stocks?: StockData[]) {
     lastLowPrice?: number;
     lastHighTime?: number;
     lastLowTime?: number;
+    lastSpikeTime?: number;
   }>>(new Map());
 
   // Set of keys that already toasted in this session
@@ -79,13 +80,14 @@ export function useAlerts(stocks?: StockData[]) {
   // Permanent timestamp tracking to persist "Clear All" across 5s poll cycles
   const clearedBeforeTimestampRef = useRef<number>(0);
 
-  // Hydration guard: suppresses pop-up toasts for the first 2.5s on initial mount / hard refresh
+  // Hydration guard: suppresses burst barrage on initial page load, then surfaces top fresh breakouts
   const isHydratedRef = useRef(false);
+  const initialToastedRef = useRef(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       isHydratedRef.current = true;
-    }, 2500);
+    }, 1500);
     return () => clearTimeout(timer);
   }, []);
 
@@ -336,6 +338,7 @@ export function useAlerts(stocks?: StockData[]) {
     const now = new Date();
     const nowIso = now.toISOString();
     const nowMs = now.getTime();
+    const pendingToasts: StockAlert[] = [];
 
     setRadarAlerts(prevMap => {
       const nextMap = new Map(prevMap);
@@ -356,7 +359,6 @@ export function useAlerts(stocks?: StockData[]) {
         // ══════════════════════════════════════════════════════════════════════
         // STRICT POSITIVE/NEGATIVE MOMENTUM FILTER:
         // - A Day High alert MUST have positive change (changePercent > 0.05% and change > 0).
-        //   Flat stocks like HEG (+0.00%) or down stocks like INFY (-0.21%) are STRICTLY BLOCKED.
         // - A Day Low alert MUST have negative change (changePercent < -0.05% and change < 0).
         // ══════════════════════════════════════════════════════════════════════
         const isGaining = (s.changePercent ?? 0) > 0.05 && (s.change ?? 0) > 0;
@@ -375,7 +377,7 @@ export function useAlerts(stocks?: StockData[]) {
 
         const symState = symbolAlertState.current.get(s.symbol) || {};
 
-        // 🚀 DAY HIGH ALERT: Add to Panel & Pop Up Toast
+        // 🚀 DAY HIGH ALERT: Add to Panel
         if (isDayHighHit) {
           const highKey = `${s.symbol}_DAY_HIGH`;
           const existingAlert = prevMap.get(highKey);
@@ -394,30 +396,24 @@ export function useAlerts(stocks?: StockData[]) {
           };
           nextMap.set(highKey, alertObj);
 
-          // Pop-up Toast Trigger Logic (Suppressed on initial mount hydration)
-          const isFirstTime = !alertedToastKeysRef.current.has(highKey);
-          const minPeakMove = symState.lastHighPrice ? Math.max(0.5, symState.lastHighPrice * 0.002) : 0;
-          const hasPushedPeak = symState.lastHighPrice !== undefined && (s.price - symState.lastHighPrice) >= minPeakMove;
-          const cooldownPassed = !symState.lastHighTime || (nowMs - symState.lastHighTime > 45000);
+          // Pop-up Toast Trigger Logic
+          const cooldownPassed = !symState.lastHighTime || (nowMs - symState.lastHighTime > 15000);
+          const hasPushedPeak = symState.lastHighPrice === undefined || s.price > symState.lastHighPrice;
 
-          if (isHydratedRef.current && (isFirstTime || (hasPushedPeak && cooldownPassed))) {
+          if (isHydratedRef.current && cooldownPassed && (isBreakoutHigh || hasPushedPeak)) {
             symState.lastHighPrice = s.price;
             symState.lastHighTime = nowMs;
-
-            triggerLiveAlert({
+            pendingToasts.push({
               ...alertObj,
               id: `dh-pop-${s.symbol}-${nowMs}`,
             });
-          }
-
-          if (isFirstTime) {
-            alertedToastKeysRef.current.add(highKey);
+          } else if (!symState.lastHighPrice) {
             symState.lastHighPrice = s.price;
             symState.lastHighTime = nowMs;
           }
         }
 
-        // 🔻 DAY LOW ALERT: Add to Panel & Pop Up Toast
+        // 🔻 DAY LOW ALERT: Add to Panel
         if (isDayLowHit) {
           const lowKey = `${s.symbol}_DAY_LOW`;
           const existingAlert = prevMap.get(lowKey);
@@ -436,24 +432,18 @@ export function useAlerts(stocks?: StockData[]) {
           };
           nextMap.set(lowKey, alertObj);
 
-          // Pop-up Toast Trigger Logic (Suppressed on initial mount hydration)
-          const isFirstTime = !alertedToastKeysRef.current.has(lowKey);
-          const minTroughMove = symState.lastLowPrice ? Math.max(0.5, symState.lastLowPrice * 0.002) : 0;
-          const hasPushedTrough = symState.lastLowPrice !== undefined && (symState.lastLowPrice - s.price) >= minTroughMove;
-          const cooldownPassed = !symState.lastLowTime || (nowMs - symState.lastLowTime > 45000);
+          // Pop-up Toast Trigger Logic
+          const cooldownPassed = !symState.lastLowTime || (nowMs - symState.lastLowTime > 15000);
+          const hasPushedTrough = symState.lastLowPrice === undefined || s.price < symState.lastLowPrice;
 
-          if (isHydratedRef.current && (isFirstTime || (hasPushedTrough && cooldownPassed))) {
+          if (isHydratedRef.current && cooldownPassed && (isBreakdownLow || hasPushedTrough)) {
             symState.lastLowPrice = s.price;
             symState.lastLowTime = nowMs;
-
-            triggerLiveAlert({
+            pendingToasts.push({
               ...alertObj,
               id: `dl-pop-${s.symbol}-${nowMs}`,
             });
-          }
-
-          if (isFirstTime) {
-            alertedToastKeysRef.current.add(lowKey);
+          } else if (!symState.lastLowPrice) {
             symState.lastLowPrice = s.price;
             symState.lastLowTime = nowMs;
           }
@@ -477,16 +467,16 @@ export function useAlerts(stocks?: StockData[]) {
           };
           nextMap.set(spikeKey, alertObj);
 
-          // Pop-up Toast Trigger Logic for Volume Surges (Suppressed on initial mount hydration)
-          const isFirstTime = !alertedToastKeysRef.current.has(spikeKey);
-          if (isHydratedRef.current && isFirstTime && (s.relativeVolume ?? 0) >= 2.0) {
-            alertedToastKeysRef.current.add(spikeKey);
-            triggerLiveAlert({
+          // Pop-up Toast Trigger Logic for Volume Surges
+          const cooldownPassed = !symState.lastSpikeTime || (nowMs - symState.lastSpikeTime > 20000);
+          if (isHydratedRef.current && cooldownPassed && (s.relativeVolume ?? 0) >= 1.75) {
+            symState.lastSpikeTime = nowMs;
+            pendingToasts.push({
               ...alertObj,
               id: `vs-pop-${s.symbol}-${nowMs}`,
             });
-          } else if (isFirstTime) {
-            alertedToastKeysRef.current.add(spikeKey);
+          } else if (!symState.lastSpikeTime) {
+            symState.lastSpikeTime = nowMs;
           }
         }
 
@@ -495,7 +485,33 @@ export function useAlerts(stocks?: StockData[]) {
 
       return nextMap;
     });
+
+    // Execute pop-up toasts cleanly outside state updater
+    if (pendingToasts.length > 0) {
+      pendingToasts.slice(0, 2).forEach(t => triggerLiveAlert(t));
+    }
   }, [stocks, triggerLiveAlert]);
+
+  // Display initial active breakout toasts right after hydration so user gets visual pop-ups immediately
+  useEffect(() => {
+    if (!isHydratedRef.current || initialToastedRef.current) return;
+    initialToastedRef.current = true;
+
+    const highAlerts = Array.from(radarAlerts.values())
+      .filter(a => a.alertType === 'DAY_HIGH' && (a.changePercent ?? 0) > 0)
+      .sort((a, b) => (b.changePercent ?? 0) - (a.changePercent ?? 0));
+
+    if (highAlerts.length > 0) {
+      highAlerts.slice(0, 2).forEach((alert, index) => {
+        setTimeout(() => {
+          triggerLiveAlert({
+            ...alert,
+            id: `mount-dh-${alert.symbol}-${Date.now()}-${index}`,
+          });
+        }, index * 400);
+      });
+    }
+  }, [radarAlerts, triggerLiveAlert]);
 
   // ── 3. Live Socket.IO Alerts Listener (handles Server-Broadcasted Alerts & News) ──
   useEffect(() => {
@@ -517,13 +533,15 @@ export function useAlerts(stocks?: StockData[]) {
       const alertTime = new Date(alert.createdAt).getTime();
       const isFresh = !alertTime || (Date.now() - alertTime < 2 * 60 * 1000);
 
-      // Prevent double toast if locally alerted in the last 45s
+      // Prevent double toast if alerted in the last 20s
       const toastKey = `${alert.symbol}_${alert.alertType}`;
-      const wasRecentlyAlerted = alertedToastKeysRef.current.has(toastKey) && alert.alertType !== 'NEWS' && alert.alertType !== 'FNO_OI';
+      const nowMs = Date.now();
+      const lastAlertTime = lastSoundPlayedRef.current[toastKey] || 0;
+      const cooldownPassed = (nowMs - lastAlertTime) > 20000;
 
-      // Only toast if hydrated, fresh, and not already locally toasted
-      if (isHydratedRef.current && isFresh && !wasRecentlyAlerted) {
-        alertedToastKeysRef.current.add(toastKey);
+      // Only toast if hydrated, fresh, and cooldown passed
+      if (isHydratedRef.current && isFresh && cooldownPassed) {
+        lastSoundPlayedRef.current[toastKey] = nowMs;
         triggerLiveAlert(alert);
       }
 
