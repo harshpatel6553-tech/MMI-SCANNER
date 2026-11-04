@@ -80,14 +80,14 @@ export function useAlerts(stocks?: StockData[]) {
   // Permanent timestamp tracking to persist "Clear All" across 5s poll cycles
   const clearedBeforeTimestampRef = useRef<number>(0);
 
-  // Hydration guard: suppresses burst barrage on initial page load, then surfaces top fresh breakouts
-  const isHydratedRef = useRef(false);
+  // Hydration state: suppresses burst barrage on initial page load, then surfaces top fresh breakouts
+  const [isHydrated, setIsHydrated] = useState(false);
   const initialToastedRef = useRef(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      isHydratedRef.current = true;
-    }, 1500);
+      setIsHydrated(true);
+    }, 1200);
     return () => clearTimeout(timer);
   }, []);
 
@@ -400,7 +400,7 @@ export function useAlerts(stocks?: StockData[]) {
           const cooldownPassed = !symState.lastHighTime || (nowMs - symState.lastHighTime > 15000);
           const hasPushedPeak = symState.lastHighPrice === undefined || s.price > symState.lastHighPrice;
 
-          if (isHydratedRef.current && cooldownPassed && (isBreakoutHigh || hasPushedPeak)) {
+          if (isHydrated && cooldownPassed && (isBreakoutHigh || hasPushedPeak)) {
             symState.lastHighPrice = s.price;
             symState.lastHighTime = nowMs;
             pendingToasts.push({
@@ -436,7 +436,7 @@ export function useAlerts(stocks?: StockData[]) {
           const cooldownPassed = !symState.lastLowTime || (nowMs - symState.lastLowTime > 15000);
           const hasPushedTrough = symState.lastLowPrice === undefined || s.price < symState.lastLowPrice;
 
-          if (isHydratedRef.current && cooldownPassed && (isBreakdownLow || hasPushedTrough)) {
+          if (isHydrated && cooldownPassed && (isBreakdownLow || hasPushedTrough)) {
             symState.lastLowPrice = s.price;
             symState.lastLowTime = nowMs;
             pendingToasts.push({
@@ -469,7 +469,7 @@ export function useAlerts(stocks?: StockData[]) {
 
           // Pop-up Toast Trigger Logic for Volume Surges
           const cooldownPassed = !symState.lastSpikeTime || (nowMs - symState.lastSpikeTime > 20000);
-          if (isHydratedRef.current && cooldownPassed && (s.relativeVolume ?? 0) >= 1.75) {
+          if (isHydrated && cooldownPassed && (s.relativeVolume ?? 0) >= 1.75) {
             symState.lastSpikeTime = nowMs;
             pendingToasts.push({
               ...alertObj,
@@ -490,18 +490,20 @@ export function useAlerts(stocks?: StockData[]) {
     if (pendingToasts.length > 0) {
       pendingToasts.slice(0, 2).forEach(t => triggerLiveAlert(t));
     }
-  }, [stocks, triggerLiveAlert]);
+  }, [stocks, isHydrated, triggerLiveAlert]);
 
   // Display initial active breakout toasts right after hydration so user gets visual pop-ups immediately
   useEffect(() => {
-    if (!isHydratedRef.current || initialToastedRef.current) return;
-    initialToastedRef.current = true;
+    if (!isHydrated || initialToastedRef.current) return;
 
-    const highAlerts = Array.from(radarAlerts.values())
+    // Check radarAlerts or serverAlerts for high breakouts
+    const alertsList = Array.from(radarAlerts.values());
+    const highAlerts = alertsList
       .filter(a => a.alertType === 'DAY_HIGH' && (a.changePercent ?? 0) > 0)
       .sort((a, b) => (b.changePercent ?? 0) - (a.changePercent ?? 0));
 
     if (highAlerts.length > 0) {
+      initialToastedRef.current = true;
       highAlerts.slice(0, 2).forEach((alert, index) => {
         setTimeout(() => {
           triggerLiveAlert({
@@ -511,7 +513,7 @@ export function useAlerts(stocks?: StockData[]) {
         }, index * 400);
       });
     }
-  }, [radarAlerts, triggerLiveAlert]);
+  }, [isHydrated, radarAlerts, triggerLiveAlert]);
 
   // ── 3. Live Socket.IO Alerts Listener (handles Server-Broadcasted Alerts & News) ──
   useEffect(() => {
@@ -540,7 +542,7 @@ export function useAlerts(stocks?: StockData[]) {
       const cooldownPassed = (nowMs - lastAlertTime) > 20000;
 
       // Only toast if hydrated, fresh, and cooldown passed
-      if (isHydratedRef.current && isFresh && cooldownPassed) {
+      if (isHydrated && isFresh && cooldownPassed) {
         lastSoundPlayedRef.current[toastKey] = nowMs;
         triggerLiveAlert(alert);
       }
