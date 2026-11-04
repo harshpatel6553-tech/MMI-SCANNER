@@ -9,21 +9,31 @@ echo "🚀 Updating MMI-SCANNER Production Server"
 echo "=========================================="
 
 echo "📥 1. Pulling latest code from GitHub..."
-git pull origin main
+git pull origin main || git pull
 
-echo "🔨 2. Building fresh Docker image..."
-sudo docker build -t mmi-scanner .
+# Check if docker works with or without sudo
+if docker ps >/dev/null 2>&1; then
+    DKR="docker"
+elif sudo -n docker ps >/dev/null 2>&1; then
+    DKR="sudo docker"
+else
+    DKR="docker"
+fi
+
+echo "🔨 2. Building fresh Docker image using $DKR..."
+$DKR build -t mmi-scanner .
 
 echo "🛑 3. Stopping and removing old container..."
-sudo docker stop mmi-scanner 2>/dev/null || true
-sudo docker rm mmi-scanner 2>/dev/null || true
+$DKR stop mmi-scanner 2>/dev/null || true
+$DKR rm mmi-scanner 2>/dev/null || true
 
 echo "▶️ 4. Starting updated container on port 5000..."
-sudo docker run -d --name mmi-scanner --restart always -p 5000:5000 mmi-scanner
+$DKR run -d --name mmi-scanner --restart always -p 5000:5000 mmi-scanner
 
 echo "🔍 5. Checking status of containers..."
-sudo docker ps
+$DKR ps
 
 echo "=========================================="
 echo "✅ SUCCESS! Server is updated & live!"
 echo "=========================================="
+
