@@ -154,35 +154,71 @@ export function AlertToast({ toasts, onDismiss }: AlertToastProps) {
               </div>
 
               {/* Symbol & Price Details */}
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <StockLogo symbol={toast.symbol} name={toast.name} size={24} className="shrink-0" />
-                  <div className="flex flex-col min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-mono font-extrabold text-sm text-white tracking-tight">{toast.symbol}</span>
-                      <span className="text-[11px] text-slate-400 truncate max-w-[140px]">{toast.name}</span>
-                    </div>
-                    {toast.details && (
-                      <span className="text-[10.5px] font-medium text-cyan-400 mt-0.5 font-mono">
-                        {toast.details}
-                      </span>
-                    )}
+              {isNews ? (
+                <div className="flex flex-col gap-1.5 mt-0.5">
+                  <div className="flex items-center gap-2">
+                    <StockLogo symbol={toast.symbol} name={toast.name} size={20} className="shrink-0" />
+                    <span className="font-mono font-extrabold text-xs text-amber-400 tracking-tight">{toast.symbol}</span>
+                    <span className="text-[10px] text-slate-400 font-mono font-semibold">INSTITUTIONAL WIRE</span>
+                  </div>
+                  <div className="text-[12px] font-medium text-slate-100 leading-snug line-clamp-2">
+                    {toast.name}
                   </div>
                 </div>
-
-                {toast.price > 0 && (
-                  <div className="flex flex-col items-end shrink-0">
-                    <span className="font-mono font-bold text-sm text-white tabular-nums">
-                      {formatPrice(toast.price)}
-                    </span>
-                    {toast.changePercent !== undefined && (
-                      <span className={`text-[10px] font-mono font-bold tabular-nums ${toast.changePercent >= 0 ? 'text-[#00D6A3]' : 'text-[#FF4268]'}`}>
-                        {toast.changePercent >= 0 ? '+' : ''}{toast.changePercent.toFixed(2)}%
-                      </span>
-                    )}
+              ) : toast.alertType === 'FNO_OI' ? (
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <StockLogo symbol={toast.symbol || 'NIFTY'} name={toast.name} size={24} className="shrink-0" />
+                    <div className="flex flex-col min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-mono font-extrabold text-sm text-white tracking-tight">{toast.symbol || 'NIFTY'}</span>
+                        <span className="text-[11px] text-slate-400 truncate max-w-[150px]">{toast.name}</span>
+                      </div>
+                      {toast.details && (
+                        <span className="text-[10.5px] font-medium text-cyan-400 mt-0.5 line-clamp-1">
+                          {toast.details}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                )}
-              </div>
+                  <div className="flex flex-col items-end shrink-0">
+                    <span className="text-[9px] font-mono font-bold text-slate-400">STRIKE</span>
+                    <span className="font-mono font-extrabold text-xs px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+                      {toast.strike || toast.price}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <StockLogo symbol={toast.symbol} name={toast.name} size={24} className="shrink-0" />
+                    <div className="flex flex-col min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-mono font-extrabold text-sm text-white tracking-tight">{toast.symbol}</span>
+                        <span className="text-[11px] text-slate-400 truncate max-w-[140px]">{toast.name}</span>
+                      </div>
+                      {toast.details && (
+                        <span className="text-[10.5px] font-medium text-cyan-400 mt-0.5 font-mono">
+                          {toast.details}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {toast.price > 0 && (
+                    <div className="flex flex-col items-end shrink-0">
+                      <span className="font-mono font-bold text-sm text-white tabular-nums">
+                        {formatPrice(toast.price)}
+                      </span>
+                      {toast.changePercent !== undefined && (
+                        <span className={`text-[10px] font-mono font-bold tabular-nums ${toast.changePercent >= 0 ? 'text-[#00D6A3]' : 'text-[#FF4268]'}`}>
+                          {toast.changePercent >= 0 ? '+' : ''}{toast.changePercent.toFixed(2)}%
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Subtle hover prompt */}
               <div className="mt-2.5 pt-2 border-t border-white/5 flex items-center justify-between text-[10px] text-slate-400 group-hover:text-cyan-400 transition-colors">

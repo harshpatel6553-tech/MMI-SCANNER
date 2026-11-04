@@ -10,6 +10,8 @@
 import crypto from 'node:crypto';
 import type { StockData, StockAlert } from '../types/index.js';
 import { optionChainService } from './optionChainService.js';
+import { smartMoneyService } from './smartMoneyService.js';
+import { newsService, isAllowedSource, isNoisyOrBlacklisted } from './newsService.js';
 import logger from '../utils/logger.js';
 
 interface HighLowState {
@@ -61,6 +63,8 @@ class AlertService {
       }
 
       const isIndex = stock.indexName === 'INDEX' || stock.symbol.includes('NIFTY') || stock.symbol.includes('SENSEX');
+      const isGaining = (stock.changePercent ?? 0) > 0.05 && (stock.change ?? 0) > 0;
+      const isDeclining = (stock.changePercent ?? 0) < -0.05 && (stock.change ?? 0) < 0;
 
       // First time seeing this symbol today — record initial baseline state
       if (!this.previousHighLowState.has(stock.symbol)) {
@@ -73,9 +77,13 @@ class AlertService {
           lastAlertPrice: 0,
         });
 
-        if (stock.atDayHigh || stock.price >= stock.dayHigh) {
+        const quoteTime = stock.lastUpdated ? new Date(stock.lastUpdated).getTime() : 0;
+        const isFreshQuote = quoteTime > 0 && Math.abs(currentMs - quoteTime) < 12 * 60 * 60 * 1000;
+        const initialTimestamp = isFreshQuote ? stock.lastUpdated! : nowIso;
+
+        if (isGaining && (stock.atDayHigh || stock.price >= stock.dayHigh)) {
           this.inMemoryAlerts.push({
-            id: this.generateDeterministicUUID(`${stock.symbol}_DAY_HIGH_${dayTimestamp}_${currentMs}`),
+            id: this.generateDeterministicUUID(`${stock.symbol}_DAY_HIGH_${dayTimestamp}`),
             symbol: stock.symbol,
             name: stock.name,
             alertType: 'DAY_HIGH',
@@ -83,11 +91,11 @@ class AlertService {
             change: stock.change,
             changePercent: stock.changePercent,
             details: `Cleared session high at ₹${stock.price.toFixed(2)}`,
-            createdAt: nowIso
+            createdAt: initialTimestamp
           });
-        } else if (stock.atDayLow || (stock.dayLow > 0 && stock.price <= stock.dayLow)) {
+        } else if (isDeclining && (stock.atDayLow || (stock.dayLow > 0 && stock.price <= stock.dayLow))) {
           this.inMemoryAlerts.push({
-            id: this.generateDeterministicUUID(`${stock.symbol}_DAY_LOW_${dayTimestamp}_${currentMs}`),
+            id: this.generateDeterministicUUID(`${stock.symbol}_DAY_LOW_${dayTimestamp}`),
             symbol: stock.symbol,
             name: stock.name,
             alertType: 'DAY_LOW',
@@ -95,7 +103,7 @@ class AlertService {
             change: stock.change,
             changePercent: stock.changePercent,
             details: `Broke session low at ₹${stock.price.toFixed(2)}`,
-            createdAt: nowIso
+            createdAt: initialTimestamp
           });
         }
         continue;
@@ -106,13 +114,14 @@ class AlertService {
 
       // ── 1. DAY HIGH ────────────────────────────────────────────────
       // A genuine new high:
+      // - Stock has positive change (isGaining)
       // - Stock is currently at or breaking day high
       // - Alert price is strictly higher than previous peak
       const isAtDayHigh = stock.atDayHigh || stock.price >= stock.dayHigh;
       const alertPriceHigh = Math.max(stock.dayHigh, stock.price);
       const isNewHigh = alertPriceHigh > prev.highValue;
 
-      if (isAtDayHigh && isNewHigh) {
+      if (isGaining && isAtDayHigh && isNewHigh) {
         const alreadyInBatch = newAlerts.some(a => a.symbol === stock.symbol && a.alertType === 'DAY_HIGH');
         if (!alreadyInBatch) {
           const prevClose = stock.previousClose > 0 ? stock.previousClose : (stock.price - stock.change);
@@ -120,13 +129,14 @@ class AlertService {
           const alertChangePercent = prevClose > 0 ? Number(((alertChange / prevClose) * 100).toFixed(2)) : stock.changePercent;
 
           newAlerts.push({
-            id: this.generateDeterministicUUID(`${stock.symbol}_DAY_HIGH_${dayTimestamp}_${currentMs}`),
+            id: this.generateDeterministicUUID(`${stock.symbol}_DAY_HIGH_${dayTimestamp}_${Math.floor(currentMs / 60000)}`),
             symbol: stock.symbol,
             name: stock.name,
             alertType: 'DAY_HIGH',
             price: alertPriceHigh,
             change: alertChange,
             changePercent: alertChangePercent,
+            details: `Cleared session high · New Session Peak at ₹${alertPriceHigh.toFixed(2)}`,
             createdAt: nowIso,
           });
           triggeredAlert = true;
@@ -141,13 +151,14 @@ class AlertService {
 
       // ── 2. DAY LOW ─────────────────────────────────────────────────
       // A genuine new low:
+      // - Stock has negative change (isDeclining)
       // - Stock is currently at or breaking day low
       // - Alert price is strictly lower than previous trough
       const isAtDayLow = stock.atDayLow || stock.price <= stock.dayLow;
       const alertPriceLow = stock.dayLow > 0 && stock.price > 0 ? Math.min(stock.dayLow, stock.price) : stock.price;
       const isNewLow = prev.lowValue > 0 && alertPriceLow < prev.lowValue;
 
-      if (isAtDayLow && isNewLow && !triggeredAlert) {
+      if (isDeclining && isAtDayLow && isNewLow && !triggeredAlert) {
         const alreadyInBatch = newAlerts.some(a => a.symbol === stock.symbol && a.alertType === 'DAY_LOW');
         if (!alreadyInBatch) {
           const prevClose = stock.previousClose > 0 ? stock.previousClose : (stock.price - stock.change);
@@ -155,13 +166,14 @@ class AlertService {
           const alertChangePercent = prevClose > 0 ? Number(((alertChange / prevClose) * 100).toFixed(2)) : stock.changePercent;
 
           newAlerts.push({
-            id: this.generateDeterministicUUID(`${stock.symbol}_DAY_LOW_${dayTimestamp}_${currentMs}`),
+            id: this.generateDeterministicUUID(`${stock.symbol}_DAY_LOW_${dayTimestamp}_${Math.floor(currentMs / 60000)}`),
             symbol: stock.symbol,
             name: stock.name,
             alertType: 'DAY_LOW',
             price: alertPriceLow,
             change: alertChange,
             changePercent: alertChangePercent,
+            details: `Broke session low · New Session Low at ₹${alertPriceLow.toFixed(2)}`,
             createdAt: nowIso,
           });
           triggeredAlert = true;
@@ -174,26 +186,29 @@ class AlertService {
         }
       }
 
-      // ── 3. VOLUME SPIKE (stocks only) ─────────────────────────────
-      if (!isIndex && stock.volumeSpike === true && !prev.volumeSpiked && !triggeredAlert) {
+      // ── 3. VOLUME SPIKE (stocks only - institutional velocity >= 1.75x) ──
+      const isInstitutionalSpike = (stock.relativeVolume && stock.relativeVolume >= 1.75) || (stock.volumeSpike && (stock.relativeVolume ?? 1) >= 1.5);
+      if (!isIndex && isInstitutionalSpike && !prev.volumeSpiked && !triggeredAlert) {
         const alreadyInBatch = newAlerts.some(a => a.symbol === stock.symbol && a.alertType === 'VOLUME_SPIKE');
         if (!alreadyInBatch) {
+          const rVol = stock.relativeVolume ? stock.relativeVolume.toFixed(1) : '2.0';
           newAlerts.push({
-            id: this.generateDeterministicUUID(`${stock.symbol}_VOLUME_SPIKE_${dayTimestamp}_${currentMs}`),
+            id: this.generateDeterministicUUID(`${stock.symbol}_VOLUME_SPIKE_${dayTimestamp}_${Math.floor(currentMs / 60000)}`),
             symbol: stock.symbol,
             name: stock.name,
             alertType: 'VOLUME_SPIKE',
             price: stock.price,
             change: stock.change,
             changePercent: stock.changePercent,
+            details: `Volume Surge: ${rVol}x institutional velocity`,
             createdAt: nowIso,
           });
-          logger.info(`⚡ VOLUME SPIKE: ${stock.symbol} ${stock.relativeVolume.toFixed(1)}x average`);
+          logger.info(`⚡ VOLUME SPIKE: ${stock.symbol} ${rVol}x average`);
           prev.volumeSpiked = true;
           prev.lastAlertPrice = stock.price;
           prev.lastAlertType = 'VOLUME_SPIKE';
         }
-      } else if (!stock.volumeSpike) {
+      } else if (!stock.volumeSpike && (stock.relativeVolume ?? 0) < 1.3) {
         // Re-arm when spike subsides
         prev.volumeSpiked = false;
       }
@@ -265,9 +280,83 @@ class AlertService {
       // Ignore if optionChainService is not yet populated
     }
 
-    const merged = [...fnoAlerts, ...this.inMemoryAlerts];
+    const smartMoneyAlerts: StockAlert[] = [];
+    try {
+      const smFlow = smartMoneyService.getSmartMoneyFlow();
+      if (smFlow) {
+        const dateStr = this.currentTradingDay || new Date().toISOString().substring(0, 10);
+        const topAcc = (smFlow.topAccumulators || []).slice(0, 6);
+        for (const t of topAcc) {
+          if (t.flowCr >= 50) {
+            smartMoneyAlerts.push({
+              id: `sm-buy-${t.symbol}-${dateStr}`,
+              symbol: t.symbol,
+              name: t.name || t.symbol,
+              alertType: 'SMART_MONEY',
+              price: t.price || 0,
+              change: t.change || 0,
+              changePercent: t.changePercent || 0,
+              details: `${t.footprint || 'MEGA BLOCK BUY'}: ₹${t.flowCr >= 1000 ? (t.flowCr / 1000).toFixed(2) + 'K' : t.flowCr.toFixed(0)} Cr institutional inflow (${t.institution || 'Institutional Accumulation'})`,
+              createdAt: smFlow.timestamp || new Date().toISOString(),
+            });
+          }
+        }
+        const topDist = (smFlow.topDistributors || []).slice(0, 4);
+        for (const t of topDist) {
+          if (t.flowCr >= 80) {
+            smartMoneyAlerts.push({
+              id: `sm-sell-${t.symbol}-${dateStr}`,
+              symbol: t.symbol,
+              name: t.name || t.symbol,
+              alertType: 'SMART_MONEY',
+              price: t.price || 0,
+              change: t.change || 0,
+              changePercent: t.changePercent || 0,
+              details: `${t.footprint || 'BLOCK DUMP'}: −₹${t.flowCr >= 1000 ? (t.flowCr / 1000).toFixed(2) + 'K' : t.flowCr.toFixed(0)} Cr institutional outflow (${t.institution || 'Institutional Liquidation'})`,
+              createdAt: smFlow.timestamp || new Date().toISOString(),
+            });
+          }
+        }
+      }
+    } catch {
+      // Ignore smart money errors
+    }
+
+    const newsAlerts: StockAlert[] = [];
+    try {
+      const rawNews = newsService.getLatestNews() || [];
+      for (const n of rawNews) {
+        if (!isAllowedSource(n.source) || isNoisyOrBlacklisted(n)) continue;
+        const cleanSource = n.source.startsWith('@') ? n.source : `@${n.source}`;
+        newsAlerts.push({
+          id: `news-${n.id}`,
+          symbol: cleanSource,
+          name: n.title,
+          alertType: 'NEWS',
+          price: 0,
+          details: 'Institutional News Wire',
+          createdAt: n.pubDate || new Date().toISOString(),
+        });
+      }
+    } catch {
+      // Ignore news errors
+    }
+
+    const merged = [...fnoAlerts, ...smartMoneyAlerts, ...newsAlerts, ...this.inMemoryAlerts];
     merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     return merged.slice(0, limit);
+  }
+
+  public addAlert(alert: StockAlert): void {
+    const idx = this.inMemoryAlerts.findIndex(a => a.id === alert.id);
+    if (idx >= 0) {
+      this.inMemoryAlerts[idx] = alert;
+    } else {
+      this.inMemoryAlerts.unshift(alert);
+      if (this.inMemoryAlerts.length > 1000) {
+        this.inMemoryAlerts.pop();
+      }
+    }
   }
 
   getTrackedSymbolCount(): number {

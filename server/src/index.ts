@@ -25,6 +25,7 @@ import { Server as SocketIOServer } from 'socket.io';
 import type {
   ServerToClientEvents,
   ClientToServerEvents,
+  StockAlert,
 } from './types/index.js';
 import { testConnection, supabase, isSupabaseConfigured } from './config/supabase.js';
 import { isMarketOpen } from './utils/marketHours.js';
@@ -150,6 +151,11 @@ app.get('/api/chart', (req, res) => {
   res.redirect(307, `/api/stocks/chart/${encodeURIComponent(symbol)}${queryString}`);
 });
 
+app.get('/api/alerts', (req, res) => {
+  const query = req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : '';
+  res.redirect(307, `/api/stocks/alerts${query}`);
+});
+
 // ── News Alerts ────────────────────────────────────────────────
 
 newsService.on('news:alert', (news) => {
@@ -160,14 +166,17 @@ newsService.on('news:alert', (news) => {
     return;
   }
   const cleanSource = news.source.startsWith('@') ? news.source : `@${news.source}`;
-  io.emit('alert:new', {
+  const newsAlertObj: StockAlert = {
     id: `news-${news.id}`,
     symbol: cleanSource,
     name: news.title,
     alertType: 'NEWS',
     price: 0,
-    createdAt: new Date(news.pubDate || Date.now()).toISOString()
-  });
+    details: 'Institutional News Wire',
+    createdAt: new Date(news.pubDate || Date.now()).toISOString(),
+  };
+  alertService.addAlert(newsAlertObj);
+  io.emit('alert:new', newsAlertObj);
 });
 
 newsService.on('news:update', () => {

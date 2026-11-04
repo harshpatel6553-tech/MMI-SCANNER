@@ -128,8 +128,26 @@ export function useAlerts(stocks?: StockData[]) {
           ? `🚀 DAY HIGH BREAK: ${alert.symbol}`
           : alert.alertType === 'DAY_LOW'
           ? `🔻 DAY LOW BREAK: ${alert.symbol}`
+          : alert.alertType === 'VOLUME_SPIKE'
+          ? `⚡ VOLUME SPIKE: ${alert.symbol}`
+          : alert.alertType === 'NEWS'
+          ? `📰 BREAKING NEWS: ${alert.symbol}`
+          : alert.alertType === 'SMART_MONEY'
+          ? `💎 SMART MONEY: ${alert.symbol}`
           : `⚡ ${alert.symbol}`;
-        const body = alert.details || `${alert.symbol} touched ${alert.alertType === 'DAY_HIGH' ? 'Day High' : 'Day Low'} at ₹${alert.price.toLocaleString('en-IN')}`;
+        const body = alert.details || (
+          alert.alertType === 'DAY_HIGH'
+            ? `${alert.symbol} cleared Day High at ₹${alert.price.toLocaleString('en-IN')}`
+            : alert.alertType === 'DAY_LOW'
+            ? `${alert.symbol} touched Day Low at ₹${alert.price.toLocaleString('en-IN')}`
+            : alert.alertType === 'VOLUME_SPIKE'
+            ? `${alert.symbol} volume surge detected at ₹${alert.price.toLocaleString('en-IN')}`
+            : alert.alertType === 'NEWS'
+            ? (alert.name || 'Institutional market news wire')
+            : alert.alertType === 'SMART_MONEY'
+            ? `${alert.symbol} institutional flow activity`
+            : `${alert.symbol} alert at ₹${alert.price.toLocaleString('en-IN')}`
+        );
         new Notification(title, { body, silent: true });
       } catch {
         // Desktop notification error ignored
@@ -374,10 +392,11 @@ export function useAlerts(stocks?: StockData[]) {
 
           // Pop-up Toast Trigger Logic (Suppressed on initial mount hydration)
           const isFirstTime = !alertedToastKeysRef.current.has(highKey);
-          const hasPushedPeak = symState.lastHighPrice !== undefined && s.price > symState.lastHighPrice;
-          const cooldownPassed = !symState.lastHighTime || (nowMs - symState.lastHighTime > 60000);
+          const minPeakMove = symState.lastHighPrice ? Math.max(0.5, symState.lastHighPrice * 0.002) : 0;
+          const hasPushedPeak = symState.lastHighPrice !== undefined && (s.price - symState.lastHighPrice) >= minPeakMove;
+          const cooldownPassed = !symState.lastHighTime || (nowMs - symState.lastHighTime > 45000);
 
-          if (isHydratedRef.current && (hasPushedPeak || (cooldownPassed && isBreakoutHigh))) {
+          if (isHydratedRef.current && (isFirstTime || (hasPushedPeak && cooldownPassed))) {
             symState.lastHighPrice = s.price;
             symState.lastHighTime = nowMs;
 
@@ -415,10 +434,11 @@ export function useAlerts(stocks?: StockData[]) {
 
           // Pop-up Toast Trigger Logic (Suppressed on initial mount hydration)
           const isFirstTime = !alertedToastKeysRef.current.has(lowKey);
-          const hasPushedTrough = symState.lastLowPrice !== undefined && s.price < symState.lastLowPrice;
-          const cooldownPassed = !symState.lastLowTime || (nowMs - symState.lastLowTime > 60000);
+          const minTroughMove = symState.lastLowPrice ? Math.max(0.5, symState.lastLowPrice * 0.002) : 0;
+          const hasPushedTrough = symState.lastLowPrice !== undefined && (symState.lastLowPrice - s.price) >= minTroughMove;
+          const cooldownPassed = !symState.lastLowTime || (nowMs - symState.lastLowTime > 45000);
 
-          if (isHydratedRef.current && (hasPushedTrough || (cooldownPassed && isBreakdownLow))) {
+          if (isHydratedRef.current && (isFirstTime || (hasPushedTrough && cooldownPassed))) {
             symState.lastLowPrice = s.price;
             symState.lastLowTime = nowMs;
 
@@ -491,8 +511,13 @@ export function useAlerts(stocks?: StockData[]) {
       const alertTime = new Date(alert.createdAt).getTime();
       const isFresh = !alertTime || (Date.now() - alertTime < 2 * 60 * 1000);
 
-      // Only toast if hydrated and fresh
-      if (isHydratedRef.current && isFresh) {
+      // Prevent double toast if locally alerted in the last 45s
+      const toastKey = `${alert.symbol}_${alert.alertType}`;
+      const wasRecentlyAlerted = alertedToastKeysRef.current.has(toastKey) && alert.alertType !== 'NEWS' && alert.alertType !== 'FNO_OI';
+
+      // Only toast if hydrated, fresh, and not already locally toasted
+      if (isHydratedRef.current && isFresh && !wasRecentlyAlerted) {
+        alertedToastKeysRef.current.add(toastKey);
         triggerLiveAlert(alert);
       }
 

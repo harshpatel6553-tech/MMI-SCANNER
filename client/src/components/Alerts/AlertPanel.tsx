@@ -330,9 +330,18 @@ export function AlertPanel({ alerts, onClearAll }: AlertPanelProps) {
                                 {isBullish ? 'BULLISH FLOW' : 'DEFENSIVE BARRIER'}
                               </span>
                             </div>
-                            <span className={`fno-side-badge ${isCall ? 'ceiling' : 'floor'}`}>
-                              {sideLabel}
-                            </span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <span className={`fno-side-badge ${isCall ? 'ceiling' : 'floor'}`}>
+                                {sideLabel}
+                              </span>
+                              <button 
+                                className="btn-quick-copy"
+                                onClick={(e) => handleCopy(alert.details || alert.name, alert.id, e)}
+                                title="Copy F&O alert message"
+                              >
+                                {copiedId === alert.id ? <Check size={12} color="var(--up)" /> : <Copy size={12} />}
+                              </button>
+                            </div>
                           </div>
 
                           <div style={{ fontSize: 13, color: '#F1F5FC', lineHeight: 1.4, fontWeight: 600 }}>
@@ -347,7 +356,7 @@ export function AlertPanel({ alerts, onClearAll }: AlertPanelProps) {
                                 handleFnoClick(alert.strike);
                               }}
                             >
-                              <span>Inspect Strike {alert.strike || 23100}</span>
+                              <span>{alert.strike ? `Inspect Strike ${alert.strike}` : 'Inspect Options Lens'}</span>
                               <ExternalLink size={11} />
                             </button>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -382,9 +391,18 @@ export function AlertPanel({ alerts, onClearAll }: AlertPanelProps) {
                               <span style={{ fontWeight: 800, fontSize: 13, color: '#F1F5FC' }}>{alert.symbol}</span>
                               {alert.name && <span style={{ fontSize: 11, color: '#9BAAC0' }}>{alert.name}</span>}
                             </div>
-                            <span className="fno-side-badge" style={{ background: isBuy ? 'rgba(0, 214, 163, 0.15)' : 'rgba(255, 66, 104, 0.15)', color: isBuy ? '#00D6A3' : '#FF4268', borderColor: isBuy ? 'rgba(0, 214, 163, 0.35)' : 'rgba(255, 66, 104, 0.35)' }}>
-                              {isBuy ? 'INSTITUTIONAL INFLOW' : 'BLOCK DUMP'}
-                            </span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <span className="fno-side-badge" style={{ background: isBuy ? 'rgba(0, 214, 163, 0.15)' : 'rgba(255, 66, 104, 0.15)', color: isBuy ? '#00D6A3' : '#FF4268', borderColor: isBuy ? 'rgba(0, 214, 163, 0.35)' : 'rgba(255, 66, 104, 0.35)' }}>
+                                {isBuy ? 'INSTITUTIONAL INFLOW' : 'BLOCK DUMP'}
+                              </span>
+                              <button 
+                                className="btn-quick-copy"
+                                onClick={(e) => handleCopy(alert.details || alert.symbol, alert.id, e)}
+                                title="Copy Smart Money details"
+                              >
+                                {copiedId === alert.id ? <Check size={12} color="var(--up)" /> : <Copy size={12} />}
+                              </button>
+                            </div>
                           </div>
 
                           <div style={{ fontSize: 12, color: '#F1F5FC', fontWeight: 600 }}>
@@ -507,7 +525,7 @@ export function AlertPanel({ alerts, onClearAll }: AlertPanelProps) {
                                 
                                 {alert.change !== undefined && alert.changePercent !== undefined && (
                                   <span className={`chg-badge tabular-nums ${alert.changePercent >= 0 ? 'up' : 'down'}`}>
-                                    {alert.change >= 0 ? '+' : '−'}{Math.abs(alert.change).toFixed(1)} ({alert.changePercent >= 0 ? '+' : '−'}{Math.abs(alert.changePercent).toFixed(2)}%)
+                                    {alert.change >= 0 ? '+' : '−'}{Math.abs(alert.change).toFixed(2)} ({alert.changePercent >= 0 ? '+' : '−'}{Math.abs(alert.changePercent).toFixed(2)}%)
                                   </span>
                                 )}
                               </div>
