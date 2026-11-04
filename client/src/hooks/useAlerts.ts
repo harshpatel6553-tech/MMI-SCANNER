@@ -82,7 +82,12 @@ export function useAlerts(stocks?: StockData[]) {
 
   // Hydration state: suppresses burst barrage on initial page load, then surfaces top fresh breakouts
   const [isHydrated, setIsHydrated] = useState(false);
-  const initialToastedRef = useRef(false);
+  const initialFetchDoneRef = useRef(false);
+
+  // Unified Toast Queue & Enqueue System for Alert Panel & Pop-Up synchronization
+  const toastQueueRef = useRef<StockAlert[]>([]);
+  const isQueuePumpingRef = useRef(false);
+  const toastedTimestampsRef = useRef<Map<string, number>>(new Map());
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -179,6 +184,50 @@ export function useAlerts(stocks?: StockData[]) {
     }, durationMs);
     toastTimersRef.current.set(toastKey, newTimer);
   }, []);
+
+  // ── Unified Toast Queue & Enqueue System (Guarantees every panel alert pops up) ──
+  const pumpToastQueue = useCallback(() => {
+    if (isQueuePumpingRef.current) return;
+    if (toastQueueRef.current.length === 0) return;
+
+    isQueuePumpingRef.current = true;
+    const nextAlert = toastQueueRef.current.shift();
+    if (nextAlert) {
+      triggerLiveAlert(nextAlert);
+    }
+
+    if (toastQueueRef.current.length > 0) {
+      setTimeout(() => {
+        isQueuePumpingRef.current = false;
+        pumpToastQueue();
+      }, 1200);
+    } else {
+      isQueuePumpingRef.current = false;
+    }
+  }, [triggerLiveAlert]);
+
+  const enqueueToast = useCallback((alert: StockAlert, force: boolean = false) => {
+    if (!alert || alert.alertType === 'SMART_MONEY') return;
+    const key = (alert.alertType === 'NEWS' || alert.alertType === 'FNO_OI')
+      ? alert.id
+      : `${alert.symbol}_${alert.alertType}`;
+
+    const nowMs = Date.now();
+    const lastToasted = toastedTimestampsRef.current.get(key) || 0;
+    const cooldown = alert.alertType === 'NEWS' ? 10000 : 20000;
+
+    if (!force && (nowMs - lastToasted < cooldown)) {
+      return;
+    }
+
+    toastedTimestampsRef.current.set(key, nowMs);
+
+    // Limit maximum backlog queue to 8 items to avoid stale notifications
+    if (toastQueueRef.current.length < 8) {
+      toastQueueRef.current.push(alert);
+      pumpToastQueue();
+    }
+  }, [pumpToastQueue]);
 
   // ── 1. Initial REST fetch and background 5s refresh for server alerts ──
   useEffect(() => {
@@ -310,6 +359,47 @@ export function useAlerts(stocks?: StockData[]) {
 
         const freshList = Array.from(dedupedMap.values());
         setServerAlerts(freshList);
+
+        // Synchronize server alerts with pop-up toasts
+        const isFirstLoad = !initialFetchDoneRef.current;
+        initialFetchDoneRef.current = true;
+
+        if (isFirstLoad) {
+          // Seed older alerts so we don't dump hundreds of historical items
+          freshList.forEach(a => {
+            const key = (a.alertType === 'NEWS' || a.alertType === 'FNO_OI') ? a.id : `${a.symbol}_${a.alertType}`;
+            toastedTimestampsRef.current.set(key, Date.now() - 15000);
+          });
+
+          // Enqueue top 3 active breakouts with high/low so user gets immediate alerts
+          const activeHighLows = freshList
+            .filter(a => (a.alertType === 'DAY_HIGH' || a.alertType === 'DAY_LOW') && a.price > 0)
+            .sort((a, b) => {
+              const timeA = new Date(a.createdAt).getTime() || 0;
+              const timeB = new Date(b.createdAt).getTime() || 0;
+              return timeB - timeA;
+            });
+
+          activeHighLows.slice(0, 3).forEach(a => {
+            const key = `${a.symbol}_${a.alertType}`;
+            toastedTimestampsRef.current.delete(key);
+            enqueueToast(a, true);
+          });
+        } else {
+          // On 5-second polling cycles:
+          // Any new alert that arrives at the server gets enqueued for a pop-up toast!
+          freshList.forEach(a => {
+            const key = (a.alertType === 'NEWS' || a.alertType === 'FNO_OI') ? a.id : `${a.symbol}_${a.alertType}`;
+            const isUnseen = !toastedTimestampsRef.current.has(key);
+            const alertTime = new Date(a.createdAt).getTime();
+            const isRecent = !alertTime || (Date.now() - alertTime < 3 * 60 * 1000);
+
+            if (isUnseen && isRecent) {
+              enqueueToast(a);
+            }
+          });
+        }
+
         try {
           if (typeof window !== 'undefined' && freshList.length > 0) {
             sessionStorage.setItem('mmi_server_alerts_cache', JSON.stringify(freshList.slice(0, 200)));
@@ -397,19 +487,13 @@ export function useAlerts(stocks?: StockData[]) {
           nextMap.set(highKey, alertObj);
 
           // Pop-up Toast Trigger Logic
-          const cooldownPassed = !symState.lastHighTime || (nowMs - symState.lastHighTime > 15000);
           const hasPushedPeak = symState.lastHighPrice === undefined || s.price > symState.lastHighPrice;
 
-          if (isHydrated && cooldownPassed && (isBreakoutHigh || hasPushedPeak)) {
+          if (isHydrated && (isBreakoutHigh || hasPushedPeak)) {
             symState.lastHighPrice = s.price;
-            symState.lastHighTime = nowMs;
-            pendingToasts.push({
-              ...alertObj,
-              id: `dh-pop-${s.symbol}-${nowMs}`,
-            });
+            pendingToasts.push(alertObj);
           } else if (!symState.lastHighPrice) {
             symState.lastHighPrice = s.price;
-            symState.lastHighTime = nowMs;
           }
         }
 
@@ -433,19 +517,13 @@ export function useAlerts(stocks?: StockData[]) {
           nextMap.set(lowKey, alertObj);
 
           // Pop-up Toast Trigger Logic
-          const cooldownPassed = !symState.lastLowTime || (nowMs - symState.lastLowTime > 15000);
           const hasPushedTrough = symState.lastLowPrice === undefined || s.price < symState.lastLowPrice;
 
-          if (isHydrated && cooldownPassed && (isBreakdownLow || hasPushedTrough)) {
+          if (isHydrated && (isBreakdownLow || hasPushedTrough)) {
             symState.lastLowPrice = s.price;
-            symState.lastLowTime = nowMs;
-            pendingToasts.push({
-              ...alertObj,
-              id: `dl-pop-${s.symbol}-${nowMs}`,
-            });
+            pendingToasts.push(alertObj);
           } else if (!symState.lastLowPrice) {
             symState.lastLowPrice = s.price;
-            symState.lastLowTime = nowMs;
           }
         }
 
@@ -468,15 +546,8 @@ export function useAlerts(stocks?: StockData[]) {
           nextMap.set(spikeKey, alertObj);
 
           // Pop-up Toast Trigger Logic for Volume Surges
-          const cooldownPassed = !symState.lastSpikeTime || (nowMs - symState.lastSpikeTime > 20000);
-          if (isHydrated && cooldownPassed && (s.relativeVolume ?? 0) >= 1.75) {
-            symState.lastSpikeTime = nowMs;
-            pendingToasts.push({
-              ...alertObj,
-              id: `vs-pop-${s.symbol}-${nowMs}`,
-            });
-          } else if (!symState.lastSpikeTime) {
-            symState.lastSpikeTime = nowMs;
+          if (isHydrated && (s.relativeVolume ?? 0) >= 1.75) {
+            pendingToasts.push(alertObj);
           }
         }
 
@@ -486,34 +557,9 @@ export function useAlerts(stocks?: StockData[]) {
       return nextMap;
     });
 
-    // Execute pop-up toasts cleanly outside state updater
-    if (pendingToasts.length > 0) {
-      pendingToasts.slice(0, 2).forEach(t => triggerLiveAlert(t));
-    }
-  }, [stocks, isHydrated, triggerLiveAlert]);
-
-  // Display initial active breakout toasts right after hydration so user gets visual pop-ups immediately
-  useEffect(() => {
-    if (!isHydrated || initialToastedRef.current) return;
-
-    // Check radarAlerts or serverAlerts for high breakouts
-    const alertsList = Array.from(radarAlerts.values());
-    const highAlerts = alertsList
-      .filter(a => a.alertType === 'DAY_HIGH' && (a.changePercent ?? 0) > 0)
-      .sort((a, b) => (b.changePercent ?? 0) - (a.changePercent ?? 0));
-
-    if (highAlerts.length > 0) {
-      initialToastedRef.current = true;
-      highAlerts.slice(0, 2).forEach((alert, index) => {
-        setTimeout(() => {
-          triggerLiveAlert({
-            ...alert,
-            id: `mount-dh-${alert.symbol}-${Date.now()}-${index}`,
-          });
-        }, index * 400);
-      });
-    }
-  }, [isHydrated, radarAlerts, triggerLiveAlert]);
+    // Enqueue all candidate alerts (enqueueToast manages 20s cooldown and smooth staggered queue)
+    pendingToasts.forEach(t => enqueueToast(t));
+  }, [stocks, isHydrated, enqueueToast]);
 
   // ── 3. Live Socket.IO Alerts Listener (handles Server-Broadcasted Alerts & News) ──
   useEffect(() => {
@@ -531,22 +577,6 @@ export function useAlerts(stocks?: StockData[]) {
         }
       }
 
-      // Check if this alert was created recently (within the last 2 minutes)
-      const alertTime = new Date(alert.createdAt).getTime();
-      const isFresh = !alertTime || (Date.now() - alertTime < 2 * 60 * 1000);
-
-      // Prevent double toast if alerted in the last 20s
-      const toastKey = `${alert.symbol}_${alert.alertType}`;
-      const nowMs = Date.now();
-      const lastAlertTime = lastSoundPlayedRef.current[toastKey] || 0;
-      const cooldownPassed = (nowMs - lastAlertTime) > 20000;
-
-      // Only toast if hydrated, fresh, and cooldown passed
-      if (isHydrated && isFresh && cooldownPassed) {
-        lastSoundPlayedRef.current[toastKey] = nowMs;
-        triggerLiveAlert(alert);
-      }
-
       setServerAlerts(prev => {
         const copy = [...prev];
         const key = alert.alertType === 'NEWS' ? alert.id : `${alert.symbol}_${alert.alertType}`;
@@ -558,6 +588,9 @@ export function useAlerts(stocks?: StockData[]) {
         }
         return copy.slice(0, 500);
       });
+
+      // Synchronize directly with toast queue!
+      enqueueToast(alert);
     };
 
     socket.on('alert:new', handleServerAlert);
@@ -565,7 +598,7 @@ export function useAlerts(stocks?: StockData[]) {
     return () => {
       socket.off('alert:new', handleServerAlert);
     };
-  }, [socket, triggerLiveAlert]);
+  }, [socket, enqueueToast]);
 
   // ── 4. Unified, deduplicated Alert History for Alert Panel ──
   const alertHistory = useMemo(() => {
@@ -632,6 +665,8 @@ export function useAlerts(stocks?: StockData[]) {
     setServerAlerts([]);
     setRadarAlerts(new Map());
     setToasts([]);
+    toastQueueRef.current = [];
+    toastedTimestampsRef.current.clear();
     toastTimersRef.current.forEach(t => clearTimeout(t));
     toastTimersRef.current.clear();
   }, []);
