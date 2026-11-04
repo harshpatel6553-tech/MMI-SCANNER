@@ -10,7 +10,6 @@
 import crypto from 'node:crypto';
 import type { StockData, StockAlert } from '../types/index.js';
 import { optionChainService } from './optionChainService.js';
-import { smartMoneyService } from './smartMoneyService.js';
 import { newsService, isAllowedSource, isNoisyOrBlacklisted } from './newsService.js';
 import logger from '../utils/logger.js';
 
@@ -280,48 +279,6 @@ class AlertService {
       // Ignore if optionChainService is not yet populated
     }
 
-    const smartMoneyAlerts: StockAlert[] = [];
-    try {
-      const smFlow = smartMoneyService.getSmartMoneyFlow();
-      if (smFlow) {
-        const dateStr = this.currentTradingDay || new Date().toISOString().substring(0, 10);
-        const topAcc = (smFlow.topAccumulators || []).slice(0, 6);
-        for (const t of topAcc) {
-          if (t.flowCr >= 50) {
-            smartMoneyAlerts.push({
-              id: `sm-buy-${t.symbol}-${dateStr}`,
-              symbol: t.symbol,
-              name: t.name || t.symbol,
-              alertType: 'SMART_MONEY',
-              price: t.price || 0,
-              change: t.change || 0,
-              changePercent: t.changePercent || 0,
-              details: `${t.footprint || 'MEGA BLOCK BUY'}: ₹${t.flowCr >= 1000 ? (t.flowCr / 1000).toFixed(2) + 'K' : t.flowCr.toFixed(0)} Cr institutional inflow (${t.institution || 'Institutional Accumulation'})`,
-              createdAt: smFlow.timestamp || new Date().toISOString(),
-            });
-          }
-        }
-        const topDist = (smFlow.topDistributors || []).slice(0, 4);
-        for (const t of topDist) {
-          if (t.flowCr >= 80) {
-            smartMoneyAlerts.push({
-              id: `sm-sell-${t.symbol}-${dateStr}`,
-              symbol: t.symbol,
-              name: t.name || t.symbol,
-              alertType: 'SMART_MONEY',
-              price: t.price || 0,
-              change: t.change || 0,
-              changePercent: t.changePercent || 0,
-              details: `${t.footprint || 'BLOCK DUMP'}: −₹${t.flowCr >= 1000 ? (t.flowCr / 1000).toFixed(2) + 'K' : t.flowCr.toFixed(0)} Cr institutional outflow (${t.institution || 'Institutional Liquidation'})`,
-              createdAt: smFlow.timestamp || new Date().toISOString(),
-            });
-          }
-        }
-      }
-    } catch {
-      // Ignore smart money errors
-    }
-
     const newsAlerts: StockAlert[] = [];
     try {
       const rawNews = newsService.getLatestNews() || [];
@@ -342,7 +299,8 @@ class AlertService {
       // Ignore news errors
     }
 
-    const merged = [...fnoAlerts, ...smartMoneyAlerts, ...newsAlerts, ...this.inMemoryAlerts];
+    // Stocks first (DAY_HIGH, DAY_LOW, VOLUME_SPIKE), plus F&O and News
+    const merged = [...fnoAlerts, ...newsAlerts, ...this.inMemoryAlerts];
     merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     return merged.slice(0, limit);
   }

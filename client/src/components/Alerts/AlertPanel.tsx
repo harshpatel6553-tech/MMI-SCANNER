@@ -62,19 +62,15 @@ export function AlertPanel({ alerts, onClearAll }: AlertPanelProps) {
     setIsAlertPanelOpen(false);
   };
 
-  const handleSmartMoneyClick = () => {
-    audioAlerts.playHapticClick();
-    setActiveTab('Promoter');
-    setIsAlertPanelOpen(false);
-  };
-
-  // Robust, unambiguous filtering
+  // Robust, unambiguous filtering (Strictly STOCKS, F&O, Indices and News — NO institutional inflow)
   const filteredAlerts = useMemo(() => {
     return alerts.filter(a => {
+      if (a.alertType === 'SMART_MONEY') return false;
+
       const isIdx = isIndexSymbol(a.symbol) || a.alertType === 'INDEX_MILESTONE';
 
       if (filter === 'FNO') {
-        if (a.alertType !== 'FNO_OI' && a.alertType !== 'SMART_MONEY') return false;
+        if (a.alertType !== 'FNO_OI') return false;
       } else if (filter === 'INDICES') {
         if (!isIdx) return false;
       } else if (filter === 'HIGH') {
@@ -100,11 +96,12 @@ export function AlertPanel({ alerts, onClearAll }: AlertPanelProps) {
     });
   }, [alerts, filter, searchQuery]);
 
-  // Precise category counts with zero fallthrough errors
+  // Precise category counts with zero fallthrough errors (Excluding SMART_MONEY)
   const counts = useMemo(() => {
-    const c = { ALL: alerts.length, FNO: 0, INDICES: 0, HIGH: 0, LOW: 0, NEWS: 0, SPIKE: 0 };
-    alerts.forEach(a => {
-      if (a.alertType === 'FNO_OI' || a.alertType === 'SMART_MONEY') {
+    const validAlerts = alerts.filter(a => a.alertType !== 'SMART_MONEY');
+    const c = { ALL: validAlerts.length, FNO: 0, INDICES: 0, HIGH: 0, LOW: 0, NEWS: 0, SPIKE: 0 };
+    validAlerts.forEach(a => {
+      if (a.alertType === 'FNO_OI') {
         c.FNO++;
       }
       if (isIndexSymbol(a.symbol) || a.alertType === 'INDEX_MILESTONE') {
@@ -365,62 +362,6 @@ export function AlertPanel({ alerts, onClearAll }: AlertPanelProps) {
                                 {alert.symbol || 'NIFTY'} F&amp;O
                               </span>
                             </div>
-                          </div>
-                        </motion.div>
-                      );
-                    }
-
-                    if (alert.alertType === 'SMART_MONEY') {
-                      const isBuy = (alert.changePercent ?? 0) >= 0;
-                      return (
-                        <motion.div
-                          key={alert.id}
-                          initial={{ opacity: 0, x: 20, scale: 0.97 }}
-                          animate={{ opacity: 1, x: 0, scale: 1 }}
-                          exit={{ opacity: 0, x: -16, scale: 0.95 }}
-                          transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-                          className="alert-card smart-money"
-                          onClick={handleSmartMoneyClick}
-                          title="Click to inspect Institutional Smart Money Radar"
-                          style={{ position: 'relative', overflow: 'hidden', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 6 }}
-                        >
-                          <div className="alert-light-streak" />
-                          <div className="alert-top" style={{ marginBottom: 4 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                              <StockLogo symbol={alert.symbol} name={alert.name} size={24} />
-                              <span style={{ fontWeight: 800, fontSize: 13, color: '#F1F5FC' }}>{alert.symbol}</span>
-                              {alert.name && <span style={{ fontSize: 11, color: '#9BAAC0' }}>{alert.name}</span>}
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                              <span className="fno-side-badge" style={{ background: isBuy ? 'rgba(0, 214, 163, 0.15)' : 'rgba(255, 66, 104, 0.15)', color: isBuy ? '#00D6A3' : '#FF4268', borderColor: isBuy ? 'rgba(0, 214, 163, 0.35)' : 'rgba(255, 66, 104, 0.35)' }}>
-                                {isBuy ? 'INSTITUTIONAL INFLOW' : 'BLOCK DUMP'}
-                              </span>
-                              <button 
-                                className="btn-quick-copy"
-                                onClick={(e) => handleCopy(alert.details || alert.symbol, alert.id, e)}
-                                title="Copy Smart Money details"
-                              >
-                                {copiedId === alert.id ? <Check size={12} color="var(--up)" /> : <Copy size={12} />}
-                              </button>
-                            </div>
-                          </div>
-
-                          <div style={{ fontSize: 12, color: '#F1F5FC', fontWeight: 600 }}>
-                            {alert.details}
-                          </div>
-
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
-                            <button
-                              className="fno-strike-btn"
-                              style={{ color: '#00D6A3', borderColor: 'rgba(0, 214, 163, 0.3)' }}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleSmartMoneyClick();
-                              }}
-                            >
-                              <span>Inspect Smart Money Flow →</span>
-                            </button>
-                            <span className="alert-time tabular-nums">{formatTime(alert.createdAt)}</span>
                           </div>
                         </motion.div>
                       );

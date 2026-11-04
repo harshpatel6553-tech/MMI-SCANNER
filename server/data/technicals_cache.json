@@ -1,312 +1,312 @@
 {
   "RELIANCE": {
     "macdWeeklyBuy": true,
-    "rsiDaily": 66.08,
+    "rsiDaily": 67.15,
     "emaCrossDaily": true
   },
   "TCS": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 64.32,
+    "rsiDaily": 64.68,
     "emaCrossDaily": false
   },
   "HDFCBANK": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 61.87,
+    "rsiDaily": 62.69,
     "emaCrossDaily": false
   },
   "INFY": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 54.98,
+    "rsiDaily": 55.74,
     "emaCrossDaily": false
   },
   "ICICIBANK": {
     "macdWeeklyBuy": true,
-    "rsiDaily": 63.05,
+    "rsiDaily": 62.86,
     "emaCrossDaily": false
   },
   "HINDUNILVR": {
     "macdWeeklyBuy": true,
-    "rsiDaily": 64.11,
+    "rsiDaily": 62.15,
     "emaCrossDaily": false
   },
   "SBIN": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 52.58,
+    "rsiDaily": 53.08,
     "emaCrossDaily": false
   },
   "BHARTIARTL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 71.6,
+    "rsiDaily": 70.68,
     "emaCrossDaily": false
   },
   "ITC": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 67.8,
+    "rsiDaily": 66.96,
     "emaCrossDaily": true
   },
   "KOTAKBANK": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 65.91,
+    "rsiDaily": 65.82,
     "emaCrossDaily": false
   },
   "LT": {
     "macdWeeklyBuy": true,
-    "rsiDaily": 68.08,
+    "rsiDaily": 68.31,
     "emaCrossDaily": true
   },
   "AXISBANK": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 50.53,
+    "rsiDaily": 50.41,
     "emaCrossDaily": false
   },
   "BAJFINANCE": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 54.36,
+    "rsiDaily": 56.2,
     "emaCrossDaily": false
   },
   "ASIANPAINT": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 57.96,
+    "rsiDaily": 58,
     "emaCrossDaily": false
   },
   "MARUTI": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 56.39,
+    "rsiDaily": 56.49,
     "emaCrossDaily": false
   },
   "HCLTECH": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 69.66,
+    "rsiDaily": 70.61,
     "emaCrossDaily": false
   },
   "TITAN": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 57.23,
+    "rsiDaily": 56.86,
     "emaCrossDaily": false
   },
   "SUNPHARMA": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 51.32,
+    "rsiDaily": 50.82,
     "emaCrossDaily": false
   },
   "TMPV": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 49.41,
+    "rsiDaily": 48.86,
     "emaCrossDaily": false
   },
   "ULTRACEMCO": {
     "macdWeeklyBuy": true,
-    "rsiDaily": 67.27,
+    "rsiDaily": 67.77,
     "emaCrossDaily": true
   },
   "NTPC": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 55.8,
+    "rsiDaily": 55.62,
     "emaCrossDaily": false
   },
   "ONGC": {
     "macdWeeklyBuy": true,
-    "rsiDaily": 56.55,
+    "rsiDaily": 57.6,
     "emaCrossDaily": false
   },
   "POWERGRID": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 50.15,
+    "rsiDaily": 50.49,
     "emaCrossDaily": false
   },
   "WIPRO": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 68.63,
+    "rsiDaily": 68.62,
     "emaCrossDaily": false
   },
   "M&M": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 52.16,
+    "rsiDaily": 51.46,
     "emaCrossDaily": false
   },
   "JSWSTEEL": {
     "macdWeeklyBuy": true,
-    "rsiDaily": 64.83,
+    "rsiDaily": 64.23,
     "emaCrossDaily": true
   },
   "TATASTEEL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 52.92,
+    "rsiDaily": 51.82,
     "emaCrossDaily": false
   },
   "ADANIENT": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 48.63,
+    "rsiDaily": 49.61,
     "emaCrossDaily": false
   },
   "ADANIPORTS": {
     "macdWeeklyBuy": true,
-    "rsiDaily": 67.09,
+    "rsiDaily": 67.15,
     "emaCrossDaily": false
   },
   "BAJAJFINSV": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 53.34,
+    "rsiDaily": 56.65,
     "emaCrossDaily": false
   },
   "TECHM": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 65.84,
+    "rsiDaily": 65.99,
     "emaCrossDaily": false
   },
   "NESTLEIND": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 49.82,
+    "rsiDaily": 48.69,
     "emaCrossDaily": false
   },
   "INDUSINDBK": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 44.43,
+    "rsiDaily": 44.59,
     "emaCrossDaily": false
   },
   "COALINDIA": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 45.46,
+    "rsiDaily": 45.61,
     "emaCrossDaily": false
   },
   "GRASIM": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 62.24,
+    "rsiDaily": 62.43,
     "emaCrossDaily": false
   },
   "DIVISLAB": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 66.06,
+    "rsiDaily": 66.53,
     "emaCrossDaily": false
   },
   "BPCL": {
     "macdWeeklyBuy": true,
-    "rsiDaily": 54.03,
+    "rsiDaily": 55.7,
     "emaCrossDaily": false
   },
   "DRREDDY": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 75.52,
+    "rsiDaily": 75.43,
     "emaCrossDaily": false
   },
   "CIPLA": {
     "macdWeeklyBuy": true,
-    "rsiDaily": 62.05,
+    "rsiDaily": 61.72,
     "emaCrossDaily": true
   },
   "BRITANNIA": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 61.57,
+    "rsiDaily": 60.62,
     "emaCrossDaily": false
   },
   "APOLLOHOSP": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 61.99,
+    "rsiDaily": 61.46,
     "emaCrossDaily": false
   },
   "EICHERMOT": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 56.69,
+    "rsiDaily": 56.24,
     "emaCrossDaily": false
   },
   "HEROMOTOCO": {
     "macdWeeklyBuy": true,
-    "rsiDaily": 57.11,
+    "rsiDaily": 56.43,
     "emaCrossDaily": false
   },
   "TATACONSUM": {
     "macdWeeklyBuy": true,
-    "rsiDaily": 71.05,
+    "rsiDaily": 70.48,
     "emaCrossDaily": true
   },
   "SBILIFE": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 53.58,
+    "rsiDaily": 53.01,
     "emaCrossDaily": false
   },
   "HDFCLIFE": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 50.35,
+    "rsiDaily": 49.39,
     "emaCrossDaily": false
   },
   "BAJAJ-AUTO": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 52.87,
+    "rsiDaily": 52.18,
     "emaCrossDaily": false
   },
   "LTM": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 54.36,
+    "rsiDaily": 54.53,
     "emaCrossDaily": false
   },
   "HINDALCO": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 49.47,
+    "rsiDaily": 49.37,
     "emaCrossDaily": false
   },
   "BEL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 59.41,
+    "rsiDaily": 59.77,
     "emaCrossDaily": false
   },
   "360ONE": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 56.42,
+    "rsiDaily": 57.07,
     "emaCrossDaily": false
   },
   "3MINDIA": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 35.06,
+    "rsiDaily": 35.52,
     "emaCrossDaily": false
   },
   "ABB": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 47.13,
+    "rsiDaily": 47.47,
     "emaCrossDaily": false
   },
   "ACC": {
     "macdWeeklyBuy": true,
-    "rsiDaily": 53.77,
+    "rsiDaily": 52.1,
     "emaCrossDaily": false
   },
   "ACMESOLAR": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 52.33,
+    "rsiDaily": 52.23,
     "emaCrossDaily": false
   },
   "AIAENG": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 20.44,
+    "rsiDaily": 20.27,
     "emaCrossDaily": false
   },
   "APLAPOLLO": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 52.69,
+    "rsiDaily": 52.89,
     "emaCrossDaily": false
   },
   "AUBANK": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 36.71,
+    "rsiDaily": 36.63,
     "emaCrossDaily": false
   },
   "AWL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 33.97,
+    "rsiDaily": 33.33,
     "emaCrossDaily": false
   },
   "AADHARHFC": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 39.83,
+    "rsiDaily": 39.59,
     "emaCrossDaily": false
   },
   "AARTIIND": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 39.74,
+    "rsiDaily": 40.07,
     "emaCrossDaily": false
   },
   "AAVAS": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 42.57,
+    "rsiDaily": 42.7,
     "emaCrossDaily": false
   },
   "ABBOTINDIA": {
@@ -316,827 +316,827 @@
   },
   "ACE": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 47.63,
+    "rsiDaily": 48.35,
     "emaCrossDaily": false
   },
   "ACUTAAS": {
     "macdWeeklyBuy": true,
-    "rsiDaily": 64.18,
+    "rsiDaily": 62.82,
     "emaCrossDaily": false
   },
   "ADANIENSOL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 56.98,
+    "rsiDaily": 56.8,
     "emaCrossDaily": false
   },
   "ADANIGREEN": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 60.09,
+    "rsiDaily": 60.33,
     "emaCrossDaily": true
   },
   "ADANIPOWER": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 56.46,
+    "rsiDaily": 56.96,
     "emaCrossDaily": false
   },
   "ATGL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 47.59,
+    "rsiDaily": 47.57,
     "emaCrossDaily": false
   },
   "ABCAPITAL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 56.39,
+    "rsiDaily": 57.2,
     "emaCrossDaily": false
   },
   "ABFRL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 30.04,
+    "rsiDaily": 30.81,
     "emaCrossDaily": false
   },
   "ABLBL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 44.94,
+    "rsiDaily": 45.1,
     "emaCrossDaily": false
   },
   "ABREL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 42.58,
+    "rsiDaily": 42.29,
     "emaCrossDaily": false
   },
   "ABSLAMC": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 22.2,
+    "rsiDaily": 22.67,
     "emaCrossDaily": false
   },
   "CPPLUS": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 49.26,
+    "rsiDaily": 49.73,
     "emaCrossDaily": false
   },
   "AEGISLOG": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 39.47,
+    "rsiDaily": 40.54,
     "emaCrossDaily": false
   },
   "AEGISVOPAK": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 34.39,
+    "rsiDaily": 35.55,
     "emaCrossDaily": false
   },
   "AFCONS": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 30.78,
+    "rsiDaily": 31.24,
     "emaCrossDaily": false
   },
   "AFFLE": {
     "macdWeeklyBuy": true,
-    "rsiDaily": 65.37,
+    "rsiDaily": 66.23,
     "emaCrossDaily": false
   },
   "AJANTPHARM": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 41.62,
+    "rsiDaily": 41.93,
     "emaCrossDaily": false
   },
   "ALKEM": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 53.84,
+    "rsiDaily": 53.15,
     "emaCrossDaily": false
   },
   "ABDL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 50.92,
+    "rsiDaily": 50.62,
     "emaCrossDaily": false
   },
   "ARE&M": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 51.91,
+    "rsiDaily": 50.3,
     "emaCrossDaily": false
   },
   "AMBER": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 47.36,
+    "rsiDaily": 47.47,
     "emaCrossDaily": false
   },
   "AMBUJACEM": {
     "macdWeeklyBuy": true,
-    "rsiDaily": 55.07,
+    "rsiDaily": 55.33,
     "emaCrossDaily": false
   },
   "ANANDRATHI": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 69.73,
+    "rsiDaily": 69.79,
     "emaCrossDaily": false
   },
   "ANANTRAJ": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 22.71,
+    "rsiDaily": 23.88,
     "emaCrossDaily": false
   },
   "ANGELONE": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 58.89,
+    "rsiDaily": 59.33,
     "emaCrossDaily": true
   },
   "ANTHEM": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 51.48,
+    "rsiDaily": 50.61,
     "emaCrossDaily": false
   },
   "ANURAS": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 46.8,
+    "rsiDaily": 47.06,
     "emaCrossDaily": false
   },
   "APARINDS": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 41.89,
+    "rsiDaily": 42.36,
     "emaCrossDaily": false
   },
   "APOLLOTYRE": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 51.77,
+    "rsiDaily": 51.46,
     "emaCrossDaily": false
   },
   "APTUS": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 40.44,
+    "rsiDaily": 40.42,
     "emaCrossDaily": false
   },
   "ASAHIINDIA": {
     "macdWeeklyBuy": true,
-    "rsiDaily": 63.79,
+    "rsiDaily": 64.05,
     "emaCrossDaily": false
   },
   "ASHOKLEY": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 57.51,
+    "rsiDaily": 57.26,
     "emaCrossDaily": false
   },
   "ASTERDM": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 49.21,
+    "rsiDaily": 50.12,
     "emaCrossDaily": false
   },
   "ASTRAL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 50.29,
+    "rsiDaily": 48.45,
     "emaCrossDaily": false
   },
   "ATHERENERG": {
     "macdWeeklyBuy": true,
-    "rsiDaily": 70.45,
+    "rsiDaily": 70.22,
     "emaCrossDaily": false
   },
   "ATUL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 23.12,
+    "rsiDaily": 23.09,
     "emaCrossDaily": false
   },
   "AUROPHARMA": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 57.62,
+    "rsiDaily": 57.36,
     "emaCrossDaily": true
   },
   "AIIL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 47.33,
+    "rsiDaily": 48.32,
     "emaCrossDaily": false
   },
   "DMART": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 47.55,
+    "rsiDaily": 48.37,
     "emaCrossDaily": false
   },
   "BEML": {
     "macdWeeklyBuy": true,
-    "rsiDaily": 59.58,
+    "rsiDaily": 60.12,
     "emaCrossDaily": true
   },
   "BLS": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 45.01,
+    "rsiDaily": 45.69,
     "emaCrossDaily": false
   },
   "BSE": {
     "macdWeeklyBuy": true,
-    "rsiDaily": 63.39,
+    "rsiDaily": 63.34,
     "emaCrossDaily": false
   },
   "BAJAJHLDNG": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 41.12,
+    "rsiDaily": 41.72,
     "emaCrossDaily": false
   },
   "BAJAJHFL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 40.9,
+    "rsiDaily": 41.58,
     "emaCrossDaily": false
   },
   "BALKRISIND": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 62.77,
+    "rsiDaily": 62.88,
     "emaCrossDaily": false
   },
   "BALRAMCHIN": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 51.99,
+    "rsiDaily": 52.23,
     "emaCrossDaily": false
   },
   "BANDHANBNK": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 45,
+    "rsiDaily": 44.84,
     "emaCrossDaily": false
   },
   "BANKBARODA": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 57.85,
+    "rsiDaily": 58.28,
     "emaCrossDaily": true
   },
   "BANKINDIA": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 49.52,
+    "rsiDaily": 49.7,
     "emaCrossDaily": false
   },
   "MAHABANK": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 48.74,
+    "rsiDaily": 48.49,
     "emaCrossDaily": false
   },
   "BATAINDIA": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 47.77,
+    "rsiDaily": 47.33,
     "emaCrossDaily": false
   },
   "BAYERCROP": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 28.21,
+    "rsiDaily": 28.29,
     "emaCrossDaily": false
   },
   "BELRISE": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 40.03,
+    "rsiDaily": 40.73,
     "emaCrossDaily": false
   },
   "BERGEPAINT": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 58.22,
+    "rsiDaily": 57.77,
     "emaCrossDaily": false
   },
   "BDL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 43.08,
+    "rsiDaily": 43.56,
     "emaCrossDaily": false
   },
   "BHARATFORG": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 43.13,
+    "rsiDaily": 43.61,
     "emaCrossDaily": false
   },
   "BHEL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 51.32,
+    "rsiDaily": 53.08,
     "emaCrossDaily": false
   },
   "BHARTIHEXA": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 70.44,
+    "rsiDaily": 69.65,
     "emaCrossDaily": false
   },
   "BIKAJI": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 42.25,
+    "rsiDaily": 42.16,
     "emaCrossDaily": false
   },
   "GROWW": {
     "macdWeeklyBuy": true,
-    "rsiDaily": 67.27,
+    "rsiDaily": 67.72,
     "emaCrossDaily": true
   },
   "BIOCON": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 43.48,
+    "rsiDaily": 43.72,
     "emaCrossDaily": false
   },
   "BSOFT": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 58.04,
+    "rsiDaily": 58.58,
     "emaCrossDaily": false
   },
   "BLUEDART": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 44.97,
+    "rsiDaily": 47.51,
     "emaCrossDaily": false
   },
   "BLUEJET": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 43.24,
+    "rsiDaily": 44.34,
     "emaCrossDaily": false
   },
   "BLUESTARCO": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 53.88,
+    "rsiDaily": 54.26,
     "emaCrossDaily": false
   },
   "BBTC": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 51.44,
+    "rsiDaily": 51.21,
     "emaCrossDaily": false
   },
   "BOSCHLTD": {
     "macdWeeklyBuy": true,
-    "rsiDaily": 70.02,
+    "rsiDaily": 70.73,
     "emaCrossDaily": true
   },
   "FIRSTCRY": {
     "macdWeeklyBuy": true,
-    "rsiDaily": 42.69,
+    "rsiDaily": 42.97,
     "emaCrossDaily": false
   },
   "BRIGADE": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 37.71,
+    "rsiDaily": 39.11,
     "emaCrossDaily": false
   },
   "MAPMYINDIA": {
     "macdWeeklyBuy": true,
-    "rsiDaily": 46.79,
+    "rsiDaily": 47.26,
     "emaCrossDaily": false
   },
   "CCL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 41.49,
+    "rsiDaily": 40.84,
     "emaCrossDaily": false
   },
   "CESC": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 45.07,
+    "rsiDaily": 44.85,
     "emaCrossDaily": false
   },
   "CGPOWER": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 39.97,
+    "rsiDaily": 40.37,
     "emaCrossDaily": false
   },
   "CIEINDIA": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 37.62,
+    "rsiDaily": 37.87,
     "emaCrossDaily": false
   },
   "CRISIL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 43.33,
+    "rsiDaily": 43.46,
     "emaCrossDaily": false
   },
   "CANFINHOME": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 47.46,
+    "rsiDaily": 48.45,
     "emaCrossDaily": false
   },
   "CANBK": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 46.56,
+    "rsiDaily": 46.62,
     "emaCrossDaily": false
   },
   "CANHLIFE": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 22.39,
+    "rsiDaily": 23.32,
     "emaCrossDaily": false
   },
   "CAPLIPOINT": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 44.33,
+    "rsiDaily": 44.78,
     "emaCrossDaily": false
   },
   "CGCL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 46.24,
+    "rsiDaily": 46.2,
     "emaCrossDaily": false
   },
   "CARBORUNIV": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 48.81,
+    "rsiDaily": 49.25,
     "emaCrossDaily": false
   },
   "CARTRADE": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 39.18,
+    "rsiDaily": 39.49,
     "emaCrossDaily": false
   },
   "CASTROLIND": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 51.03,
+    "rsiDaily": 51.33,
     "emaCrossDaily": false
   },
   "CEATLTD": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 57.81,
+    "rsiDaily": 57.69,
     "emaCrossDaily": false
   },
   "CEMPRO": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 58.92,
+    "rsiDaily": 59.46,
     "emaCrossDaily": true
   },
   "CENTRALBK": {
     "macdWeeklyBuy": true,
-    "rsiDaily": 46.91,
+    "rsiDaily": 47.56,
     "emaCrossDaily": false
   },
   "CDSL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 56.73,
+    "rsiDaily": 56.58,
     "emaCrossDaily": false
   },
   "CHALET": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 44.69,
+    "rsiDaily": 44.63,
     "emaCrossDaily": false
   },
   "CHAMBLFERT": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 55.33,
+    "rsiDaily": 55.3,
     "emaCrossDaily": false
   },
   "CHENNPETRO": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 58.55,
+    "rsiDaily": 60.79,
     "emaCrossDaily": false
   },
   "CHOICEIN": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 53.98,
+    "rsiDaily": 54.57,
     "emaCrossDaily": false
   },
   "CHOLAHLDNG": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 54.2,
+    "rsiDaily": 53.99,
     "emaCrossDaily": false
   },
   "CHOLAFIN": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 57.27,
+    "rsiDaily": 56.98,
     "emaCrossDaily": false
   },
   "CUB": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 41.97,
+    "rsiDaily": 41.74,
     "emaCrossDaily": false
   },
   "CLEAN": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 24.78,
+    "rsiDaily": 24.82,
     "emaCrossDaily": false
   },
   "COCHINSHIP": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 48.22,
+    "rsiDaily": 49.73,
     "emaCrossDaily": false
   },
   "COFORGE": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 65.43,
+    "rsiDaily": 65.7,
     "emaCrossDaily": false
   },
   "COHANCE": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 45.12,
+    "rsiDaily": 44.8,
     "emaCrossDaily": false
   },
   "COLPAL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 44.87,
+    "rsiDaily": 44.4,
     "emaCrossDaily": false
   },
   "CAMS": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 51.95,
+    "rsiDaily": 51.68,
     "emaCrossDaily": false
   },
   "CONCORDBIO": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 41.35,
+    "rsiDaily": 42.02,
     "emaCrossDaily": false
   },
   "CONCOR": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 46.19,
+    "rsiDaily": 45.61,
     "emaCrossDaily": false
   },
   "COROMANDEL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 55.56,
+    "rsiDaily": 55.39,
     "emaCrossDaily": false
   },
   "CRAFTSMAN": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 43.29,
+    "rsiDaily": 43.35,
     "emaCrossDaily": false
   },
   "CREDITACC": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 33.17,
+    "rsiDaily": 33.29,
     "emaCrossDaily": false
   },
   "CROMPTON": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 48.16,
+    "rsiDaily": 48.4,
     "emaCrossDaily": false
   },
   "CUMMINSIND": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 46.29,
+    "rsiDaily": 47.23,
     "emaCrossDaily": false
   },
   "CYIENT": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 49.6,
+    "rsiDaily": 50.35,
     "emaCrossDaily": false
   },
   "DCMSHRIRAM": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 37.62,
+    "rsiDaily": 38.3,
     "emaCrossDaily": false
   },
   "DLF": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 67.21,
+    "rsiDaily": 67.13,
     "emaCrossDaily": false
   },
   "DOMS": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 41.23,
+    "rsiDaily": 39.81,
     "emaCrossDaily": false
   },
   "DABUR": {
     "macdWeeklyBuy": true,
-    "rsiDaily": 61.07,
+    "rsiDaily": 60.04,
     "emaCrossDaily": false
   },
   "DALBHARAT": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 33.74,
+    "rsiDaily": 33.86,
     "emaCrossDaily": false
   },
   "DATAPATTNS": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 44.46,
+    "rsiDaily": 45.69,
     "emaCrossDaily": false
   },
   "DEEPAKFERT": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 37.01,
+    "rsiDaily": 37.12,
     "emaCrossDaily": false
   },
   "DEEPAKNTR": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 48.5,
+    "rsiDaily": 48.68,
     "emaCrossDaily": false
   },
   "DELHIVERY": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 57.25,
+    "rsiDaily": 57.53,
     "emaCrossDaily": false
   },
   "DEVYANI": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 40.73,
+    "rsiDaily": 40.65,
     "emaCrossDaily": false
   },
   "DIXON": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 48.53,
+    "rsiDaily": 48.55,
     "emaCrossDaily": false
   },
   "LALPATHLAB": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 51.86,
+    "rsiDaily": 50.62,
     "emaCrossDaily": false
   },
   "EIDPARRY": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 43.12,
+    "rsiDaily": 42.5,
     "emaCrossDaily": false
   },
   "EIHOTEL": {
     "macdWeeklyBuy": true,
-    "rsiDaily": 52.93,
+    "rsiDaily": 52.97,
     "emaCrossDaily": false
   },
   "ELECON": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 47.85,
+    "rsiDaily": 48.1,
     "emaCrossDaily": false
   },
   "ELGIEQUIP": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 42.9,
+    "rsiDaily": 43.82,
     "emaCrossDaily": false
   },
   "EMAMILTD": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 56.77,
+    "rsiDaily": 56.2,
     "emaCrossDaily": false
   },
   "EMCURE": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 75.68,
+    "rsiDaily": 74.86,
     "emaCrossDaily": true
   },
   "EMMVEE": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 25.57,
+    "rsiDaily": 29.09,
     "emaCrossDaily": false
   },
   "ENDURANCE": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 47.32,
+    "rsiDaily": 46.32,
     "emaCrossDaily": false
   },
   "ENGINERSIN": {
     "macdWeeklyBuy": true,
-    "rsiDaily": 60.44,
+    "rsiDaily": 60.05,
     "emaCrossDaily": false
   },
   "ERIS": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 50.77,
+    "rsiDaily": 50.47,
     "emaCrossDaily": false
   },
   "ESCORTS": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 31.38,
+    "rsiDaily": 30.91,
     "emaCrossDaily": false
   },
   "ETERNAL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 62.2,
+    "rsiDaily": 61.83,
     "emaCrossDaily": false
   },
   "EXIDEIND": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 40.79,
+    "rsiDaily": 42.44,
     "emaCrossDaily": false
   },
   "NYKAA": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 61.59,
+    "rsiDaily": 60.15,
     "emaCrossDaily": false
   },
   "FEDERALBNK": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 44.44,
+    "rsiDaily": 43.89,
     "emaCrossDaily": false
   },
   "FACT": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 58.63,
+    "rsiDaily": 58.92,
     "emaCrossDaily": false
   },
   "FINCABLES": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 35.65,
+    "rsiDaily": 35.71,
     "emaCrossDaily": false
   },
   "FSL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 55.89,
+    "rsiDaily": 56.9,
     "emaCrossDaily": false
   },
   "FIVESTAR": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 23.93,
+    "rsiDaily": 23.96,
     "emaCrossDaily": false
   },
   "FORCEMOT": {
     "macdWeeklyBuy": true,
-    "rsiDaily": 55.8,
+    "rsiDaily": 55.9,
     "emaCrossDaily": true
   },
   "FORTIS": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 54.35,
+    "rsiDaily": 53.62,
     "emaCrossDaily": false
   },
   "GAIL": {
     "macdWeeklyBuy": true,
-    "rsiDaily": 70.01,
+    "rsiDaily": 70.04,
     "emaCrossDaily": true
   },
   "GVT&D": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 48.95,
+    "rsiDaily": 50.21,
     "emaCrossDaily": false
   },
   "GMRAIRPORT": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 54.65,
+    "rsiDaily": 55.01,
     "emaCrossDaily": false
   },
   "GABRIEL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 47.69,
+    "rsiDaily": 49.02,
     "emaCrossDaily": false
   },
   "GALLANTT": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 45.85,
+    "rsiDaily": 46.81,
     "emaCrossDaily": false
   },
   "GRSE": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 52.2,
+    "rsiDaily": 53.44,
     "emaCrossDaily": false
   },
   "GICRE": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 46.96,
+    "rsiDaily": 46.12,
     "emaCrossDaily": false
   },
   "GILLETTE": {
     "macdWeeklyBuy": true,
-    "rsiDaily": 55.21,
+    "rsiDaily": 55.12,
     "emaCrossDaily": false
   },
   "GLAND": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 61.48,
+    "rsiDaily": 61.47,
     "emaCrossDaily": false
   },
   "GLAXO": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 47.45,
+    "rsiDaily": 48.13,
     "emaCrossDaily": false
   },
   "GLENMARK": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 60.02,
+    "rsiDaily": 60.25,
     "emaCrossDaily": false
   },
   "MEDANTA": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 62.61,
+    "rsiDaily": 63.44,
     "emaCrossDaily": false
   },
   "GODIGIT": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 44.23,
+    "rsiDaily": 44.08,
     "emaCrossDaily": false
   },
   "GPIL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 35.49,
+    "rsiDaily": 34.71,
     "emaCrossDaily": false
   },
   "GODFRYPHLP": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 49.34,
+    "rsiDaily": 49.03,
     "emaCrossDaily": false
   },
   "GODREJCP": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 48.26,
+    "rsiDaily": 47.96,
     "emaCrossDaily": false
   },
   "GODREJIND": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 44.28,
+    "rsiDaily": 44.38,
     "emaCrossDaily": false
   },
   "GODREJPROP": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 58.89,
+    "rsiDaily": 58.66,
     "emaCrossDaily": false
   },
   "GRANULES": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 38.8,
+    "rsiDaily": 39.1,
     "emaCrossDaily": false
   },
   "GRAPHITE": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 42.34,
+    "rsiDaily": 42.85,
     "emaCrossDaily": false
   },
   "GRAVITA": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 44.33,
+    "rsiDaily": 43.66,
     "emaCrossDaily": false
   },
   "GESHIP": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 52.25,
+    "rsiDaily": 52.31,
     "emaCrossDaily": false
   },
   "FLUOROCHEM": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 53.95,
+    "rsiDaily": 53.91,
     "emaCrossDaily": false
   },
   "GMDCLTD": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 39.73,
+    "rsiDaily": 40.83,
     "emaCrossDaily": false
   },
   "HEG": {
@@ -1146,97 +1146,97 @@
   },
   "HBLENGINE": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 58.98,
+    "rsiDaily": 59.88,
     "emaCrossDaily": false
   },
   "HDBFS": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 27.2,
+    "rsiDaily": 26.62,
     "emaCrossDaily": false
   },
   "HDFCAMC": {
     "macdWeeklyBuy": true,
-    "rsiDaily": 63.95,
+    "rsiDaily": 64.59,
     "emaCrossDaily": false
   },
   "HFCL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 37.68,
+    "rsiDaily": 37.46,
     "emaCrossDaily": false
   },
   "HAVELLS": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 46.92,
+    "rsiDaily": 46.95,
     "emaCrossDaily": false
   },
   "HEXT": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 37.06,
+    "rsiDaily": 37.49,
     "emaCrossDaily": false
   },
   "HSCL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 34.26,
+    "rsiDaily": 35.73,
     "emaCrossDaily": false
   },
   "HAL": {
     "macdWeeklyBuy": true,
-    "rsiDaily": 60.23,
+    "rsiDaily": 60.74,
     "emaCrossDaily": false
   },
   "HINDCOPPER": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 31.98,
+    "rsiDaily": 32.97,
     "emaCrossDaily": false
   },
   "HINDPETRO": {
     "macdWeeklyBuy": true,
-    "rsiDaily": 57.88,
+    "rsiDaily": 59.09,
     "emaCrossDaily": false
   },
   "HINDZINC": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 45.59,
+    "rsiDaily": 46.41,
     "emaCrossDaily": false
   },
   "POWERINDIA": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 41.71,
+    "rsiDaily": 42.33,
     "emaCrossDaily": false
   },
   "HOMEFIRST": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 46.32,
+    "rsiDaily": 46.49,
     "emaCrossDaily": false
   },
   "HONASA": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 55.42,
+    "rsiDaily": 55.92,
     "emaCrossDaily": false
   },
   "HONAUT": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 24,
+    "rsiDaily": 24.78,
     "emaCrossDaily": false
   },
   "HUDCO": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 34.77,
+    "rsiDaily": 35.74,
     "emaCrossDaily": false
   },
   "HYUNDAI": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 57.45,
+    "rsiDaily": 56.5,
     "emaCrossDaily": false
   },
   "ICICIGI": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 54.14,
+    "rsiDaily": 53.53,
     "emaCrossDaily": false
   },
   "ICICIAMC": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 49.34,
+    "rsiDaily": 49.7,
     "emaCrossDaily": false
   },
   "ICICIPRULI": {
@@ -1246,142 +1246,142 @@
   },
   "IDBI": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 41.62,
+    "rsiDaily": 41.88,
     "emaCrossDaily": false
   },
   "IDFCFIRSTB": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 38.86,
+    "rsiDaily": 39.24,
     "emaCrossDaily": false
   },
   "IFCI": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 36.55,
+    "rsiDaily": 37.68,
     "emaCrossDaily": false
   },
   "IIFL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 44.7,
+    "rsiDaily": 44.67,
     "emaCrossDaily": false
   },
   "IRB": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 42.27,
+    "rsiDaily": 42.58,
     "emaCrossDaily": false
   },
   "IRCON": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 45.86,
+    "rsiDaily": 46.3,
     "emaCrossDaily": false
   },
   "ITCHOTELS": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 63.06,
+    "rsiDaily": 62.96,
     "emaCrossDaily": false
   },
   "ITI": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 57.92,
+    "rsiDaily": 57.5,
     "emaCrossDaily": false
   },
   "INDGN": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 59.3,
+    "rsiDaily": 60.5,
     "emaCrossDaily": false
   },
   "INDIACEM": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 51.74,
+    "rsiDaily": 52.11,
     "emaCrossDaily": false
   },
   "INDIAMART": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 45.02,
+    "rsiDaily": 44.26,
     "emaCrossDaily": false
   },
   "INDIANB": {
     "macdWeeklyBuy": true,
-    "rsiDaily": 52.74,
+    "rsiDaily": 52.44,
     "emaCrossDaily": false
   },
   "IEX": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 55.3,
+    "rsiDaily": 55.2,
     "emaCrossDaily": false
   },
   "INDHOTEL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 75.41,
+    "rsiDaily": 75.27,
     "emaCrossDaily": false
   },
   "IOC": {
     "macdWeeklyBuy": true,
-    "rsiDaily": 67.59,
+    "rsiDaily": 69.17,
     "emaCrossDaily": true
   },
   "IOB": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 44.64,
+    "rsiDaily": 45.47,
     "emaCrossDaily": false
   },
   "IRCTC": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 48.05,
+    "rsiDaily": 49.06,
     "emaCrossDaily": false
   },
   "IRFC": {
     "macdWeeklyBuy": true,
-    "rsiDaily": 49.36,
+    "rsiDaily": 50.2,
     "emaCrossDaily": false
   },
   "IREDA": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 46.23,
+    "rsiDaily": 46.41,
     "emaCrossDaily": false
   },
   "IGL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 35.93,
+    "rsiDaily": 35.27,
     "emaCrossDaily": false
   },
   "INDUSTOWER": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 57.01,
+    "rsiDaily": 57.35,
     "emaCrossDaily": false
   },
   "NAUKRI": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 41.02,
+    "rsiDaily": 41.23,
     "emaCrossDaily": false
   },
   "INOXWIND": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 43.49,
+    "rsiDaily": 43.92,
     "emaCrossDaily": false
   },
   "INTELLECT": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 32.36,
+    "rsiDaily": 32.59,
     "emaCrossDaily": false
   },
   "INDIGO": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 63.45,
+    "rsiDaily": 63.72,
     "emaCrossDaily": false
   },
   "IGIL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 76.63,
+    "rsiDaily": 76.56,
     "emaCrossDaily": false
   },
   "IKS": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 53.02,
+    "rsiDaily": 53.65,
     "emaCrossDaily": false
   },
   "IPCALAB": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 57.18,
+    "rsiDaily": 56.85,
     "emaCrossDaily": false
   },
   "JBCHEPHARM": {
@@ -1390,793 +1390,793 @@
     "emaCrossDaily": false
   },
   "JKCEMENT": {
-    "macdWeeklyBuy": true,
-    "rsiDaily": 58.47,
+    "macdWeeklyBuy": false,
+    "rsiDaily": 56.84,
     "emaCrossDaily": false
   },
   "JBMA": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 36.58,
+    "rsiDaily": 37.18,
     "emaCrossDaily": false
   },
   "JKTYRE": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 52.72,
+    "rsiDaily": 52.8,
     "emaCrossDaily": false
   },
   "JMFINANCIL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 48.1,
+    "rsiDaily": 48.59,
     "emaCrossDaily": false
   },
   "JSWCEMENT": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 66.41,
+    "rsiDaily": 66.34,
     "emaCrossDaily": true
   },
   "JSWDULUX": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 23.22,
+    "rsiDaily": 23.49,
     "emaCrossDaily": false
   },
   "JSWENERGY": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 55.42,
+    "rsiDaily": 55.4,
     "emaCrossDaily": false
   },
   "JSWINFRA": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 53.1,
+    "rsiDaily": 53.57,
     "emaCrossDaily": false
   },
   "JAINREC": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 41.24,
+    "rsiDaily": 42.6,
     "emaCrossDaily": false
   },
   "JPPOWER": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 41.72,
+    "rsiDaily": 42.61,
     "emaCrossDaily": false
   },
   "J&KBANK": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 37.82,
+    "rsiDaily": 37.93,
     "emaCrossDaily": false
   },
   "JINDALSAW": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 41.39,
+    "rsiDaily": 42.02,
     "emaCrossDaily": false
   },
   "JSL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 41.25,
+    "rsiDaily": 40.87,
     "emaCrossDaily": false
   },
   "JINDALSTEL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 61.54,
+    "rsiDaily": 61.8,
     "emaCrossDaily": false
   },
   "JIOFIN": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 52.45,
+    "rsiDaily": 52.81,
     "emaCrossDaily": false
   },
   "JUBLFOOD": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 46.89,
+    "rsiDaily": 47.69,
     "emaCrossDaily": false
   },
   "JUBLINGREA": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 35.89,
+    "rsiDaily": 36.02,
     "emaCrossDaily": false
   },
   "JUBLPHARMA": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 47.53,
+    "rsiDaily": 47.03,
     "emaCrossDaily": false
   },
   "JWL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 43.67,
+    "rsiDaily": 44.02,
     "emaCrossDaily": false
   },
   "JYOTICNC": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 55.55,
+    "rsiDaily": 54.94,
     "emaCrossDaily": false
   },
   "KPRMILL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 64.11,
+    "rsiDaily": 64.29,
     "emaCrossDaily": true
   },
   "KEI": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 35.55,
+    "rsiDaily": 35.92,
     "emaCrossDaily": false
   },
   "KPITTECH": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 45.59,
+    "rsiDaily": 46.33,
     "emaCrossDaily": false
   },
   "KAJARIACER": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 46.04,
+    "rsiDaily": 46.38,
     "emaCrossDaily": false
   },
   "KPIL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 43.34,
+    "rsiDaily": 43.92,
     "emaCrossDaily": false
   },
   "KALYANKJIL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 39.56,
+    "rsiDaily": 39.39,
     "emaCrossDaily": false
   },
   "KARURVYSYA": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 49.53,
+    "rsiDaily": 49.7,
     "emaCrossDaily": false
   },
   "KAYNES": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 47.76,
+    "rsiDaily": 48.43,
     "emaCrossDaily": false
   },
   "KEC": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 30.55,
+    "rsiDaily": 30.72,
     "emaCrossDaily": false
   },
   "KFINTECH": {
     "macdWeeklyBuy": true,
-    "rsiDaily": 57.72,
+    "rsiDaily": 57.8,
     "emaCrossDaily": false
   },
   "KIRLOSENG": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 29.51,
+    "rsiDaily": 29.48,
     "emaCrossDaily": false
   },
   "KIMS": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 59.74,
+    "rsiDaily": 59.46,
     "emaCrossDaily": false
   },
   "LTF": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 44.88,
+    "rsiDaily": 46.49,
     "emaCrossDaily": false
   },
   "LTTS": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 72.67,
+    "rsiDaily": 72.55,
     "emaCrossDaily": false
   },
   "LGEINDIA": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 53.44,
+    "rsiDaily": 53.16,
     "emaCrossDaily": false
   },
   "LICHSGFIN": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 46.2,
+    "rsiDaily": 46.22,
     "emaCrossDaily": false
   },
   "LTFOODS": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 54.82,
+    "rsiDaily": 54.42,
     "emaCrossDaily": false
   },
   "LATENTVIEW": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 19.94,
+    "rsiDaily": 21.62,
     "emaCrossDaily": false
   },
   "LAURUSLABS": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 67.69,
+    "rsiDaily": 68.76,
     "emaCrossDaily": false
   },
   "THELEELA": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 62.59,
+    "rsiDaily": 62.43,
     "emaCrossDaily": false
   },
   "LEMONTREE": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 61.18,
+    "rsiDaily": 61.23,
     "emaCrossDaily": false
   },
   "LENSKART": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 55.9,
+    "rsiDaily": 56.04,
     "emaCrossDaily": false
   },
   "LICI": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 59.25,
+    "rsiDaily": 57.82,
     "emaCrossDaily": false
   },
   "LINDEINDIA": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 54.47,
+    "rsiDaily": 54.38,
     "emaCrossDaily": false
   },
   "LLOYDSME": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 44.02,
+    "rsiDaily": 44.82,
     "emaCrossDaily": false
   },
   "LODHA": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 54.71,
+    "rsiDaily": 54.49,
     "emaCrossDaily": false
   },
   "LUPIN": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 54.51,
+    "rsiDaily": 54.22,
     "emaCrossDaily": false
   },
   "MMTC": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 42.69,
+    "rsiDaily": 43.77,
     "emaCrossDaily": false
   },
   "MRF": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 31.39,
+    "rsiDaily": 31.89,
     "emaCrossDaily": false
   },
   "MGL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 50.44,
+    "rsiDaily": 50.05,
     "emaCrossDaily": false
   },
   "M&MFIN": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 30.09,
+    "rsiDaily": 32.26,
     "emaCrossDaily": false
   },
   "MANAPPURAM": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 50.16,
+    "rsiDaily": 51.43,
     "emaCrossDaily": false
   },
   "MRPL": {
     "macdWeeklyBuy": true,
-    "rsiDaily": 55.44,
+    "rsiDaily": 58.7,
     "emaCrossDaily": false
   },
   "MANKIND": {
     "macdWeeklyBuy": true,
-    "rsiDaily": 58.28,
+    "rsiDaily": 58.5,
     "emaCrossDaily": true
   },
   "MARICO": {
     "macdWeeklyBuy": true,
-    "rsiDaily": 76.56,
+    "rsiDaily": 76.44,
     "emaCrossDaily": true
   },
   "MFSL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 35.37,
+    "rsiDaily": 35.64,
     "emaCrossDaily": false
   },
   "MAXHEALTH": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 57.82,
+    "rsiDaily": 57.28,
     "emaCrossDaily": false
   },
   "MAZDOCK": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 34.21,
+    "rsiDaily": 34.88,
     "emaCrossDaily": false
   },
   "MEESHO": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 50.39,
+    "rsiDaily": 50.02,
     "emaCrossDaily": false
   },
   "MINDACORP": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 56.19,
+    "rsiDaily": 56.08,
     "emaCrossDaily": false
   },
   "MSUMI": {
     "macdWeeklyBuy": true,
-    "rsiDaily": 71.67,
+    "rsiDaily": 71.83,
     "emaCrossDaily": true
   },
   "MOTILALOFS": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 54.66,
+    "rsiDaily": 54.71,
     "emaCrossDaily": false
   },
   "MPHASIS": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 57.44,
+    "rsiDaily": 57.81,
     "emaCrossDaily": false
   },
   "MCX": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 54.06,
+    "rsiDaily": 54.35,
     "emaCrossDaily": true
   },
   "MUTHOOTFIN": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 51,
+    "rsiDaily": 51.44,
     "emaCrossDaily": false
   },
   "NATCOPHARM": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 45.96,
+    "rsiDaily": 45.04,
     "emaCrossDaily": false
   },
   "NBCC": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 52.81,
+    "rsiDaily": 52.88,
     "emaCrossDaily": false
   },
   "NCC": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 42.52,
+    "rsiDaily": 43.52,
     "emaCrossDaily": false
   },
   "NHPC": {
     "macdWeeklyBuy": true,
-    "rsiDaily": 67.7,
+    "rsiDaily": 68.22,
     "emaCrossDaily": true
   },
   "NLCINDIA": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 43.85,
+    "rsiDaily": 44.82,
     "emaCrossDaily": false
   },
   "NMDC": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 38.58,
+    "rsiDaily": 38.67,
     "emaCrossDaily": false
   },
   "NSLNISP": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 43.96,
+    "rsiDaily": 44.08,
     "emaCrossDaily": false
   },
   "NTPCGREEN": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 37.21,
+    "rsiDaily": 38.24,
     "emaCrossDaily": false
   },
   "NH": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 68.44,
+    "rsiDaily": 67.98,
     "emaCrossDaily": false
   },
   "NATIONALUM": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 46.42,
+    "rsiDaily": 45.16,
     "emaCrossDaily": false
   },
   "NAVA": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 45.56,
+    "rsiDaily": 45.9,
     "emaCrossDaily": false
   },
   "NAVINFLUOR": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 55.64,
+    "rsiDaily": 56.02,
     "emaCrossDaily": true
   },
   "NETWEB": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 32.32,
+    "rsiDaily": 34.35,
     "emaCrossDaily": false
   },
   "NEULANDLAB": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 40.53,
+    "rsiDaily": 40.79,
     "emaCrossDaily": false
   },
   "NEWGEN": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 38.48,
+    "rsiDaily": 39.42,
     "emaCrossDaily": false
   },
   "NAM-INDIA": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 45.93,
+    "rsiDaily": 46.46,
     "emaCrossDaily": false
   },
   "NIVABUPA": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 52.99,
+    "rsiDaily": 52.48,
     "emaCrossDaily": false
   },
   "NUVAMA": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 61.72,
+    "rsiDaily": 61.89,
     "emaCrossDaily": true
   },
   "NUVOCO": {
     "macdWeeklyBuy": true,
-    "rsiDaily": 54.69,
+    "rsiDaily": 54.72,
     "emaCrossDaily": false
   },
   "OBEROIRLTY": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 51.04,
+    "rsiDaily": 52,
     "emaCrossDaily": false
   },
   "OIL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 48.11,
+    "rsiDaily": 47.93,
     "emaCrossDaily": false
   },
   "OLAELEC": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 49.23,
+    "rsiDaily": 49.75,
     "emaCrossDaily": false
   },
   "OLECTRA": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 43.27,
+    "rsiDaily": 44.31,
     "emaCrossDaily": false
   },
   "PAYTM": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 56.27,
+    "rsiDaily": 56.28,
     "emaCrossDaily": true
   },
   "ONESOURCE": {
-    "macdWeeklyBuy": true,
-    "rsiDaily": 60.45,
+    "macdWeeklyBuy": false,
+    "rsiDaily": 59.46,
     "emaCrossDaily": true
   },
   "OFSS": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 42.94,
+    "rsiDaily": 42.85,
     "emaCrossDaily": false
   },
   "POLICYBZR": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 30.01,
+    "rsiDaily": 30.33,
     "emaCrossDaily": false
   },
   "PCBL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 36.19,
+    "rsiDaily": 36.59,
     "emaCrossDaily": false
   },
   "PGEL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 58.79,
+    "rsiDaily": 58.51,
     "emaCrossDaily": false
   },
   "PIIND": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 50.97,
+    "rsiDaily": 51.44,
     "emaCrossDaily": false
   },
   "PNBHOUSING": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 41.32,
+    "rsiDaily": 41.37,
     "emaCrossDaily": false
   },
   "PTCIL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 52.43,
+    "rsiDaily": 52.96,
     "emaCrossDaily": false
   },
   "PVRINOX": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 73.25,
+    "rsiDaily": 72.91,
     "emaCrossDaily": false
   },
   "PAGEIND": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 49.46,
+    "rsiDaily": 50.04,
     "emaCrossDaily": false
   },
   "PARADEEP": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 40.83,
+    "rsiDaily": 40.92,
     "emaCrossDaily": false
   },
   "PATANJALI": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 59.56,
+    "rsiDaily": 58.64,
     "emaCrossDaily": true
   },
   "PERSISTENT": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 66.46,
+    "rsiDaily": 66.59,
     "emaCrossDaily": false
   },
   "PETRONET": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 65.97,
+    "rsiDaily": 65.54,
     "emaCrossDaily": false
   },
   "PFIZER": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 51.84,
+    "rsiDaily": 51.17,
     "emaCrossDaily": false
   },
   "PHOENIXLTD": {
     "macdWeeklyBuy": true,
-    "rsiDaily": 67.45,
+    "rsiDaily": 67.44,
     "emaCrossDaily": false
   },
   "PWL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 48.17,
+    "rsiDaily": 47.75,
     "emaCrossDaily": false
   },
   "PIDILITIND": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 53.97,
+    "rsiDaily": 54.02,
     "emaCrossDaily": false
   },
   "PINELABS": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 45.72,
+    "rsiDaily": 45.87,
     "emaCrossDaily": false
   },
   "PIRAMALFIN": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 46.2,
+    "rsiDaily": 46.19,
     "emaCrossDaily": false
   },
   "PPLPHARMA": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 68.43,
+    "rsiDaily": 67.98,
     "emaCrossDaily": false
   },
   "POLYMED": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 43.43,
+    "rsiDaily": 43.22,
     "emaCrossDaily": false
   },
   "POLYCAB": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 43.85,
+    "rsiDaily": 44.33,
     "emaCrossDaily": false
   },
   "POONAWALLA": {
     "macdWeeklyBuy": true,
-    "rsiDaily": 59.73,
+    "rsiDaily": 59.59,
     "emaCrossDaily": false
   },
   "PFC": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 41.51,
+    "rsiDaily": 43.35,
     "emaCrossDaily": false
   },
   "PREMIERENE": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 49.63,
+    "rsiDaily": 50.68,
     "emaCrossDaily": false
   },
   "PRESTIGE": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 62.23,
+    "rsiDaily": 62.42,
     "emaCrossDaily": false
   },
   "PNB": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 56.05,
+    "rsiDaily": 55.31,
     "emaCrossDaily": false
   },
   "RRKABEL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 27.5,
+    "rsiDaily": 27.36,
     "emaCrossDaily": false
   },
   "RBLBANK": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 38.59,
+    "rsiDaily": 39,
     "emaCrossDaily": false
   },
   "RECLTD": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 39.41,
+    "rsiDaily": 40.28,
     "emaCrossDaily": false
   },
   "RHIM": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 47.04,
+    "rsiDaily": 46.44,
     "emaCrossDaily": false
   },
   "RITES": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 45.81,
+    "rsiDaily": 46.39,
     "emaCrossDaily": false
   },
   "RADICO": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 50.15,
+    "rsiDaily": 49.53,
     "emaCrossDaily": false
   },
   "RVNL": {
     "macdWeeklyBuy": true,
-    "rsiDaily": 45.08,
+    "rsiDaily": 46.09,
     "emaCrossDaily": false
   },
   "RAILTEL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 40.45,
+    "rsiDaily": 42.07,
     "emaCrossDaily": false
   },
   "RAINBOW": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 53.3,
+    "rsiDaily": 53.17,
     "emaCrossDaily": false
   },
   "RKFORGE": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 54.51,
+    "rsiDaily": 55.08,
     "emaCrossDaily": false
   },
   "REDINGTON": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 34.84,
+    "rsiDaily": 35.89,
     "emaCrossDaily": false
   },
   "RPOWER": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 44.62,
+    "rsiDaily": 45.44,
     "emaCrossDaily": false
   },
   "SBFC": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 52.92,
+    "rsiDaily": 52.62,
     "emaCrossDaily": false
   },
   "SBICARD": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 43.76,
+    "rsiDaily": 44.09,
     "emaCrossDaily": false
   },
   "SJVN": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 52.02,
+    "rsiDaily": 52.87,
     "emaCrossDaily": false
   },
   "SRF": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 51.08,
+    "rsiDaily": 52.69,
     "emaCrossDaily": false
   },
   "SAGILITY": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 44.86,
+    "rsiDaily": 46.18,
     "emaCrossDaily": false
   },
   "SAILIFE": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 56.36,
+    "rsiDaily": 57.21,
     "emaCrossDaily": true
   },
   "SAMMAANCAP": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 41.6,
+    "rsiDaily": 42.08,
     "emaCrossDaily": false
   },
   "MOTHERSON": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 52.71,
+    "rsiDaily": 51.77,
     "emaCrossDaily": false
   },
   "SAPPHIRE": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 40.26,
+    "rsiDaily": 40.09,
     "emaCrossDaily": false
   },
   "SARDAEN": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 30.81,
+    "rsiDaily": 32.13,
     "emaCrossDaily": false
   },
   "SAREGAMA": {
     "macdWeeklyBuy": true,
-    "rsiDaily": 70.76,
+    "rsiDaily": 71.05,
     "emaCrossDaily": false
   },
   "SCHAEFFLER": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 39.67,
+    "rsiDaily": 39.59,
     "emaCrossDaily": false
   },
   "SCHNEIDER": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 45.01,
+    "rsiDaily": 46.93,
     "emaCrossDaily": false
   },
   "SCI": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 47.98,
+    "rsiDaily": 48.28,
     "emaCrossDaily": false
   },
   "SHREECEM": {
     "macdWeeklyBuy": true,
-    "rsiDaily": 66.24,
+    "rsiDaily": 66.28,
     "emaCrossDaily": true
   },
   "SHRIRAMFIN": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 48.4,
+    "rsiDaily": 49.04,
     "emaCrossDaily": false
   },
   "SHYAMMETL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 67.62,
+    "rsiDaily": 67.54,
     "emaCrossDaily": false
   },
   "ENRIN": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 41.76,
+    "rsiDaily": 43.43,
     "emaCrossDaily": false
   },
   "SIEMENS": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 42.59,
+    "rsiDaily": 42.68,
     "emaCrossDaily": false
   },
   "SIGNATURE": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 37.74,
+    "rsiDaily": 39.07,
     "emaCrossDaily": false
   },
   "SOBHA": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 44.38,
+    "rsiDaily": 45.2,
     "emaCrossDaily": false
   },
   "SOLARINDS": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 49.51,
+    "rsiDaily": 50.81,
     "emaCrossDaily": false
   },
   "SONACOMS": {
     "macdWeeklyBuy": true,
-    "rsiDaily": 68.45,
+    "rsiDaily": 68.54,
     "emaCrossDaily": false
   },
   "SONATSOFTW": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 35.51,
+    "rsiDaily": 36.33,
     "emaCrossDaily": false
   },
   "STARHEALTH": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 43.02,
+    "rsiDaily": 42.46,
     "emaCrossDaily": false
   },
   "SAIL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 47.5,
+    "rsiDaily": 47.19,
     "emaCrossDaily": false
   },
   "SUMICHEM": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 18.42,
+    "rsiDaily": 19.01,
     "emaCrossDaily": false
   },
   "SUNTV": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 50.81,
+    "rsiDaily": 50.94,
     "emaCrossDaily": false
   },
   "SUNDARMFIN": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 47.65,
+    "rsiDaily": 46.76,
     "emaCrossDaily": false
   },
   "SUPREMEIND": {
@@ -2186,122 +2186,122 @@
   },
   "SPLPETRO": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 36.4,
+    "rsiDaily": 35.35,
     "emaCrossDaily": false
   },
   "SUZLON": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 42.34,
+    "rsiDaily": 42.48,
     "emaCrossDaily": false
   },
   "SWANCORP": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 39.87,
+    "rsiDaily": 40.32,
     "emaCrossDaily": false
   },
   "SWIGGY": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 26.78,
+    "rsiDaily": 26.73,
     "emaCrossDaily": false
   },
   "SYNGENE": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 59.69,
+    "rsiDaily": 59.41,
     "emaCrossDaily": false
   },
   "SYRMA": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 41.4,
+    "rsiDaily": 41.85,
     "emaCrossDaily": false
   },
   "TBOTEK": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 47.16,
+    "rsiDaily": 46.57,
     "emaCrossDaily": false
   },
   "TVSMOTOR": {
     "macdWeeklyBuy": true,
-    "rsiDaily": 65.45,
+    "rsiDaily": 65.3,
     "emaCrossDaily": false
   },
   "TATACAP": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 55.49,
+    "rsiDaily": 55.67,
     "emaCrossDaily": false
   },
   "TATACHEM": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 47.84,
+    "rsiDaily": 47.74,
     "emaCrossDaily": false
   },
   "TATACOMM": {
     "macdWeeklyBuy": true,
-    "rsiDaily": 58.66,
+    "rsiDaily": 58.12,
     "emaCrossDaily": true
   },
   "TATAELXSI": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 60.28,
+    "rsiDaily": 61.35,
     "emaCrossDaily": false
   },
   "TATAINVEST": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 36.04,
+    "rsiDaily": 36.42,
     "emaCrossDaily": false
   },
   "TMCV": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 45.17,
+    "rsiDaily": 46.13,
     "emaCrossDaily": false
   },
   "TATAPOWER": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 55.65,
+    "rsiDaily": 55.33,
     "emaCrossDaily": false
   },
   "TATATECH": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 35.49,
+    "rsiDaily": 35.81,
     "emaCrossDaily": false
   },
   "TTML": {
     "macdWeeklyBuy": true,
-    "rsiDaily": 45.99,
+    "rsiDaily": 46.72,
     "emaCrossDaily": false
   },
   "TECHNOE": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 38.66,
+    "rsiDaily": 39.36,
     "emaCrossDaily": false
   },
   "TEGA": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 41.94,
+    "rsiDaily": 42.39,
     "emaCrossDaily": false
   },
   "TEJASNET": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 36.89,
+    "rsiDaily": 38.39,
     "emaCrossDaily": false
   },
   "TENNIND": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 49.69,
+    "rsiDaily": 50.25,
     "emaCrossDaily": false
   },
   "NIACL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 41.67,
+    "rsiDaily": 42.67,
     "emaCrossDaily": false
   },
   "RAMCOCEM": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 37.94,
+    "rsiDaily": 36.91,
     "emaCrossDaily": false
   },
   "THERMAX": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 40.52,
+    "rsiDaily": 42.02,
     "emaCrossDaily": false
   },
   "TIMKEN": {
@@ -2311,47 +2311,47 @@
   },
   "TITAGARH": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 40.04,
+    "rsiDaily": 40.5,
     "emaCrossDaily": false
   },
   "TORNTPHARM": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 48.2,
+    "rsiDaily": 48.41,
     "emaCrossDaily": false
   },
   "TORNTPOWER": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 50.44,
+    "rsiDaily": 50.54,
     "emaCrossDaily": false
   },
   "TARIL": {
     "macdWeeklyBuy": true,
-    "rsiDaily": 50.93,
+    "rsiDaily": 51.02,
     "emaCrossDaily": false
   },
   "TRAVELFOOD": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 44.24,
+    "rsiDaily": 43.58,
     "emaCrossDaily": false
   },
   "TRENT": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 63.06,
+    "rsiDaily": 63.25,
     "emaCrossDaily": false
   },
   "TRIDENT": {
     "macdWeeklyBuy": true,
-    "rsiDaily": 64.28,
+    "rsiDaily": 63.71,
     "emaCrossDaily": false
   },
   "TRITURBINE": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 44.47,
+    "rsiDaily": 44.65,
     "emaCrossDaily": false
   },
   "TIINDIA": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 43.79,
+    "rsiDaily": 44.01,
     "emaCrossDaily": false
   },
   "UCOBANK": {
@@ -2361,107 +2361,107 @@
   },
   "UNOMINDA": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 60.68,
+    "rsiDaily": 60.44,
     "emaCrossDaily": false
   },
   "UPL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 45.9,
+    "rsiDaily": 46.11,
     "emaCrossDaily": false
   },
   "UTIAMC": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 26.67,
+    "rsiDaily": 29.94,
     "emaCrossDaily": false
   },
   "UNIONBANK": {
     "macdWeeklyBuy": true,
-    "rsiDaily": 55.57,
+    "rsiDaily": 55.81,
     "emaCrossDaily": false
   },
   "UBL": {
     "macdWeeklyBuy": true,
-    "rsiDaily": 53.71,
+    "rsiDaily": 53.76,
     "emaCrossDaily": false
   },
   "UNITDSPR": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 56.73,
+    "rsiDaily": 56.33,
     "emaCrossDaily": false
   },
   "URBANCO": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 54.69,
+    "rsiDaily": 55.52,
     "emaCrossDaily": false
   },
   "USHAMART": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 44.27,
+    "rsiDaily": 44.47,
     "emaCrossDaily": false
   },
   "VTL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 48.16,
+    "rsiDaily": 48.39,
     "emaCrossDaily": false
   },
   "VBL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 50.6,
+    "rsiDaily": 50.33,
     "emaCrossDaily": false
   },
   "VEDL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 48.46,
+    "rsiDaily": 49.09,
     "emaCrossDaily": false
   },
   "VIJAYA": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 45.4,
+    "rsiDaily": 45.53,
     "emaCrossDaily": false
   },
   "VMM": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 43.31,
+    "rsiDaily": 43.39,
     "emaCrossDaily": false
   },
   "IDEA": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 44.73,
+    "rsiDaily": 44.99,
     "emaCrossDaily": false
   },
   "VOLTAS": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 55.11,
+    "rsiDaily": 54.96,
     "emaCrossDaily": false
   },
   "WAAREEENER": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 46.32,
+    "rsiDaily": 46.11,
     "emaCrossDaily": false
   },
   "WELCORP": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 40.99,
+    "rsiDaily": 41.02,
     "emaCrossDaily": false
   },
   "WELSPUNLIV": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 74.37,
+    "rsiDaily": 75.44,
     "emaCrossDaily": false
   },
   "WHIRLPOOL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 49.68,
+    "rsiDaily": 49.05,
     "emaCrossDaily": false
   },
   "WOCKPHARMA": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 42.53,
+    "rsiDaily": 43.4,
     "emaCrossDaily": false
   },
   "YESBANK": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 21.72,
+    "rsiDaily": 21.85,
     "emaCrossDaily": false
   },
   "ZFCVINDIA": {
@@ -2471,37 +2471,37 @@
   },
   "ZEEL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 30.47,
+    "rsiDaily": 30.55,
     "emaCrossDaily": false
   },
   "ZENTEC": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 60.49,
+    "rsiDaily": 60.22,
     "emaCrossDaily": false
   },
   "ZENSARTECH": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 64.16,
+    "rsiDaily": 65.47,
     "emaCrossDaily": false
   },
   "ZYDUSLIFE": {
     "macdWeeklyBuy": true,
-    "rsiDaily": 71.8,
+    "rsiDaily": 72.26,
     "emaCrossDaily": false
   },
   "ZYDUSWELL": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 48.93,
+    "rsiDaily": 48.78,
     "emaCrossDaily": false
   },
   "ECLERX": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 29.22,
+    "rsiDaily": 29.46,
     "emaCrossDaily": false
   },
   "EBGNG": {
     "macdWeeklyBuy": false,
-    "rsiDaily": 61.23,
+    "rsiDaily": 60.7,
     "emaCrossDaily": false
   }
 }

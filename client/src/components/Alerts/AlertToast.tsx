@@ -31,7 +31,6 @@ function isIndexSymbol(symbol: string): boolean {
 
 function getToastLabel(alertType: StockAlert['alertType']): string {
   if (alertType === 'FNO_OI') return 'F&O BIG MONEY';
-  if (alertType === 'SMART_MONEY') return 'SMART MONEY';
   if (alertType === 'INDEX_MILESTONE') return 'INDEX PEAK';
   if (alertType === 'DAY_HIGH') return 'DAY HIGH BREAK';
   if (alertType === 'DAY_LOW') return 'DAY LOW BREAK';
@@ -49,8 +48,6 @@ export function AlertToast({ toasts, onDismiss }: AlertToastProps) {
       setActiveTab('LiveNews');
     } else if (toast.alertType === 'FNO_OI') {
       setActiveTab('OptionsLens');
-    } else if (toast.alertType === 'SMART_MONEY') {
-      setActiveTab('Promoter');
     } else {
       setChartSymbol(toast.symbol);
       setSelectedStock(toast.symbol);
@@ -227,8 +224,6 @@ export function AlertToast({ toasts, onDismiss }: AlertToastProps) {
                     ? 'CLICK TO VIEW LIVE NEWS FEED'
                     : toast.alertType === 'FNO_OI'
                     ? 'CLICK TO INSPECT F&O OPTIONS LENS'
-                    : toast.alertType === 'SMART_MONEY'
-                    ? 'CLICK TO INSPECT SMART MONEY RADAR'
                     : 'CLICK TO INSPECT REAL-TIME CHART'}
                 </span>
                 <ExternalLink size={10} />

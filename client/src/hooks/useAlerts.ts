@@ -52,7 +52,10 @@ export function useAlerts(stocks?: StockData[]) {
     try {
       if (typeof window !== 'undefined') {
         const cached = sessionStorage.getItem('mmi_server_alerts_cache');
-        if (cached) return JSON.parse(cached);
+        if (cached) {
+          const list = JSON.parse(cached);
+          return Array.isArray(list) ? list.filter((a: any) => a.alertType !== 'SMART_MONEY') : [];
+        }
       }
     } catch {}
     return [];
@@ -285,13 +288,14 @@ export function useAlerts(stocks?: StockData[]) {
 
         if (!isMounted) return;
 
-        // Deduplicate server alerts preserving individual F&O strikes and News items
+        // Deduplicate server alerts preserving individual F&O strikes and News items (Strictly Stocks, F&O and News)
         const dedupedMap = new Map<string, StockAlert>();
         alertsData.forEach(a => {
+          if (a.alertType === 'SMART_MONEY') return;
           if (clearedBeforeTimestampRef.current && new Date(a.createdAt).getTime() <= clearedBeforeTimestampRef.current) {
             return;
           }
-          if (a.alertType === 'NEWS' || a.alertType === 'FNO_OI' || a.alertType === 'SMART_MONEY') {
+          if (a.alertType === 'NEWS' || a.alertType === 'FNO_OI') {
             dedupedMap.set(a.id, a);
           } else {
             const key = `${a.symbol}_${a.alertType}`;
@@ -498,6 +502,8 @@ export function useAlerts(stocks?: StockData[]) {
     if (!socket) return;
 
     const handleServerAlert = (alert: StockAlert) => {
+      if (alert.alertType === 'SMART_MONEY') return;
+
       if (alert.alertType === 'NEWS') {
         const src = (alert.symbol || '').toLowerCase();
         if (!isAllowedNewsSource(src)) return;
@@ -545,12 +551,13 @@ export function useAlerts(stocks?: StockData[]) {
   const alertHistory = useMemo(() => {
     const combinedMap = new Map<string, StockAlert>();
 
-    // Layer server alerts
+    // Layer server alerts (Strictly STOCKS, F&O and News — no institutional inflow)
     serverAlerts.forEach(a => {
+      if (a.alertType === 'SMART_MONEY') return;
       if (clearedBeforeTimestampRef.current && new Date(a.createdAt).getTime() <= clearedBeforeTimestampRef.current) {
         return;
       }
-      const key = (a.alertType === 'NEWS' || a.alertType === 'FNO_OI' || a.alertType === 'SMART_MONEY')
+      const key = (a.alertType === 'NEWS' || a.alertType === 'FNO_OI')
         ? a.id
         : `${a.symbol}_${a.alertType}`;
       combinedMap.set(key, a);
