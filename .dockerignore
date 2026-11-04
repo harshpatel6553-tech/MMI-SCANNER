@@ -18,3 +18,6 @@ logs/
 .gitignore
 README.md
 supabase/
+.agents
+dist-desktop
+.gemini

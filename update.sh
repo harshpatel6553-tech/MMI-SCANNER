@@ -12,12 +12,12 @@ echo "📥 1. Pulling latest code from GitHub..."
 git pull origin main || git pull
 
 # Check if docker works with or without sudo
-if docker ps >/dev/null 2>&1; then
+if [ "$EUID" -eq 0 ]; then
     DKR="docker"
-elif sudo -n docker ps >/dev/null 2>&1; then
-    DKR="sudo docker"
+elif docker ps >/dev/null 2>&1; then
+    DKR="docker"
 else
-    DKR="docker"
+    DKR="sudo docker"
 fi
 
 echo "🔨 2. Building fresh Docker image using $DKR..."
