@@ -24,8 +24,17 @@ echo "🔨 2. Building fresh Docker image using $DKR..."
 $DKR build -t mmi-scanner .
 
 echo "🛑 3. Stopping and removing old container..."
-$DKR stop mmi-scanner 2>/dev/null || true
-$DKR rm mmi-scanner 2>/dev/null || true
+$DKR stop mmi-scanner hardcore_williams 2>/dev/null || true
+$DKR rm mmi-scanner hardcore_williams 2>/dev/null || true
+# Stop any container built from mmi-server or mmi-scanner
+OLD_CONTAINERS=$($DKR ps -q --filter ancestor=mmi-server --filter ancestor=mmi-scanner 2>/dev/null || true)
+if [ -n "$OLD_CONTAINERS" ]; then
+    $DKR stop $OLD_CONTAINERS 2>/dev/null || true
+    $DKR rm $OLD_CONTAINERS 2>/dev/null || true
+fi
+# Free port 5000 if still held by any lingering process
+sudo fuser -k 5000/tcp 2>/dev/null || true
+sudo kill -9 280243 2>/dev/null || true
 
 echo "▶️ 4. Starting updated container on port 5000..."
 $DKR run -d --name mmi-scanner --restart always -p 5000:5000 mmi-scanner
