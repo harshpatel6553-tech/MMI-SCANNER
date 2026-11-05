@@ -46,6 +46,15 @@ class AlertService {
       logger.info(`🌅 New trading day detected (${istDate}, prev was '${this.currentTradingDay || 'none'}'). Resetting Alert Service high/low memory state.`);
       this.currentTradingDay = istDate;
       this.previousHighLowState.clear();
+      // Keep only alerts from today
+      this.inMemoryAlerts = this.inMemoryAlerts.filter(a => {
+        try {
+          const alertDay = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date(a.createdAt));
+          return alertDay === istDate;
+        } catch {
+          return false;
+        }
+      });
     }
 
     for (const stock of stocks) {

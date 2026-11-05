@@ -39,6 +39,7 @@ export class StockService {
       this.lockedPrevCloseMap.clear();
       for (const stock of this.stockCache.values()) {
         if (stock.price > 0) {
+          stock.previousClose = stock.price;
           stock.dayHigh = stock.price;
           stock.dayLow = stock.price;
           stock.atDayHigh = false;
@@ -50,15 +51,26 @@ export class StockService {
 
   private getOrLockPrevClose(symbol: string, candidateA?: number, candidateB?: number, fallbackPrice: number = 0): number {
     this.checkTradingDayReset();
+    
+    // 1. If upstream provider sends an authoritative valid previousClose, adopt it and keep locked cache fresh!
+    if (typeof candidateA === 'number' && candidateA > 0 && !isNaN(candidateA)) {
+      this.lockedPrevCloseMap.set(symbol, candidateA);
+      return candidateA;
+    }
+
+    // 2. Fallback to locked value if candidateA is temporarily missing (e.g. tick drop)
     const existing = this.lockedPrevCloseMap.get(symbol);
     if (existing && existing > 0) {
       return existing;
     }
-    const valid = (candidateA && candidateA > 0) ? candidateA : ((candidateB && candidateB > 0) ? candidateB : fallbackPrice);
-    if (valid > 0) {
-      this.lockedPrevCloseMap.set(symbol, valid);
+
+    // 3. Fallback to candidateB (e.g. existing cached previousClose)
+    if (typeof candidateB === 'number' && candidateB > 0 && !isNaN(candidateB)) {
+      this.lockedPrevCloseMap.set(symbol, candidateB);
+      return candidateB;
     }
-    return valid;
+
+    return fallbackPrice;
   }
 
   constructor() {
@@ -162,8 +174,12 @@ export class StockService {
           const volume = q.regularMarketVolume ?? (existing?.volume || 0);
           const prevClose = this.getOrLockPrevClose(baseStock.symbol, q.regularMarketPreviousClose, existing?.previousClose, price);
           
-          const change = Number((price - prevClose).toFixed(2));
-          const changePercent = prevClose > 0 ? Number(((change / prevClose) * 100).toFixed(2)) : 0;
+          const change = typeof q.regularMarketChange === 'number' && !isNaN(q.regularMarketChange)
+            ? Number(q.regularMarketChange.toFixed(2))
+            : Number((price - prevClose).toFixed(2));
+          const changePercent = typeof q.regularMarketChangePercent === 'number' && !isNaN(q.regularMarketChangePercent)
+            ? Number(q.regularMarketChangePercent.toFixed(2))
+            : (prevClose > 0 ? Number(((change / prevClose) * 100).toFixed(2)) : 0);
 
           const hasSpread = dayHigh > dayLow && (dayHigh - dayLow) > 0.05;
           const atDayHigh = hasSpread && price >= dayHigh;
@@ -304,10 +320,17 @@ export class StockService {
           }
 
           const volume = meta.regularMarketVolume ?? (existing?.volume || 0);
-          const prevClose = this.getOrLockPrevClose(baseStock.symbol, meta.previousClose || meta.chartPreviousClose, existing?.previousClose, price);
+          const candidatePrevClose = (typeof meta.previousClose === 'number' && meta.previousClose > 0)
+            ? meta.previousClose
+            : ((typeof meta.chartPreviousClose === 'number' && meta.chartPreviousClose > 0) ? meta.chartPreviousClose : undefined);
+          const prevClose = this.getOrLockPrevClose(baseStock.symbol, candidatePrevClose, existing?.previousClose, price);
           
-          const change = Number((price - prevClose).toFixed(2));
-          const changePercent = prevClose > 0 ? Number(((change / prevClose) * 100).toFixed(2)) : 0;
+          const change = typeof meta.regularMarketChange === 'number' && !isNaN(meta.regularMarketChange)
+            ? Number(meta.regularMarketChange.toFixed(2))
+            : Number((price - prevClose).toFixed(2));
+          const changePercent = typeof meta.regularMarketChangePercent === 'number' && !isNaN(meta.regularMarketChangePercent)
+            ? Number(meta.regularMarketChangePercent.toFixed(2))
+            : (prevClose > 0 ? Number(((change / prevClose) * 100).toFixed(2)) : 0);
 
           const hasSpread = dayHigh > dayLow && (dayHigh - dayLow) > 0.05;
           const atDayHigh = hasSpread && price >= dayHigh;
@@ -536,12 +559,27 @@ export class StockService {
                 : (parseFloat(meta.regularMarketPrice) || (existing?.price || 0)));
             if (price === 0) continue;
 
+            const candidatePrev = (isSensex && bseSensex)
+              ? bseSensex.previousClose
+              : ((typeof meta.previousClose === 'number' && meta.previousClose > 0)
+                ? meta.previousClose
+                : ((typeof meta.chartPreviousClose === 'number' && meta.chartPreviousClose > 0) ? meta.chartPreviousClose : undefined));
+
             const prevClose: number = (isSensex && bseSensex)
               ? bseSensex.previousClose
-              : this.getOrLockPrevClose(idx.displaySymbol, meta.previousClose || meta.chartPreviousClose, existing?.previousClose, price);
+              : this.getOrLockPrevClose(idx.displaySymbol, candidatePrev, existing?.previousClose, price);
 
-            const change: number = (isSensex && bseSensex) ? bseSensex.change : Number((price - prevClose).toFixed(2));
-            const changePercent: number = (isSensex && bseSensex) ? bseSensex.changePercent : (prevClose > 0 ? Number(((change / prevClose) * 100).toFixed(2)) : 0);
+            const change: number = (isSensex && bseSensex)
+              ? bseSensex.change
+              : (typeof meta.regularMarketChange === 'number' && !isNaN(meta.regularMarketChange)
+                ? Number(meta.regularMarketChange.toFixed(2))
+                : Number((price - prevClose).toFixed(2)));
+
+            const changePercent: number = (isSensex && bseSensex)
+              ? bseSensex.changePercent
+              : (typeof meta.regularMarketChangePercent === 'number' && !isNaN(meta.regularMarketChangePercent)
+                ? Number(meta.regularMarketChangePercent.toFixed(2))
+                : (prevClose > 0 ? Number(((change / prevClose) * 100).toFixed(2)) : 0));
 
             const rawHigh: number = (isSensex && bseSensex) ? bseSensex.dayHigh : (meta.regularMarketDayHigh ?? 0);
             const rawLow: number = (isSensex && bseSensex) ? bseSensex.dayLow : (meta.regularMarketDayLow ?? 0);
@@ -634,8 +672,16 @@ export class StockService {
           const prevClose = (isSensex && bseSensex)
             ? bseSensex.previousClose
             : this.getOrLockPrevClose(idx.displaySymbol, q.regularMarketPreviousClose, existing?.previousClose, price);
-          const change = (isSensex && bseSensex) ? bseSensex.change : Number((price - prevClose).toFixed(2));
-          const changePercent = (isSensex && bseSensex) ? bseSensex.changePercent : (prevClose > 0 ? Number(((change / prevClose) * 100).toFixed(2)) : 0);
+          const change = (isSensex && bseSensex)
+            ? bseSensex.change
+            : (typeof q.regularMarketChange === 'number' && !isNaN(q.regularMarketChange)
+              ? Number(q.regularMarketChange.toFixed(2))
+              : Number((price - prevClose).toFixed(2)));
+          const changePercent = (isSensex && bseSensex)
+            ? bseSensex.changePercent
+            : (typeof q.regularMarketChangePercent === 'number' && !isNaN(q.regularMarketChangePercent)
+              ? Number(q.regularMarketChangePercent.toFixed(2))
+              : (prevClose > 0 ? Number(((change / prevClose) * 100).toFixed(2)) : 0));
           const open = (isSensex && bseSensex) ? bseSensex.open : (q.regularMarketOpen ?? (existing?.open || price));
 
           const rawHigh = (isSensex && bseSensex) ? bseSensex.dayHigh : (q.regularMarketDayHigh ?? 0);
