@@ -431,7 +431,8 @@ export class StockService {
       
       const prevCloseMatch = html.match(/Previous Close[^<]*<\/span>\s*<span[^>]*class="value"[^>]*>([^<]+)/i) 
         || html.match(/Prev\. Close[^<]*<\/div>\s*<div[^>]*>([^<]+)/i);
-      const prevClose = prevCloseMatch ? parseFloat(prevCloseMatch[1].replace(/,/g, '')) || 73249.39 : 73249.39;
+      const prevClose = prevCloseMatch ? parseFloat(prevCloseMatch[1].replace(/,/g, '')) : 0;
+      if (prevClose <= 0) return null; // Fallback to Yahoo Finance ^BSESN for 100% verified accuracy
       const change = price - prevClose;
       const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
 
@@ -475,8 +476,9 @@ export class StockService {
       const parseNum = (v: any) => parseFloat(String(v || '').replace(/,/g, '')) || 0;
       const price = parseNum(s.ltp);
       if (price <= 0) return await this.fetchMoneycontrolSensex();
-      const prevClose = parseNum(s.Prev_Close) || price;
-      const change = parseNum(s.chg) || (price - prevClose);
+      const prevClose = parseNum(s.Prev_Close);
+      if (prevClose <= 0) return await this.fetchMoneycontrolSensex();
+      const change = parseNum(s.chg) || Number((price - prevClose).toFixed(2));
       const changePercent = parseNum(s.perchg) || (prevClose > 0 ? (change / prevClose) * 100 : 0);
       const open = parseNum(s.I_open) || price;
       const dayHigh = parseNum(s.High) || price;

@@ -156,6 +156,26 @@ app.get('/api/alerts', (req, res) => {
   res.redirect(307, `/api/stocks/alerts${query}`);
 });
 
+app.get('/api/indices', (req, res) => {
+  const query = req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : '';
+  res.redirect(307, `/api/stocks/indices${query}`);
+});
+
+app.get('/api/market-status', (req, res) => {
+  const now = new Date();
+  const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+  const ist = new Date(utc + 3600000 * 5.5);
+  const day = ist.getDay(); // 0 is Sunday, 6 is Saturday
+  const curMins = ist.getHours() * 60 + ist.getMinutes();
+  const isOpen = day >= 1 && day <= 5 && curMins >= (9 * 60 + 15) && curMins <= (15 * 60 + 30);
+  res.json({
+    success: true,
+    isOpen,
+    status: isOpen ? 'OPEN' : 'CLOSED',
+    serverTime: ist.toISOString()
+  });
+});
+
 // ── News Alerts ────────────────────────────────────────────────
 
 newsService.on('news:alert', (news) => {

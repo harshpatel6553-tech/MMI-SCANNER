@@ -161,6 +161,7 @@ export const FnOCommandCenter: React.FC = () => {
   const [selectedStrike, setSelectedStrike] = useState<number | null>(null);
 
   const getApiBase = () => {
+    if (import.meta.env.VITE_SOCKET_URL) return (import.meta.env.VITE_SOCKET_URL as string).replace(/\/$/, '');
     if (typeof window !== 'undefined') {
       if (window.location.port === '5173') return 'http://localhost:5000';
       return window.location.origin;
@@ -172,11 +173,13 @@ export const FnOCommandCenter: React.FC = () => {
   const fetchData = async (symbol: string, expiry?: string, showRefresh = false) => {
     if (showRefresh) setRefreshing(true);
     const query = expiry ? `&expiry=${encodeURIComponent(expiry)}` : '';
-    const endpoints = [
+    const apiBase = getApiBase();
+    const candidateUrls = [
+      `${apiBase}/api/fno/option-chain?underlying=${symbol}${query}`,
       `/api/fno/option-chain?underlying=${symbol}${query}`,
       `http://localhost:5000/api/fno/option-chain?underlying=${symbol}${query}`,
-      `${getApiBase()}/api/fno/option-chain?underlying=${symbol}${query}`,
     ];
+    const endpoints = Array.from(new Set(candidateUrls)).filter(Boolean);
 
     for (const url of endpoints) {
       try {
@@ -246,11 +249,13 @@ export const FnOCommandCenter: React.FC = () => {
 
   // Fetch real candles for the main index chart
   const fetchIndexCandles = async (symbol: string, tf: string): Promise<Candle[]> => {
-    const endpoints = [
+    const apiBase = getApiBase();
+    const candidateUrls = [
+      `${apiBase}/api/stocks/chart/${symbol}?tf=${tf}&range=5d`,
       `/api/stocks/chart/${symbol}?tf=${tf}&range=5d`,
       `http://localhost:5000/api/stocks/chart/${symbol}?tf=${tf}&range=5d`,
-      `${getApiBase()}/api/stocks/chart/${symbol}?tf=${tf}&range=5d`,
     ];
+    const endpoints = Array.from(new Set(candidateUrls)).filter(Boolean);
 
     for (const url of endpoints) {
       try {

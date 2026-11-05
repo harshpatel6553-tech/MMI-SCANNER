@@ -19,7 +19,7 @@ export default async function handler(req, res) {
       const dedupMap = new Map();
       for (const a of raw) {
         if (!a || !a.symbol) continue;
-        const key = `${a.symbol}_${a.alertType}`;
+        const key = (a.alertType === 'NEWS' || a.alertType === 'FNO_OI') ? a.id : `${a.symbol}_${a.alertType}`;
         const existing = dedupMap.get(key);
         if (!existing || new Date(a.createdAt).getTime() > new Date(existing.createdAt).getTime()) {
           dedupMap.set(key, a);

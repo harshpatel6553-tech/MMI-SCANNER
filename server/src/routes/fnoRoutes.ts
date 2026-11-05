@@ -28,6 +28,14 @@ router.get('/option-chain', async (req: Request, res: Response) => {
 });
 
 /**
+ * GET /api/fno/overview (alias for option-chain)
+ */
+router.get('/overview', (req: Request, res: Response) => {
+  const query = req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : '';
+  res.redirect(307, `/api/fno/option-chain${query}`);
+});
+
+/**
  * GET /api/fno/expiries
  * Returns list of available expiry dates for symbol
  */
