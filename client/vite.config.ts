@@ -66,6 +66,23 @@ export default defineConfig({
       }
     }
   ],
+  build: {
+    target: 'esnext',
+    cssCodeSplit: true,
+    chunkSizeWarningLimit: 800,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-charts': ['lightweight-charts'],
+          'vendor-recharts': ['recharts'],
+          'vendor-motion': ['framer-motion'],
+          'vendor-icons': ['lucide-react'],
+          'vendor-socket': ['socket.io-client', '@supabase/supabase-js'],
+        },
+      },
+    },
+  },
   server: {
     port: 5173,
     proxy: {

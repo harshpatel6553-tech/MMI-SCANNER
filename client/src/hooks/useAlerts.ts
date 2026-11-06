@@ -238,41 +238,33 @@ export function useAlerts(stocks?: StockData[]) {
         let alertsData: StockAlert[] = [];
         const socketUrl = import.meta.env.VITE_SOCKET_URL || 'https://35.226.242.164.sslip.io';
         const baseUrl = socketUrl.endsWith('/') ? socketUrl.slice(0, -1) : socketUrl;
+        const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 
-        let fetched = false;
+        // Fetch alerts directly without wasting roundtrips on 404s
+        const alertsUrl = isLocal ? '/api/stocks/alerts?limit=300' : `${baseUrl}/api/stocks/alerts?limit=300`;
         try {
-          const res = await fetch('/api/stocks/alerts?limit=300');
-          if (res.ok) {
+          let res = await fetch(alertsUrl).catch(() => null);
+          if (!res || !res.ok) {
+            const fallback = alertsUrl.startsWith('http') ? '/api/stocks/alerts?limit=300' : `${baseUrl}/api/stocks/alerts?limit=300`;
+            res = await fetch(fallback).catch(() => null);
+          }
+          if (res && res.ok) {
             const result = await res.json();
             if (result?.success && Array.isArray(result.data)) {
               alertsData = result.data;
-              fetched = true;
             }
           }
         } catch {
-          // relative failed, try baseUrl
-        }
-
-        if (!fetched && baseUrl) {
-          try {
-            const res = await fetch(`${baseUrl}/api/stocks/alerts?limit=300`);
-            if (res.ok) {
-              const result = await res.json();
-              if (result?.success && Array.isArray(result.data)) {
-                alertsData = result.data;
-                fetched = true;
-              }
-            }
-          } catch {
-            // remote fetch failed
-          }
+          // silent fallback
         }
 
         // Also fetch live F&O OI alerts
         try {
-          let fnoRes = await fetch('/api/fno/oi-alerts').catch(() => null);
+          const fnoUrl = isLocal ? '/api/fno/oi-alerts' : `${baseUrl}/api/fno/oi-alerts`;
+          let fnoRes = await fetch(fnoUrl).catch(() => null);
           if (!fnoRes || !fnoRes.ok) {
-            fnoRes = await fetch(`${baseUrl}/api/fno/oi-alerts`).catch(() => null);
+            const fallback = fnoUrl.startsWith('http') ? '/api/fno/oi-alerts' : `${baseUrl}/api/fno/oi-alerts`;
+            fnoRes = await fetch(fallback).catch(() => null);
           }
           if (fnoRes && fnoRes.ok) {
             const fnoJson = await fnoRes.json();
@@ -305,9 +297,11 @@ export function useAlerts(stocks?: StockData[]) {
 
         // Also fetch recent breaking news alerts to populate the NEWS tab immediately
         try {
-          let newsRes = await fetch(`/api/news?_t=${Date.now()}`).catch(() => null);
+          const newsUrl = isLocal ? `/api/news?_t=${Date.now()}` : `${baseUrl}/api/news?_t=${Date.now()}`;
+          let newsRes = await fetch(newsUrl).catch(() => null);
           if (!newsRes || !newsRes.ok) {
-            newsRes = await fetch(`${baseUrl}/api/news?_t=${Date.now()}`).catch(() => null);
+            const fallback = newsUrl.startsWith('http') ? `/api/news?_t=${Date.now()}` : `${baseUrl}/api/news?_t=${Date.now()}`;
+            newsRes = await fetch(fallback).catch(() => null);
           }
           if (newsRes && newsRes.ok) {
             const newsJson = await newsRes.json();

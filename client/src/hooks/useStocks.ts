@@ -96,6 +96,11 @@ export function useStocks(
     });
   }, []);
 
+const getStockApiUrl = (baseUrl: string) => {
+  const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+  return isLocal ? '/api/stocks' : `${baseUrl}/api/stocks`;
+};
+
   // 3. Instant REST snapshot fetch on mount (Zero-Wait initial render)
   useEffect(() => {
     let isMounted = true;
@@ -104,12 +109,12 @@ export function useStocks(
       try {
         const socketUrl = import.meta.env.VITE_SOCKET_URL || 'https://35.226.242.164.sslip.io';
         const baseUrl = socketUrl.endsWith('/') ? socketUrl.slice(0, -1) : socketUrl;
+        const targetUrl = getStockApiUrl(baseUrl);
 
-        let res = await fetch('/api/stocks').catch(() => null);
+        let res = await fetch(targetUrl).catch(() => null);
         if (!res || !res.ok) {
-          if (baseUrl) {
-            res = await fetch(`${baseUrl}/api/stocks`).catch(() => null);
-          }
+          const fallbackUrl = targetUrl.startsWith('http') ? '/api/stocks' : `${baseUrl}/api/stocks`;
+          res = await fetch(fallbackUrl).catch(() => null);
         }
 
         if (res && res.ok) {
@@ -164,12 +169,12 @@ export function useStocks(
         try {
           const socketUrl = import.meta.env.VITE_SOCKET_URL || 'https://35.226.242.164.sslip.io';
           const baseUrl = socketUrl.endsWith('/') ? socketUrl.slice(0, -1) : socketUrl;
+          const targetUrl = getStockApiUrl(baseUrl);
 
-          let res = await fetch('/api/stocks').catch(() => null);
+          let res = await fetch(targetUrl).catch(() => null);
           if (!res || !res.ok) {
-            if (baseUrl) {
-              res = await fetch(`${baseUrl}/api/stocks`).catch(() => null);
-            }
+            const fallbackUrl = targetUrl.startsWith('http') ? '/api/stocks' : `${baseUrl}/api/stocks`;
+            res = await fetch(fallbackUrl).catch(() => null);
           }
 
           if (res && res.ok) {

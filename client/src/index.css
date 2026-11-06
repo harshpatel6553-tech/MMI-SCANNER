@@ -984,6 +984,8 @@ a {
   .vanguard-data-table thead th.num-col, .vanguard-data-table tbody td.num-col { text-align: right; }
   .vanguard-table-row {
     transition: background 0.15s var(--ease-agency);
+    content-visibility: auto;
+    contain-intrinsic-size: 0 45px;
   }
   .vanguard-table-row:hover { background: rgba(56, 189, 248, 0.04); }
   .vanguard-data-table tbody td {

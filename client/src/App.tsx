@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { SocketProvider } from './context/SocketContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { DashboardProvider, useDashboard } from './contexts/DashboardContext';
@@ -12,16 +12,20 @@ import { SectorPulseWidget } from './components/Widgets/SectorPulseWidget';
 import { LiveNewsWidget } from './components/Widgets/LiveNewsWidget';
 import { WatchlistWidget } from './components/Widgets/WatchlistWidget';
 import { MarketTableWidget } from './components/Widgets/MarketTableWidget';
-import { Heatmap } from './components/Heatmap/Heatmap';
-import { SectorBreakdown } from './components/SectorBreakdown/SectorBreakdown';
-import { TechnicalScanner } from './components/TechnicalScanner/TechnicalScanner';
-import { LiveNewsFeed } from './components/LiveNewsFeed/LiveNewsFeed';
-import { EarningsResults } from './components/EarningsResults/EarningsResults';
-import { PromoterWatch } from './components/PromoterWatch/PromoterWatch';
-import { PaperTradingDashboard } from './components/PaperTrading/PaperTradingDashboard';
-import { AdminDashboard } from './components/AdminDashboard/AdminDashboard';
-import { ChartView } from './components/ChartView/ChartView';
-import { FnOCommandCenter } from './components/FnOCommandCenter/FnOCommandCenter';
+
+// Code-split dynamic imports for non-initial heavy tabs
+const Heatmap = React.lazy(() => import('./components/Heatmap/Heatmap').then(m => ({ default: m.Heatmap })));
+const SectorBreakdown = React.lazy(() => import('./components/SectorBreakdown/SectorBreakdown').then(m => ({ default: m.SectorBreakdown })));
+const TechnicalScanner = React.lazy(() => import('./components/TechnicalScanner/TechnicalScanner').then(m => ({ default: m.TechnicalScanner })));
+const LiveNewsFeed = React.lazy(() => import('./components/LiveNewsFeed/LiveNewsFeed').then(m => ({ default: m.LiveNewsFeed })));
+const EarningsResults = React.lazy(() => import('./components/EarningsResults/EarningsResults').then(m => ({ default: m.EarningsResults })));
+const PromoterWatch = React.lazy(() => import('./components/PromoterWatch/PromoterWatch'));
+const PaperTradingDashboard = React.lazy(() => import('./components/PaperTrading/PaperTradingDashboard').then(m => ({ default: m.PaperTradingDashboard })));
+const AdminDashboard = React.lazy(() => import('./components/AdminDashboard/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
+const ChartView = React.lazy(() => import('./components/ChartView/ChartView').then(m => ({ default: m.ChartView })));
+const FnOCommandCenter = React.lazy(() => import('./components/FnOCommandCenter/FnOCommandCenter'));
+const Login = React.lazy(() => import('./components/Login/Login'));
+const Paywall = React.lazy(() => import('./components/Paywall/Paywall'));
 
 import { AlertPanel } from './components/Alerts/AlertPanel';
 import { AlertToast } from './components/Alerts/AlertToast';
@@ -30,15 +34,36 @@ import { FundamentalsModal } from './components/FundamentalsModal/FundamentalsMo
 import { AnnouncementModal } from './components/Announcement/AnnouncementModal';
 import { useStocks } from './hooks/useStocks';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import { Login } from './components/Login/Login';
-import { Paywall } from './components/Paywall/Paywall';
 import { MaintenanceCountdown, TARGET_LAUNCH_TIME } from './components/Maintenance/MaintenanceCountdown';
 import { AnimatedBackground } from './components/AnimatedBackground/AnimatedBackground';
-
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { audioAlerts } from './utils/audioAlerts';
 import { CyberIcon } from './components/common/CyberIcon';
+
+const TabLoadingFallback = () => (
+  <div style={{
+    minHeight: '400px',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    color: 'var(--text-3)',
+    fontSize: 13,
+    letterSpacing: '0.05em'
+  }}>
+    <div style={{
+      width: 24,
+      height: 24,
+      border: '2px solid rgba(0, 245, 155, 0.2)',
+      borderTopColor: '#00f59b',
+      borderRadius: '50%',
+      animation: 'spin 0.8s linear infinite'
+    }} />
+    <span style={{ fontFamily: 'monospace' }}>INITIALIZING MODULE...</span>
+  </div>
+);
 
 function getTabHeader(tab: string, advancers: number, decliners: number, total: number) {
   switch (tab) {
@@ -215,37 +240,39 @@ function AppContent() {
               transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
               style={{ width: '100%' }}
             >
-              {activeTab === 'Charts' && <ChartView allStocks={allStocks} />}
-              {activeTab === 'OptionsLens' && <FnOCommandCenter />}
+              <Suspense fallback={<TabLoadingFallback />}>
+                {activeTab === 'Charts' && <ChartView allStocks={allStocks} />}
+                {activeTab === 'OptionsLens' && <FnOCommandCenter />}
 
-              {activeTab === 'Overview' && (
-                <>
-                  {preferences.showStats && <StatsWidget />}
-                  {preferences.showAdvanceDecline && <AdvanceDeclineWidget />}
-                  <SmartMoneyRadarWidget />
+                {activeTab === 'Overview' && (
+                  <>
+                    {preferences.showStats && <StatsWidget />}
+                    {preferences.showAdvanceDecline && <AdvanceDeclineWidget />}
+                    <SmartMoneyRadarWidget />
 
-                  <div className="grid-2">
-                    {preferences.showTopMovers && <TopMoversWidget />}
-                    {preferences.showSectorPulse && <SectorPulseWidget />}
-                  </div>
+                    <div className="grid-2">
+                      {preferences.showTopMovers && <TopMoversWidget />}
+                      {preferences.showSectorPulse && <SectorPulseWidget />}
+                    </div>
 
-                  <div className="grid-2">
-                    {preferences.showLiveNews && <LiveNewsWidget />}
-                    {preferences.showWatchlist && <WatchlistWidget />}
-                  </div>
-                </>
-              )}
+                    <div className="grid-2">
+                      {preferences.showLiveNews && <LiveNewsWidget />}
+                      {preferences.showWatchlist && <WatchlistWidget />}
+                    </div>
+                  </>
+                )}
 
-              {activeTab === 'Table' && <MarketTableWidget fullView={true} />}
-              {activeTab === 'Heatmap' && <Heatmap stocks={allStocks} />}
-              {activeTab === 'Sectors' && <SectorBreakdown sectorData={sectorData} />}
-              {activeTab === 'Technical' && <TechnicalScanner />}
-              {activeTab === 'Watchlist' && <MarketTableWidget fullView={true} watchlistOnly={true} />}
-              {activeTab === 'LiveNews' && <LiveNewsFeed />}
-              {activeTab === 'Results' && <EarningsResults />}
-              {activeTab === 'Promoter' && <PromoterWatch stocks={allStocks} />}
-              {activeTab === 'PaperTrading' && <PaperTradingDashboard />}
-              {activeTab === 'Admin' && <AdminDashboard />}
+                {activeTab === 'Table' && <MarketTableWidget fullView={true} />}
+                {activeTab === 'Heatmap' && <Heatmap stocks={allStocks} />}
+                {activeTab === 'Sectors' && <SectorBreakdown sectorData={sectorData} />}
+                {activeTab === 'Technical' && <TechnicalScanner />}
+                {activeTab === 'Watchlist' && <MarketTableWidget fullView={true} watchlistOnly={true} />}
+                {activeTab === 'LiveNews' && <LiveNewsFeed />}
+                {activeTab === 'Results' && <EarningsResults />}
+                {activeTab === 'Promoter' && <PromoterWatch stocks={allStocks} />}
+                {activeTab === 'PaperTrading' && <PaperTradingDashboard />}
+                {activeTab === 'Admin' && <AdminDashboard />}
+              </Suspense>
             </motion.div>
           </AnimatePresence>
 
@@ -375,26 +402,28 @@ export default function App() {
         <DashboardProvider>
           <AnnouncementModal />
           <MaintenanceGate>
-            <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route path="/paywall" element={<Paywall />} />
-              <Route path="/overview" element={<Navigate to="/" replace />} />
-              <Route path="/" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
-              <Route path="/table" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
-              <Route path="/heatmap" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
-              <Route path="/sectors" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
-              <Route path="/charts" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
-              <Route path="/options-lens" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
-              <Route path="/fno" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
-              <Route path="/technical" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
-              <Route path="/watchlist" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
-              <Route path="/news" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
-              <Route path="/results" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
-              <Route path="/promoter" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
-              <Route path="/papertrading" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
-              <Route path="/admin" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
+            <Suspense fallback={<TabLoadingFallback />}>
+              <Routes>
+                <Route path="/login" element={<Login />} />
+                <Route path="/paywall" element={<Paywall />} />
+                <Route path="/overview" element={<Navigate to="/" replace />} />
+                <Route path="/" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
+                <Route path="/table" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
+                <Route path="/heatmap" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
+                <Route path="/sectors" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
+                <Route path="/charts" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
+                <Route path="/options-lens" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
+                <Route path="/fno" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
+                <Route path="/technical" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
+                <Route path="/watchlist" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
+                <Route path="/news" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
+                <Route path="/results" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
+                <Route path="/promoter" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
+                <Route path="/papertrading" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
+                <Route path="/admin" element={<ProtectedRoute><AppContent /></ProtectedRoute>} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </Suspense>
           </MaintenanceGate>
         </DashboardProvider>
       </AuthProvider>

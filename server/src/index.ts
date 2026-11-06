@@ -16,6 +16,7 @@ import 'dotenv/config';
 
 import express, { Request, Response } from 'express';
 import cors from 'cors';
+import compression from 'compression';
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -76,6 +77,8 @@ const isAllowedOrigin = (origin: string | undefined): boolean => {
 // ── Express Setup ──────────────────────────────────────────────
 
 const app = express();
+
+app.use(compression());
 
 app.use(
   cors({
