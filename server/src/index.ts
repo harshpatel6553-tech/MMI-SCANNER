@@ -29,7 +29,7 @@ import type {
   StockAlert,
 } from './types/index.js';
 import { testConnection, supabase, isSupabaseConfigured } from './config/supabase.js';
-import { isMarketOpen } from './utils/marketHours.js';
+import { isMarketOpen, shouldPollMarket, isMuhuratTradingDay } from './utils/marketHours.js';
 import logger from './utils/logger.js';
 import stockRoutes from './routes/stockRoutes.js';
 import { newsRoutes } from './routes/newsRoutes.js';
@@ -422,7 +422,7 @@ async function pollNifty50(isInitial = false): Promise<void> {
     }
   }
   
-  if (!isInitial && !isMarketOpen()) {
+  if (!isInitial && !shouldPollMarket()) {
     logger.debug('Nifty 50 poll skipped — market is closed');
     const allCached = stockService.getCachedStocks();
     broadcastStockUpdate(io, allCached, []);
@@ -482,7 +482,7 @@ async function pollNifty500(isInitial = false): Promise<void> {
     }
   }
   
-  if (!isInitial && !isMarketOpen()) {
+  if (!isInitial && !shouldPollMarket()) {
     logger.debug('Nifty 500 poll skipped — market is closed');
     const allCached = stockService.getCachedStocks();
     broadcastStockUpdate(io, allCached, []);
@@ -535,7 +535,7 @@ async function pollIndices(isInitial = false): Promise<void> {
     }
   }
 
-  if (!isInitial && !isMarketOpen()) {
+  if (!isInitial && !shouldPollMarket()) {
     return;
   }
 

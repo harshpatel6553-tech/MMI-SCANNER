@@ -2,6 +2,7 @@ import { stockService } from './stockService.js';
 import { nseScraperService } from './nseScraperService.js';
 import { optionChainService } from './optionChainService.js';
 import type { StockData } from '../types/index.js';
+import { isMuhuratTradingDay } from '../utils/marketHours.js';
 import logger from '../utils/logger.js';
 
 export interface SmartMoneyTarget {
@@ -147,28 +148,39 @@ export class SmartMoneyService {
    */
   public getMarketSessionInfo(): MarketSessionInfo {
     const { timeInMinutes, timeString, weekday } = this.getISTTime();
-    const openTime = 9 * 60 + 15;  // 555 mins
-    const closeTime = 15 * 60 + 30; // 930 mins
-    const totalDuration = closeTime - openTime; // 375 mins
-    const isWeekend = weekday === 'Sat' || weekday === 'Sun';
+    const isMuhurat = isMuhuratTradingDay();
+    const openTime = isMuhurat ? 18 * 60 : 9 * 60 + 15;  // 18:00 on Muhurat vs 09:15
+    const closeTime = isMuhurat ? 19 * 60 + 15 : 15 * 60 + 30; // 19:15 on Muhurat vs 15:30
+    const totalDuration = closeTime - openTime;
+    const isWeekend = !isMuhurat && (weekday === 'Sat' || weekday === 'Sun');
 
     const isMarketOpen = !isWeekend && timeInMinutes >= openTime && timeInMinutes <= closeTime;
 
     let sessionStatus: MarketSessionInfo['sessionStatus'] = 'MARKET_CLOSED';
-    let sessionStatusLabel = 'MARKET CLOSED • FINAL SESSION TAPE (09:15 - 15:30 IST)';
+    let sessionStatusLabel = isMuhurat
+      ? '🪔 DIWALI MUHURAT TRADING (18:00 - 19:15 IST)'
+      : 'MARKET CLOSED • FINAL SESSION TAPE (09:15 - 15:30 IST)';
     let sessionProgressPct = 100;
     let timeRemainingMinutes = 0;
 
     if (!isWeekend) {
       if (timeInMinutes < openTime) {
         sessionStatus = 'PRE_OPEN';
-        sessionStatusLabel = 'PRE-MARKET • SESSION OPENS AT 09:15 IST';
+        const remM = openTime - timeInMinutes;
+        const remH = Math.floor(remM / 60);
+        const remMod = remM % 60;
+        sessionStatusLabel = isMuhurat
+          ? `🪔 PRE-MARKET • DIWALI MUHURAT OPENS AT 18:00 IST (${remH}h ${remMod}m remaining)`
+          : 'PRE-MARKET • SESSION OPENS AT 09:15 IST';
         sessionProgressPct = 0;
-        timeRemainingMinutes = openTime - timeInMinutes;
+        timeRemainingMinutes = remM;
       } else if (timeInMinutes >= openTime && timeInMinutes <= closeTime) {
         sessionProgressPct = Number((((timeInMinutes - openTime) / totalDuration) * 100).toFixed(1));
         timeRemainingMinutes = closeTime - timeInMinutes;
-        if (timeInMinutes >= 14 * 60 + 15) {
+        if (isMuhurat) {
+          sessionStatus = 'LIVE_SESSION';
+          sessionStatusLabel = `🪔 LIVE DIWALI MUHURAT SESSION (18:00 - 19:15 IST) • ${timeRemainingMinutes}m REMAINING`;
+        } else if (timeInMinutes >= 14 * 60 + 15) {
           sessionStatus = 'CLOSING_POWER_HOUR';
           sessionStatusLabel = `LIVE POWER HOUR (09:15 - 15:30 IST) • ${timeRemainingMinutes}m REMAINING`;
         } else {
@@ -177,7 +189,9 @@ export class SmartMoneyService {
         }
       } else {
         sessionStatus = 'MARKET_CLOSED';
-        sessionStatusLabel = 'MARKET CLOSED • FINAL SESSION TAPE ARCHIVED (09:15 - 15:30 IST)';
+        sessionStatusLabel = isMuhurat
+          ? '🪔 DIWALI MUHURAT SESSION CONCLUDED (18:00 - 19:15 IST)'
+          : 'MARKET CLOSED • FINAL SESSION TAPE ARCHIVED (09:15 - 15:30 IST)';
         sessionProgressPct = 100;
         timeRemainingMinutes = 0;
       }
@@ -185,8 +199,8 @@ export class SmartMoneyService {
 
     return {
       isMarketOpen,
-      sessionStart: '09:15',
-      sessionEnd: '15:30',
+      sessionStart: isMuhurat ? '18:00' : '09:15',
+      sessionEnd: isMuhurat ? '19:15' : '15:30',
       currentTimeIST: timeString,
       sessionProgressPct,
       sessionStatus,
@@ -206,7 +220,7 @@ export class SmartMoneyService {
     diiNet: number
   ): IntradayFlowPoint[] {
     const { timeInMinutes, dateStr, weekday } = this.getISTTime();
-    const isWeekend = weekday === 'Sat' || weekday === 'Sun';
+    const isWeekend = !isMuhuratTradingDay() && (weekday === 'Sat' || weekday === 'Sun');
 
     // Reset daily recorded snapshots if new calendar trading day begins
     if (this.recordedSessionDate !== dateStr) {
