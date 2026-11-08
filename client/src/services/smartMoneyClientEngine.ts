@@ -1,5 +1,4 @@
 import type { StockData } from '../types';
-import { isMuhuratTradingDay } from '../utils/marketHours';
 import type {
   SmartMoneyFlowData,
   SmartMoneyTarget,
@@ -164,49 +163,28 @@ export function getISTTime(): {
 
 export function getMarketSessionInfo(): MarketSessionInfo {
   const { timeInMinutes, timeString, weekday } = getISTTime();
-  const isMuhurat = isMuhuratTradingDay();
-  let openTime = 9 * 60 + 15;
-  let closeTime = 15 * 60 + 30;
-  
-  if (isMuhurat) {
-    if (timeInMinutes <= 15 * 60 + 35) {
-      openTime = 14 * 60 + 20;
-      closeTime = 15 * 60 + 30;
-    } else {
-      openTime = 18 * 60;
-      closeTime = 19 * 60 + 15;
-    }
-  }
-  const totalDuration = closeTime - openTime;
-  const isWeekend = !isMuhurat && (weekday === 'Sat' || weekday === 'Sun');
+  const openTime = 9 * 60 + 15;  // 555 mins
+  const closeTime = 15 * 60 + 30; // 930 mins
+  const totalDuration = closeTime - openTime; // 375 mins
+  const isWeekend = weekday === 'Sat' || weekday === 'Sun';
 
   const isMarketOpen = !isWeekend && timeInMinutes >= openTime && timeInMinutes <= closeTime;
 
   let sessionStatus: MarketSessionInfo['sessionStatus'] = 'MARKET_CLOSED';
-  let sessionStatusLabel = isMuhurat
-    ? '🪔 SPECIAL TRADING SESSION (14:20 - 15:30 IST)'
-    : 'MARKET CLOSED • FINAL SESSION TAPE (09:15 - 15:30 IST)';
+  let sessionStatusLabel = 'MARKET CLOSED • FINAL SESSION TAPE (09:15 - 15:30 IST)';
   let sessionProgressPct = 100;
   let timeRemainingMinutes = 0;
 
   if (!isWeekend) {
     if (timeInMinutes < openTime) {
       sessionStatus = 'PRE_OPEN';
-      const remM = openTime - timeInMinutes;
-      const remH = Math.floor(remM / 60);
-      const remMod = remM % 60;
-      sessionStatusLabel = isMuhurat
-        ? `🪔 PRE-MARKET • SESSION OPENS IN ${remM}m`
-        : 'PRE-MARKET • SESSION OPENS AT 09:15 IST';
+      sessionStatusLabel = 'PRE-MARKET • SESSION OPENS AT 09:15 IST';
       sessionProgressPct = 0;
-      timeRemainingMinutes = remM;
+      timeRemainingMinutes = openTime - timeInMinutes;
     } else if (timeInMinutes >= openTime && timeInMinutes <= closeTime) {
       sessionProgressPct = Number((((timeInMinutes - openTime) / totalDuration) * 100).toFixed(1));
       timeRemainingMinutes = closeTime - timeInMinutes;
-      if (isMuhurat) {
-        sessionStatus = 'LIVE_SESSION';
-        sessionStatusLabel = `🪔 LIVE SPECIAL TRADING SESSION • ${timeRemainingMinutes}m REMAINING`;
-      } else if (timeInMinutes >= 14 * 60 + 15) {
+      if (timeInMinutes >= 14 * 60 + 15) {
         sessionStatus = 'CLOSING_POWER_HOUR';
         sessionStatusLabel = `LIVE POWER HOUR (09:15 - 15:30 IST) • ${timeRemainingMinutes}m REMAINING`;
       } else {
@@ -215,9 +193,7 @@ export function getMarketSessionInfo(): MarketSessionInfo {
       }
     } else {
       sessionStatus = 'MARKET_CLOSED';
-      sessionStatusLabel = isMuhurat
-        ? '🪔 SPECIAL TRADING SESSION CONCLUDED'
-        : 'MARKET CLOSED • FINAL SESSION TAPE ARCHIVED (09:15 - 15:30 IST)';
+      sessionStatusLabel = 'MARKET CLOSED • FINAL SESSION TAPE ARCHIVED (09:15 - 15:30 IST)';
       sessionProgressPct = 100;
       timeRemainingMinutes = 0;
     }
@@ -225,8 +201,8 @@ export function getMarketSessionInfo(): MarketSessionInfo {
 
   return {
     isMarketOpen,
-    sessionStart: isMuhurat ? (timeInMinutes <= 15 * 60 + 35 ? '14:20' : '18:00') : '09:15',
-    sessionEnd: isMuhurat ? (timeInMinutes <= 15 * 60 + 35 ? '15:30' : '19:15') : '15:30',
+    sessionStart: '09:15',
+    sessionEnd: '15:30',
     currentTimeIST: timeString,
     sessionProgressPct,
     sessionStatus,
@@ -243,7 +219,7 @@ export function generateIntradayTimeline(
   diiNet: number
 ): IntradayFlowPoint[] {
   const { timeInMinutes, weekday } = getISTTime();
-  const isWeekend = !isMuhuratTradingDay() && (weekday === 'Sat' || weekday === 'Sun');
+  const isWeekend = weekday === 'Sat' || weekday === 'Sun';
 
   const intervals: Array<{ time: string; minutes: number; phase: string; weight: number }> = [
     { time: '09:15', minutes: 555, phase: 'Opening Auction & Initial Gap Fill', weight: 0.04 },

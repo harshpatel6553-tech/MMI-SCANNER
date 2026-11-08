@@ -5,7 +5,7 @@ import { HeaderIndices } from './HeaderIndices';
 import { useIndices } from '../../hooks/useIndices';
 import type { StockData } from '../../types';
 import { ArrowRight, Volume2, VolumeX, Bell } from 'lucide-react';
-import { isMarketOpen, isMuhuratTradingDay } from '../../utils/marketHours';
+import { isMarketOpen } from '../../utils/marketHours';
 import { audioAlerts } from '../../utils/audioAlerts';
 import { CyberIcon } from '../common/CyberIcon';
 
@@ -19,32 +19,7 @@ function getMarketCountdown(isOpen: boolean): string {
   const utc = now.getTime() + now.getTimezoneOffset() * 60000;
   const ist = new Date(utc + 3600000 * 5.5);
   const curMins = ist.getHours() * 60 + ist.getMinutes();
-  const isMuhurat = isMuhuratTradingDay(ist);
   
-  if (isMuhurat) {
-    if (isOpen) {
-      // Slot 1 closes at 15:30 IST; Slot 2 closes at 19:30 IST
-      const closeMins = curMins <= 15 * 60 + 35 ? (15 * 60 + 30) : (19 * 60 + 30);
-      const diff = closeMins - curMins;
-      if (diff <= 0) return 'CLOSING NOW';
-      const hrs = Math.floor(diff / 60);
-      const mins = diff % 60;
-      return hrs > 0 ? `CLOSES IN ${hrs}H ${mins}M` : `CLOSES IN ${mins}M`;
-    } else {
-      if (curMins < 14 * 60 + 20) {
-        const diff = (14 * 60 + 20) - curMins;
-        return `OPENS IN ${diff}M (02:20 PM)`;
-      } else if (curMins > 15 * 60 + 30 && curMins < 18 * 60) {
-        const diff = (18 * 60) - curMins;
-        const hrs = Math.floor(diff / 60);
-        const mins = diff % 60;
-        return hrs > 0 ? `EVENING OPENS IN ${hrs}H ${mins}M` : `EVENING OPENS IN ${mins}M`;
-      } else {
-        return 'SESSION CONCLUDED';
-      }
-    }
-  }
-
   if (isOpen) {
     const closeMins = 15 * 60 + 30; // 15:30 IST
     const diff = closeMins - curMins;
@@ -148,19 +123,7 @@ export function Topbar({ allStocks, alertCount }: TopbarProps) {
         </div>
 
         {/* Live Market Status Pill */}
-        {isMuhuratTradingDay() ? (
-          marketOpen ? (
-            <div className="market-pill muhurat-live" style={{ background: 'rgba(245, 158, 11, 0.15)', borderColor: 'rgba(245, 158, 11, 0.5)', color: '#fbbf24' }}>
-              <span className="dot-live" style={{ background: '#fbbf24', boxShadow: '0 0 10px #f59e0b' }}></span>
-              <span>🪔 MUHURAT LIVE · {getMarketCountdown(true)}</span>
-            </div>
-          ) : (
-            <div className="market-pill closed muhurat-pending" style={{ background: 'rgba(245, 158, 11, 0.08)', borderColor: 'rgba(245, 158, 11, 0.3)', color: '#fbbf24' }}>
-              <span className="dot-live" style={{ background: '#f59e0b' }}></span>
-              <span>🪔 MUHURAT · {getMarketCountdown(false)}</span>
-            </div>
-          )
-        ) : marketOpen ? (
+        {marketOpen ? (
           <div className="market-pill">
             <span className="dot-live"></span>
             <span>LIVE · {getMarketCountdown(true)}</span>
