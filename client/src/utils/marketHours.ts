@@ -56,12 +56,11 @@ export function isMarketOpen(): boolean {
 
   const timeInMinutes = hour * 60 + minute;
 
-  // 🪔 SPECIAL DIWALI MUHURAT TRADING SESSION
+  // 🪔 SPECIAL DIWALI MUHURAT TRADING SESSION (14:20 - 15:30 IST & 17:45 - 19:30 IST)
   if (isMuhuratTradingDay(now)) {
-    // Active session runs 17:45 (Pre-open) through 19:30 IST (Post-closing)
-    const muhuratStartMins = 17 * 60 + 45; // 17:45 IST
-    const muhuratEndMins = 19 * 60 + 30;   // 19:30 IST
-    return timeInMinutes >= muhuratStartMins && timeInMinutes <= muhuratEndMins;
+    const isSlot1 = timeInMinutes >= (14 * 60 + 20) && timeInMinutes <= (15 * 60 + 30);
+    const isSlot2 = timeInMinutes >= (17 * 60 + 45) && timeInMinutes <= (19 * 60 + 30);
+    return isSlot1 || isSlot2;
   }
 
   // Market is closed on weekends

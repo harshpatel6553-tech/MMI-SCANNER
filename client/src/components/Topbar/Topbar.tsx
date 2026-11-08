@@ -23,19 +23,22 @@ function getMarketCountdown(isOpen: boolean): string {
   
   if (isMuhurat) {
     if (isOpen) {
-      const closeMins = 19 * 60 + 30; // 19:30 IST
+      // Slot 1 closes at 15:30 IST; Slot 2 closes at 19:30 IST
+      const closeMins = curMins <= 15 * 60 + 35 ? (15 * 60 + 30) : (19 * 60 + 30);
       const diff = closeMins - curMins;
       if (diff <= 0) return 'CLOSING NOW';
       const hrs = Math.floor(diff / 60);
       const mins = diff % 60;
       return hrs > 0 ? `CLOSES IN ${hrs}H ${mins}M` : `CLOSES IN ${mins}M`;
     } else {
-      const openMins = 18 * 60; // 18:00 IST
-      if (curMins < openMins) {
-        const diff = openMins - curMins;
+      if (curMins < 14 * 60 + 20) {
+        const diff = (14 * 60 + 20) - curMins;
+        return `OPENS IN ${diff}M (02:20 PM)`;
+      } else if (curMins > 15 * 60 + 30 && curMins < 18 * 60) {
+        const diff = (18 * 60) - curMins;
         const hrs = Math.floor(diff / 60);
         const mins = diff % 60;
-        return hrs > 0 ? `OPENS IN ${hrs}H ${mins}M (06:00 PM)` : `OPENS IN ${mins}M (06:00 PM)`;
+        return hrs > 0 ? `EVENING OPENS IN ${hrs}H ${mins}M` : `EVENING OPENS IN ${mins}M`;
       } else {
         return 'SESSION CONCLUDED';
       }

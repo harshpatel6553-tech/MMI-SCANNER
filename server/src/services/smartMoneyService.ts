@@ -149,8 +149,18 @@ export class SmartMoneyService {
   public getMarketSessionInfo(): MarketSessionInfo {
     const { timeInMinutes, timeString, weekday } = this.getISTTime();
     const isMuhurat = isMuhuratTradingDay();
-    const openTime = isMuhurat ? 18 * 60 : 9 * 60 + 15;  // 18:00 on Muhurat vs 09:15
-    const closeTime = isMuhurat ? 19 * 60 + 15 : 15 * 60 + 30; // 19:15 on Muhurat vs 15:30
+    let openTime = 9 * 60 + 15;
+    let closeTime = 15 * 60 + 30;
+
+    if (isMuhurat) {
+      if (timeInMinutes <= 15 * 60 + 35) {
+        openTime = 14 * 60 + 20;
+        closeTime = 15 * 60 + 30;
+      } else {
+        openTime = 18 * 60;
+        closeTime = 19 * 60 + 15;
+      }
+    }
     const totalDuration = closeTime - openTime;
     const isWeekend = !isMuhurat && (weekday === 'Sat' || weekday === 'Sun');
 
@@ -158,7 +168,7 @@ export class SmartMoneyService {
 
     let sessionStatus: MarketSessionInfo['sessionStatus'] = 'MARKET_CLOSED';
     let sessionStatusLabel = isMuhurat
-      ? '🪔 DIWALI MUHURAT TRADING (18:00 - 19:15 IST)'
+      ? '🪔 SPECIAL TRADING SESSION (14:20 - 15:30 IST)'
       : 'MARKET CLOSED • FINAL SESSION TAPE (09:15 - 15:30 IST)';
     let sessionProgressPct = 100;
     let timeRemainingMinutes = 0;
@@ -170,7 +180,7 @@ export class SmartMoneyService {
         const remH = Math.floor(remM / 60);
         const remMod = remM % 60;
         sessionStatusLabel = isMuhurat
-          ? `🪔 PRE-MARKET • DIWALI MUHURAT OPENS AT 18:00 IST (${remH}h ${remMod}m remaining)`
+          ? `🪔 PRE-MARKET • SESSION OPENS IN ${remM}m`
           : 'PRE-MARKET • SESSION OPENS AT 09:15 IST';
         sessionProgressPct = 0;
         timeRemainingMinutes = remM;
@@ -179,7 +189,7 @@ export class SmartMoneyService {
         timeRemainingMinutes = closeTime - timeInMinutes;
         if (isMuhurat) {
           sessionStatus = 'LIVE_SESSION';
-          sessionStatusLabel = `🪔 LIVE DIWALI MUHURAT SESSION (18:00 - 19:15 IST) • ${timeRemainingMinutes}m REMAINING`;
+          sessionStatusLabel = `🪔 LIVE SPECIAL TRADING SESSION • ${timeRemainingMinutes}m REMAINING`;
         } else if (timeInMinutes >= 14 * 60 + 15) {
           sessionStatus = 'CLOSING_POWER_HOUR';
           sessionStatusLabel = `LIVE POWER HOUR (09:15 - 15:30 IST) • ${timeRemainingMinutes}m REMAINING`;
@@ -190,7 +200,7 @@ export class SmartMoneyService {
       } else {
         sessionStatus = 'MARKET_CLOSED';
         sessionStatusLabel = isMuhurat
-          ? '🪔 DIWALI MUHURAT SESSION CONCLUDED (18:00 - 19:15 IST)'
+          ? '🪔 SPECIAL TRADING SESSION CONCLUDED'
           : 'MARKET CLOSED • FINAL SESSION TAPE ARCHIVED (09:15 - 15:30 IST)';
         sessionProgressPct = 100;
         timeRemainingMinutes = 0;
@@ -199,8 +209,8 @@ export class SmartMoneyService {
 
     return {
       isMarketOpen,
-      sessionStart: isMuhurat ? '18:00' : '09:15',
-      sessionEnd: isMuhurat ? '19:15' : '15:30',
+      sessionStart: isMuhurat ? (timeInMinutes <= 15 * 60 + 35 ? '14:20' : '18:00') : '09:15',
+      sessionEnd: isMuhurat ? (timeInMinutes <= 15 * 60 + 35 ? '15:30' : '19:15') : '15:30',
       currentTimeIST: timeString,
       sessionProgressPct,
       sessionStatus,
