@@ -208,6 +208,12 @@ export function useAlerts(stocks?: StockData[]) {
 
   const enqueueToast = useCallback((alert: StockAlert, force: boolean = false) => {
     if (!alert || alert.alertType === 'SMART_MONEY') return;
+    if (alert.alertType === 'DAY_HIGH' && !((alert.changePercent ?? 0) > 0.05 && (alert.change ?? 0) > 0)) {
+      return;
+    }
+    if (alert.alertType === 'DAY_LOW' && !((alert.changePercent ?? 0) < -0.05 && (alert.change ?? 0) < 0)) {
+      return;
+    }
     const key = (alert.alertType === 'NEWS' || alert.alertType === 'FNO_OI')
       ? alert.id
       : `${alert.symbol}_${alert.alertType}`;
@@ -627,7 +633,15 @@ export function useAlerts(stocks?: StockData[]) {
       }
     });
 
-    const list = Array.from(combinedMap.values());
+    const list = Array.from(combinedMap.values()).filter(a => {
+      if (a.alertType === 'DAY_HIGH') {
+        return (a.changePercent ?? 0) > 0.05 && (a.change ?? 0) > 0;
+      }
+      if (a.alertType === 'DAY_LOW') {
+        return (a.changePercent ?? 0) < -0.05 && (a.change ?? 0) < 0;
+      }
+      return true;
+    });
 
     // Sort: Fresh breakouts and peaks first, then by timestamp descending
     list.sort((a, b) => {
