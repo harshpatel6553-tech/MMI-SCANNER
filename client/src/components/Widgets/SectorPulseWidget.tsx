@@ -6,9 +6,24 @@ import { Radio, ArrowRight } from 'lucide-react';
 import { AnimatedNumber } from '../common/AnimatedNumber';
 import { motion, AnimatePresence } from 'framer-motion';
 
-export function SectorPulseWidget() {
-  const [tab, setTab] = useState<'top' | 'bottom'>('top');
+interface SectorPulseWidgetProps {
+  sectorData?: Map<string, { avgChange: number; gainers: number; losers: number; totalStocks?: number }>;
+}
+
+export function SectorPulseWidget(props: SectorPulseWidgetProps) {
+  if (props.sectorData) {
+    return <SectorPulseContent sectorData={props.sectorData} />;
+  }
+  return <SectorPulseWithHook />;
+}
+
+function SectorPulseWithHook() {
   const { sectorData } = useStocks({ index: 'ALL', priceMin: 0, priceMax: 0, volumeMin: 0, search: '' }, 'symbol', 'asc');
+  return <SectorPulseContent sectorData={sectorData} />;
+}
+
+function SectorPulseContent({ sectorData }: { sectorData: Map<string, any> }) {
+  const [tab, setTab] = useState<'top' | 'bottom'>('top');
   const { setActiveTab } = useDashboard();
 
   const sortedSectors = Array.from(sectorData.entries()).map(([n, d]) => ({

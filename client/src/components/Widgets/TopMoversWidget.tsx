@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import type { StockData } from '../../types';
 import { useStocks } from '../../hooks/useStocks';
 import { useDashboard } from '../../contexts/DashboardContext';
 import { StockLogo } from '../common/StockLogo';
@@ -8,9 +9,25 @@ import { LivePrice } from '../common/LivePrice';
 import { PriceChange } from '../common/PriceChange';
 import { motion, AnimatePresence } from 'framer-motion';
 
-export function TopMoversWidget() {
-  const [tab, setTab] = useState<'gainers' | 'losers'>('gainers');
+interface TopMoversWidgetProps {
+  allStocks?: StockData[];
+  priceFlash?: Map<string, 'up' | 'down'>;
+}
+
+export function TopMoversWidget(props: TopMoversWidgetProps) {
+  if (props.allStocks) {
+    return <TopMoversContent allStocks={props.allStocks} priceFlash={props.priceFlash || new Map()} />;
+  }
+  return <TopMoversWithHook />;
+}
+
+function TopMoversWithHook() {
   const { allStocks, priceFlash } = useStocks({ index: 'ALL', priceMin: 0, priceMax: 0, volumeMin: 0, search: '' }, 'symbol', 'asc');
+  return <TopMoversContent allStocks={allStocks} priceFlash={priceFlash} />;
+}
+
+function TopMoversContent({ allStocks, priceFlash }: { allStocks: StockData[]; priceFlash: Map<string, 'up' | 'down'> }) {
+  const [tab, setTab] = useState<'gainers' | 'losers'>('gainers');
   const { setChartSymbol, setActiveTab } = useDashboard();
 
   const sorted = [...allStocks].sort((a, b) => tab === 'gainers' ? b.changePercent - a.changePercent : a.changePercent - b.changePercent);
@@ -66,7 +83,6 @@ export function TopMoversWidget() {
               style={{ display: 'flex', flexDirection: 'column', gap: 6 }}
             >
               {top5.map((g, idx) => {
-                const flash = priceFlash.get(g.symbol);
                 return (
                   <motion.div 
                     className="mover-row-item" 

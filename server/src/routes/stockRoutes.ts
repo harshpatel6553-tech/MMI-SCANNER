@@ -158,11 +158,11 @@ router.get(['/', '/stocks'], async (req: Request, res: Response): Promise<void> 
  * Returns cached data for a single stock by its NSE symbol.
  * Returns 404 if the stock is not found in the cache.
  */
-router.get('/stocks/:symbol', (req: Request, res: Response): void => {
+router.get(['/:symbol', '/stocks/:symbol'], (req: Request, res: Response, next): void => {
   try {
-    const symbol = req.params.symbol?.toUpperCase();
+    const rawSymbol = req.params.symbol;
 
-    if (!symbol) {
+    if (!rawSymbol) {
       res.status(400).json({
         success: false,
         error: 'Symbol parameter is required',
@@ -170,6 +170,13 @@ router.get('/stocks/:symbol', (req: Request, res: Response): void => {
       return;
     }
 
+    // Pass through to downstream routes if this matches a reserved subpath
+    const reservedRoutes = ['alerts', 'health', 'symbols', 'indices', 'chart', 'quote'];
+    if (reservedRoutes.includes(rawSymbol.toLowerCase())) {
+      return next();
+    }
+
+    const symbol = rawSymbol.toUpperCase();
     const stock = stockService.getCachedStock(symbol);
 
     if (!stock) {

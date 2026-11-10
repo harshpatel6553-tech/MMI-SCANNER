@@ -34,24 +34,33 @@ export const executeTrade = async (req: Request, res: Response) => {
 
     const totalCost = quantity * price;
 
-    // 1. Fetch current portfolio
+    // 1. Fetch current portfolio (auto-initialize default 10L balance for new users)
     const { data: portfolio, error: portError } = await supabase
       .from('paper_portfolios')
       .select('*')
       .eq('user_id', userId)
       .single();
 
-    if (portError) throw portError;
+    let currentPortfolio = portfolio;
+    if (portError || !portfolio) {
+      const defaultPortfolio = { user_id: userId, balance: 1000000 };
+      const { data: createdPort } = await supabase
+        .from('paper_portfolios')
+        .upsert([defaultPortfolio], { onConflict: 'user_id' })
+        .select()
+        .single();
+      currentPortfolio = createdPort || defaultPortfolio;
+    }
 
     // 2. Fetch current position
-    const { data: position, error: posError } = await supabase
+    const { data: position } = await supabase
       .from('paper_positions')
       .select('*')
       .eq('user_id', userId)
       .eq('symbol', symbol)
       .single();
 
-    let newBalance = Number(portfolio.balance);
+    let newBalance = Number(currentPortfolio.balance);
     let newQuantity = position ? position.quantity : 0;
     let newAveragePrice = position ? Number(position.average_price) : 0;
 

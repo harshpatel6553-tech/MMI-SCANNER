@@ -1,4 +1,5 @@
 import React from 'react';
+import type { StockData } from '../../types';
 import { useStocks } from '../../hooks/useStocks';
 import { useDashboard } from '../../contexts/DashboardContext';
 import { useWatchlist } from '../../hooks/useWatchlist';
@@ -9,8 +10,24 @@ import { LivePrice } from '../common/LivePrice';
 import { PriceChange } from '../common/PriceChange';
 import { motion } from 'framer-motion';
 
-export function WatchlistWidget() {
+interface WatchlistWidgetProps {
+  allStocks?: StockData[];
+  priceFlash?: Map<string, 'up' | 'down'>;
+}
+
+export function WatchlistWidget(props: WatchlistWidgetProps) {
+  if (props.allStocks) {
+    return <WatchlistContent allStocks={props.allStocks} priceFlash={props.priceFlash || new Map()} />;
+  }
+  return <WatchlistWithHook />;
+}
+
+function WatchlistWithHook() {
   const { allStocks, priceFlash } = useStocks({ index: 'ALL', priceMin: 0, priceMax: 0, volumeMin: 0, search: '' }, 'symbol', 'asc');
+  return <WatchlistContent allStocks={allStocks} priceFlash={priceFlash} />;
+}
+
+function WatchlistContent({ allStocks }: { allStocks: StockData[]; priceFlash?: Map<string, 'up' | 'down'> }) {
   const { setActiveTab, setChartSymbol } = useDashboard();
   const { isWatchlisted, watchlist, toggle: toggleWatchlist } = useWatchlist();
   

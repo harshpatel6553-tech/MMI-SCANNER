@@ -185,7 +185,7 @@ function AppContent() {
   const { preferences, toggleWidget, activeTab, isCustomizing, setIsCustomizing, searchQuery } = useDashboard();
 
   // Initialize WebSocket and fetch stocks
-  const { allStocks, stats, sectorData, stocks } = useStocks({
+  const { allStocks, stats, sectorData, stocks, priceFlash } = useStocks({
     index: 'ALL', priceMin: 0, priceMax: 0, volumeMin: 0, search: searchQuery
   }, 'volume', 'desc');
 
@@ -241,23 +241,23 @@ function AppContent() {
               style={{ width: '100%' }}
             >
               <Suspense fallback={<TabLoadingFallback />}>
-                {activeTab === 'Charts' && <ChartView allStocks={allStocks} />}
+                {activeTab === 'Charts' && <ChartView allStocks={allStocks} priceFlash={priceFlash} />}
                 {activeTab === 'OptionsLens' && <FnOCommandCenter />}
 
                 {activeTab === 'Overview' && (
                   <>
-                    {preferences.showStats && <StatsWidget />}
-                    {preferences.showAdvanceDecline && <AdvanceDeclineWidget />}
+                    {preferences.showStats && <StatsWidget stats={stats} />}
+                    {preferences.showAdvanceDecline && <AdvanceDeclineWidget stats={stats} />}
                     <SmartMoneyRadarWidget />
 
                     <div className="grid-2">
-                      {preferences.showTopMovers && <TopMoversWidget />}
-                      {preferences.showSectorPulse && <SectorPulseWidget />}
+                      {preferences.showTopMovers && <TopMoversWidget allStocks={allStocks} priceFlash={priceFlash} />}
+                      {preferences.showSectorPulse && <SectorPulseWidget sectorData={sectorData} />}
                     </div>
 
                     <div className="grid-2">
                       {preferences.showLiveNews && <LiveNewsWidget />}
-                      {preferences.showWatchlist && <WatchlistWidget />}
+                      {preferences.showWatchlist && <WatchlistWidget allStocks={allStocks} priceFlash={priceFlash} />}
                     </div>
                   </>
                 )}

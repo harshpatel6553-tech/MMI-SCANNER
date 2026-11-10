@@ -174,11 +174,12 @@ export const FnOCommandCenter: React.FC = () => {
     if (showRefresh) setRefreshing(true);
     const query = expiry ? `&expiry=${encodeURIComponent(expiry)}` : '';
     const apiBase = getApiBase();
+    const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
     const candidateUrls = [
       `${apiBase}/api/fno/option-chain?underlying=${symbol}${query}`,
       `/api/fno/option-chain?underlying=${symbol}${query}`,
-      `http://localhost:5000/api/fno/option-chain?underlying=${symbol}${query}`,
-    ];
+      isLocal ? `http://localhost:5000/api/fno/option-chain?underlying=${symbol}${query}` : '',
+    ].filter(Boolean);
     const endpoints = Array.from(new Set(candidateUrls)).filter(Boolean);
 
     for (const url of endpoints) {

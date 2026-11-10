@@ -344,14 +344,12 @@ export function ChartPane({
     const apiBase = getApiBase();
     const query = `tf=${encodeURIComponent(tfVal)}${rangeVal ? `&range=${encodeURIComponent(rangeVal)}` : ''}`;
 
+    const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
     const candidateUrls = [
-      `/api/stocks/chart/${cleanSym}?${query}`,
-      `http://localhost:5000/api/stocks/chart/${cleanSym}?${query}`,
       `${apiBase}/api/stocks/chart/${cleanSym}?${query}`,
-    ];
-    if (typeof window !== 'undefined' && window.location.hostname && window.location.hostname !== 'localhost') {
-      candidateUrls.push(`${window.location.protocol}//${window.location.hostname}:5000/api/stocks/chart/${cleanSym}?${query}`);
-    }
+      `/api/chart?symbol=${encodeURIComponent(cleanSym)}&${query}`,
+      isLocal ? `/api/stocks/chart/${cleanSym}?${query}` : '',
+    ].filter(Boolean);
     const endpoints = Array.from(new Set(candidateUrls));
 
     let candlesResult: Candle[] | null = null;

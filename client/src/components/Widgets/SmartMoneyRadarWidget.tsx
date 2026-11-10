@@ -50,10 +50,11 @@ export function SmartMoneyRadarWidget() {
 
   useEffect(() => {
     const socketUrl = import.meta.env.VITE_SOCKET_URL || '';
+    const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
     const endpoints = [
+      socketUrl ? `${socketUrl.replace(/\/$/, '')}/api/smart-money/flow` : '',
       `/api/smart-money/flow`,
-      `http://localhost:5000/api/smart-money/flow`,
-      `${socketUrl.replace(/\/$/, '')}/api/smart-money/flow`,
+      isLocal ? `http://localhost:5000/api/smart-money/flow` : '',
     ].filter(Boolean);
 
     let fetched = false;

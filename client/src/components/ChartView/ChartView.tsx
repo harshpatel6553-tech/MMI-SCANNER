@@ -23,15 +23,26 @@ export type LayoutMode = '1' | '2-vert' | '2-horiz' | '4-grid';
 
 interface ChartViewProps {
   allStocks?: StockData[];
+  priceFlash?: Map<string, 'up' | 'down'>;
 }
 
-export function ChartView({ allStocks: propStocks }: ChartViewProps) {
-  const { allStocks: hookStocks, priceFlash } = useStocks(
+export function ChartView(props: ChartViewProps) {
+  if (props.allStocks && props.allStocks.length > 0) {
+    return <ChartViewContent allStocks={props.allStocks} priceFlash={props.priceFlash || new Map()} />;
+  }
+  return <ChartViewWithHook />;
+}
+
+function ChartViewWithHook() {
+  const { allStocks, priceFlash } = useStocks(
     { index: 'ALL', priceMin: 0, priceMax: 0, volumeMin: 0, search: '' },
     'volume',
     'desc'
   );
-  const liveStocks = (propStocks && propStocks.length > 0) ? propStocks : hookStocks;
+  return <ChartViewContent allStocks={allStocks} priceFlash={priceFlash} />;
+}
+
+function ChartViewContent({ allStocks: liveStocks, priceFlash }: { allStocks: StockData[]; priceFlash: Map<string, 'up' | 'down'> }) {
 
   const { selectedStock, setSelectedStock, chartSymbol, setChartSymbol } = useDashboard();
   const { isWatchlisted, toggle: toggleWatchlist } = useWatchlist();

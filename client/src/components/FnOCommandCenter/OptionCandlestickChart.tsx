@@ -64,11 +64,12 @@ export const OptionCandlestickChart: React.FC<OptionCandlestickChartProps> = ({
     setRealCandles(null); // Clear previous contract candles immediately on strike/type/tf change
     const fetchRealCandles = async () => {
       const apiBase = import.meta.env.VITE_SOCKET_URL ? (import.meta.env.VITE_SOCKET_URL as string).replace(/\/$/, '') : (typeof window !== 'undefined' && window.location.port === '5173' ? 'http://localhost:5000' : '');
+      const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
       const candidateUrls = [
         `${apiBase}/api/fno/option-candles?underlying=${symbol}&strike=${strike}&type=${type}&expiry=${encodeURIComponent(expiry)}&tf=${activeTf}`,
         `/api/fno/option-candles?underlying=${symbol}&strike=${strike}&type=${type}&expiry=${encodeURIComponent(expiry)}&tf=${activeTf}`,
-        `http://localhost:5000/api/fno/option-candles?underlying=${symbol}&strike=${strike}&type=${type}&expiry=${encodeURIComponent(expiry)}&tf=${activeTf}`,
-      ];
+        isLocal ? `http://localhost:5000/api/fno/option-candles?underlying=${symbol}&strike=${strike}&type=${type}&expiry=${encodeURIComponent(expiry)}&tf=${activeTf}` : '',
+      ].filter(Boolean);
       const endpoints = Array.from(new Set(candidateUrls)).filter(Boolean);
 
       for (const ep of endpoints) {
