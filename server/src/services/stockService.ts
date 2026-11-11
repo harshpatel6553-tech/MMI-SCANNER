@@ -207,11 +207,11 @@ export class StockService {
             const hourVolume = newestVol - oldestVol;
             const hourlyAvgVol = fullDayAvgVol / 6.25; 
             const hourlyRelativeVol = hourlyAvgVol > 0 ? hourVolume / hourlyAvgVol : 0;
-            if (hourlyRelativeVol >= 1.5) volumeSpike = true;
+            if (hourlyRelativeVol >= 3.0) volumeSpike = true;
           }
 
           const relativeVolume = fullDayAvgVol > 0 ? volume / fullDayAvgVol : 0;
-          if (relativeVolume >= 2.0) {
+          if (relativeVolume >= 3.5) {
              volumeSpike = true;
           }
 

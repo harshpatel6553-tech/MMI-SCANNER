@@ -194,12 +194,14 @@ class AlertService {
         }
       }
 
-      // ── 3. VOLUME SPIKE (stocks only - institutional velocity >= 1.75x) ──
-      const isInstitutionalSpike = (stock.relativeVolume && stock.relativeVolume >= 1.75) || (stock.volumeSpike && (stock.relativeVolume ?? 1) >= 1.5);
+      // ── 3. VOLUME SPIKE (stocks only - institutional velocity >= 3.5x with >= 1.5% move) ──
+      const rVol = stock.relativeVolume ?? 0;
+      const absMove = Math.abs(stock.changePercent ?? 0);
+      const isInstitutionalSpike = rVol >= 3.5 && absMove >= 1.5;
       if (!isIndex && isInstitutionalSpike && !prev.volumeSpiked && !triggeredAlert) {
         const alreadyInBatch = newAlerts.some(a => a.symbol === stock.symbol && a.alertType === 'VOLUME_SPIKE');
         if (!alreadyInBatch) {
-          const rVol = stock.relativeVolume ? stock.relativeVolume.toFixed(1) : '2.0';
+          const rVolStr = rVol.toFixed(1);
           newAlerts.push({
             id: this.generateDeterministicUUID(`${stock.symbol}_VOLUME_SPIKE_${dayTimestamp}_${Math.floor(currentMs / 60000)}`),
             symbol: stock.symbol,
@@ -208,16 +210,16 @@ class AlertService {
             price: stock.price,
             change: stock.change,
             changePercent: stock.changePercent,
-            details: `Volume Surge: ${rVol}x institutional velocity`,
+            details: `Volume Surge: ${rVolStr}x institutional velocity`,
             createdAt: nowIso,
           });
-          logger.info(`⚡ VOLUME SPIKE: ${stock.symbol} ${rVol}x average`);
+          logger.info(`⚡ VOLUME SPIKE: ${stock.symbol} ${rVolStr}x average`);
           prev.volumeSpiked = true;
           prev.lastAlertPrice = stock.price;
           prev.lastAlertType = 'VOLUME_SPIKE';
         }
-      } else if (!stock.volumeSpike && (stock.relativeVolume ?? 0) < 1.3) {
-        // Re-arm when spike subsides
+      } else if (rVol < 2.5) {
+        // Re-arm when spike subsides below 2.5x
         prev.volumeSpiked = false;
       }
 

@@ -72,6 +72,7 @@ export function useAlerts(stocks?: StockData[]) {
     lastHighTime?: number;
     lastLowTime?: number;
     lastSpikeTime?: number;
+    lastToastedRVol?: number;
   }>>(new Map());
 
   // Set of keys that already toasted in this session
@@ -213,6 +214,14 @@ export function useAlerts(stocks?: StockData[]) {
     }
     if (alert.alertType === 'DAY_LOW' && !((alert.changePercent ?? 0) < -0.05 && (alert.change ?? 0) < 0)) {
       return;
+    }
+    if (alert.alertType === 'VOLUME_SPIKE') {
+      const match = alert.details?.match(/([\d.]+)x/);
+      const rvol = match ? parseFloat(match[1]) : 0;
+      const absMove = Math.abs(alert.changePercent ?? 0);
+      if (rvol < 3.5 || absMove < 1.5) {
+        return;
+      }
     }
     const key = (alert.alertType === 'NEWS' || alert.alertType === 'FNO_OI')
       ? alert.id
@@ -527,8 +536,10 @@ export function useAlerts(stocks?: StockData[]) {
           }
         }
 
-        // ⚡ VOLUME SURGE ALERT: High velocity flow (Requires >= 1.75x institutional velocity)
-        const isTrueSpike = (s.relativeVolume && s.relativeVolume >= 1.75) || (s.volumeSpike && (s.relativeVolume ?? 1) >= 1.5);
+        // ⚡ VOLUME SURGE ALERT: True institutional surge (Requires >= 3.5x velocity & >= 1.5% move)
+        const rVol = s.relativeVolume ?? 0;
+        const absMove = Math.abs(s.changePercent ?? 0);
+        const isTrueSpike = rVol >= 3.5 && absMove >= 1.5;
         if (isTrueSpike) {
           const spikeKey = `${s.symbol}_VOLUME_SPIKE`;
           const existingAlert = prevMap.get(spikeKey);
@@ -540,13 +551,16 @@ export function useAlerts(stocks?: StockData[]) {
             price: s.price,
             change: s.change,
             changePercent: s.changePercent,
-            details: `Volume Surge: ${(s.relativeVolume || 2).toFixed(1)}x institutional velocity`,
+            details: `Volume Surge: ${rVol.toFixed(1)}x institutional velocity`,
             createdAt: existingAlert?.createdAt || freshTimestamp,
           };
           nextMap.set(spikeKey, alertObj);
 
-          // Pop-up Toast Trigger Logic for Volume Surges
-          if (isHydrated && (s.relativeVolume ?? 0) >= 1.75) {
+          // Pop-up Toast Trigger Logic for Volume Surges:
+          // Strictly reserved for explosive moves (>= 4.0x surge & >= 2.0% move), with high-watermark deduplication
+          const lastToastedRVol = symState.lastToastedRVol ?? 0;
+          if (isHydrated && rVol >= 4.0 && absMove >= 2.0 && (rVol >= lastToastedRVol + 1.5)) {
+            symState.lastToastedRVol = rVol;
             pendingToasts.push(alertObj);
           }
         }
@@ -639,6 +653,12 @@ export function useAlerts(stocks?: StockData[]) {
       }
       if (a.alertType === 'DAY_LOW') {
         return (a.changePercent ?? 0) < -0.05 && (a.change ?? 0) < 0;
+      }
+      if (a.alertType === 'VOLUME_SPIKE') {
+        const match = a.details?.match(/([\d.]+)x/);
+        const rvol = match ? parseFloat(match[1]) : 0;
+        const absMove = Math.abs(a.changePercent ?? 0);
+        return rvol >= 3.5 && absMove >= 1.5;
       }
       return true;
     });
