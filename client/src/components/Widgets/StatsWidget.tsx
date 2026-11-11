@@ -1,7 +1,7 @@
 import React from 'react';
 import { useStocks } from '../../hooks/useStocks';
 import { audioAlerts } from '../../utils/audioAlerts';
-import { Layers, TrendingUp, TrendingDown } from 'lucide-react';
+import { Layers, TrendingUp, TrendingDown, Activity } from 'lucide-react';
 import { AnimatedNumber } from '../common/AnimatedNumber';
 
 interface StatsProps {
@@ -14,7 +14,21 @@ interface StatsProps {
   };
 }
 
+export function StatsWidget({ stats }: StatsProps) {
+  if (stats) return <StatsWidgetContent stats={stats} />;
+  return <StatsWidgetWithHook />;
+}
+
+function StatsWidgetWithHook() {
+  const { stats } = useStocks({ index: 'ALL', priceMin: 0, priceMax: 0, volumeMin: 0, search: '' }, 'symbol', 'asc');
+  return <StatsWidgetContent stats={stats} />;
+}
+
 function StatsWidgetContent({ stats }: { stats: NonNullable<StatsProps['stats']> }) {
+  const gainerPct = stats.total > 0 ? ((stats.gainers / stats.total) * 100).toFixed(1) : '0';
+  const loserPct = stats.total > 0 ? ((stats.losers / stats.total) * 100).toFixed(1) : '0';
+  const unchPct = stats.total > 0 ? ((stats.unchanged / stats.total) * 100).toFixed(1) : '0';
+
   return (
     <div className="stats-row">
       {/* 1. UNIVERSE POOL */}
@@ -55,18 +69,20 @@ function StatsWidgetContent({ stats }: { stats: NonNullable<StatsProps['stats']>
               <span>ADVANCING</span>
             </span>
             <span className="stat-badge-tag bull">
-              {stats.total > 0 ? ((stats.gainers / stats.total) * 100).toFixed(1) : 0}%
+              {gainerPct}%
             </span>
           </div>
-          <div className="stat-value num bull tabular-nums font-mono">
+          <div className="stat-value num up tabular-nums font-mono">
             <AnimatedNumber value={stats.gainers} duration={0.8} />
-            <span className="stat-icon-ind">▲</span>
+            <span className="stat-direction-glyph">▲</span>
           </div>
-          <div className="stat-gauge-track">
-            <div 
-              className="stat-gauge-bar bull" 
-              style={{ width: `${stats.total > 0 ? (stats.gainers / stats.total) * 100 : 0}%` }} 
-            />
+          <div className="stat-delta">
+            <div className="stat-bar-track">
+              <div 
+                className="stat-bar-fill bull" 
+                style={{ width: `${gainerPct}%` }} 
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -83,23 +99,25 @@ function StatsWidgetContent({ stats }: { stats: NonNullable<StatsProps['stats']>
               <span>DECLINING</span>
             </span>
             <span className="stat-badge-tag bear">
-              {stats.total > 0 ? ((stats.losers / stats.total) * 100).toFixed(1) : 0}%
+              {loserPct}%
             </span>
           </div>
-          <div className="stat-value num bear tabular-nums font-mono">
+          <div className="stat-value num down tabular-nums font-mono">
             <AnimatedNumber value={stats.losers} duration={0.8} />
-            <span className="stat-icon-ind">▼</span>
+            <span className="stat-direction-glyph">▼</span>
           </div>
-          <div className="stat-gauge-track">
-            <div 
-              className="stat-gauge-bar bear" 
-              style={{ width: `${stats.total > 0 ? (stats.losers / stats.total) * 100 : 0}%` }} 
-            />
+          <div className="stat-delta">
+            <div className="stat-bar-track">
+              <div 
+                className="stat-bar-fill bear" 
+                style={{ width: `${loserPct}%` }} 
+              />
+            </div>
           </div>
         </div>
       </div>
 
-      {/* 4. FLAT / NEUTRAL */}
+      {/* 4. FLAT / SIDEWAYS */}
       <div 
         className="stat-hardware-shell"
         onMouseEnter={() => audioAlerts.playClickHaptic()}
@@ -107,32 +125,23 @@ function StatsWidgetContent({ stats }: { stats: NonNullable<StatsProps['stats']>
         <div className="stat-hardware-core">
           <div className="stat-label">
             <span className="stat-label-left">
-              <span className="stat-icon-flat font-mono font-bold">~</span>
+              <Activity size={14} strokeWidth={1.5} className="text-slate-400" />
               <span>FLAT / SIDEWAYS</span>
             </span>
             <span className="stat-badge-tag neutral">
-              {stats.total > 0 ? ((stats.unchanged / stats.total) * 100).toFixed(1) : 0}%
+              {unchPct}%
             </span>
           </div>
-          <div className="stat-value num muted tabular-nums font-mono">
+          <div className="stat-value num tabular-nums font-mono">
             <AnimatedNumber value={stats.unchanged} duration={0.8} />
             <span className="stat-unit">FLAT</span>
           </div>
           <div className="stat-delta">
+            <span className="stat-sub-dot neutral" />
             <span>Rangebound Neutrality</span>
           </div>
         </div>
       </div>
     </div>
   );
-}
-
-function StatsWidgetWithHook() {
-  const { stats } = useStocks({ index: 'ALL', priceMin: 0, priceMax: 0, volumeMin: 0, search: '' }, 'symbol', 'asc');
-  return <StatsWidgetContent stats={stats} />;
-}
-
-export function StatsWidget({ stats }: StatsProps) {
-  if (stats) return <StatsWidgetContent stats={stats} />;
-  return <StatsWidgetWithHook />;
 }
