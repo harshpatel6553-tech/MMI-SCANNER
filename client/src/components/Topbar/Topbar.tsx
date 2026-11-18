@@ -67,10 +67,15 @@ export function Topbar({ allStocks, alertCount }: TopbarProps) {
   }, [allStocks, setSearchQuery, setSelectedStock, activeTab, setChartSymbol]);
 
   useEffect(() => {
-    const pad = (n: number) => n.toString().padStart(2, '0');
     const tick = () => {
-      const d = new Date();
-      setTime(`${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())} IST`);
+      const istStr = new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'Asia/Kolkata',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      }).format(new Date());
+      setTime(`${istStr} IST`);
     };
     tick();
     const intv = setInterval(tick, 1000);

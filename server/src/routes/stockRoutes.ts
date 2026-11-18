@@ -171,7 +171,7 @@ router.get(['/:symbol', '/stocks/:symbol'], (req: Request, res: Response, next):
     }
 
     // Pass through to downstream routes if this matches a reserved subpath
-    const reservedRoutes = ['alerts', 'health', 'symbols', 'indices', 'chart', 'quote'];
+    const reservedRoutes = ['alerts', 'health', 'symbols', 'indices', 'chart', 'quote', 'agent-memory', 'debug'];
     if (reservedRoutes.includes(rawSymbol.toLowerCase())) {
       return next();
     }

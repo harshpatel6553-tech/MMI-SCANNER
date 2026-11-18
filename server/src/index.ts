@@ -118,7 +118,7 @@ const io = new SocketIOServer<ClientToServerEvents, ServerToClientEvents>(
         if (isAllowedOrigin(origin)) {
           callback(null, true);
         } else {
-          callback(new Error('Blocked by CORS policy'));
+          callback(null, false);
         }
       },
       methods: ['GET', 'POST'],
@@ -406,6 +406,7 @@ let isIndicesPolling = false;
 let lastNifty50PollStart = 0;
 let lastNifty500PollStart = 0;
 let lastIndicesPollStart = 0;
+let lastMarketClosedLog = 0;
 
 /**
  * Execute a single Nifty 50 polling cycle.
@@ -423,9 +424,11 @@ async function pollNifty50(isInitial = false): Promise<void> {
   }
   
   if (!isInitial && !isMarketOpen()) {
-    logger.debug('Nifty 50 poll skipped — market is closed');
-    const allCached = stockService.getCachedStocks();
-    broadcastStockUpdate(io, allCached, []);
+    const now = Date.now();
+    if (now - lastMarketClosedLog > 15 * 60 * 1000) {
+      logger.info('⏸️ Indian market is currently closed — polling paused until next active session');
+      lastMarketClosedLog = now;
+    }
     isNifty50Polling = false;
     return;
   }
@@ -483,9 +486,6 @@ async function pollNifty500(isInitial = false): Promise<void> {
   }
   
   if (!isInitial && !isMarketOpen()) {
-    logger.debug('Nifty 500 poll skipped — market is closed');
-    const allCached = stockService.getCachedStocks();
-    broadcastStockUpdate(io, allCached, []);
     isNifty500Polling = false;
     return;
   }

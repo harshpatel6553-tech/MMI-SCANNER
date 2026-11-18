@@ -345,7 +345,8 @@ export class StockService {
           }
           history.push({ timestamp: Date.now(), volume });
           
-          let volumeSpike = false;
+          const relativeVolume = fullDayAvgVol > 0 ? Number((volume / fullDayAvgVol).toFixed(2)) : 1;
+          const volumeSpike = relativeVolume >= 3.5;
           
           const tech = technicalService.getTechnicals(baseStock.symbol);
 
@@ -362,7 +363,7 @@ export class StockService {
             volume,
             sector: SECTOR_MAP[baseStock.symbol] || 'Others',
             averageVolume: fullDayAvgVol,
-            relativeVolume: 1,
+            relativeVolume,
             volumeSpike,
             indexName,
             lastUpdated: new Date().toISOString(),

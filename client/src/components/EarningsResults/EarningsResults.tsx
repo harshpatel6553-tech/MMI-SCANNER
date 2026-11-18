@@ -9,7 +9,7 @@ interface CalendarEvent {
   date: string;
 }
 
-const API_URL = (import.meta.env.VITE_SOCKET_URL || window.location.origin) + '/api';
+const API_URL = (import.meta.env.VITE_SOCKET_URL || window.location.origin).replace(/\/+$/, '') + '/api';
 
 export function EarningsResults() {
   const { news, loading } = useNews();
@@ -20,20 +20,27 @@ export function EarningsResults() {
   const earningsNews = news.filter(n => n.isEarningsResult);
 
   useEffect(() => {
+    let isMounted = true;
     const fetchCalendar = async () => {
       try {
-        const response = await fetch(`${API_URL}/calendar/today`);
-        const data = await response.json();
-        if (data.success) {
-          setCalendar(data.data);
+        let response = await fetch(`${API_URL}/calendar/today`).catch(() => null);
+        if (!response || !response.ok) {
+          response = await fetch('/api/calendar/today').catch(() => null);
+        }
+        if (response && response.ok) {
+          const data = await response.json();
+          if (isMounted && data.success && Array.isArray(data.data)) {
+            setCalendar(data.data);
+          }
         }
       } catch (err) {
         console.error("Failed to fetch earnings calendar:", err);
       } finally {
-        setCalendarLoading(false);
+        if (isMounted) setCalendarLoading(false);
       }
     };
     fetchCalendar();
+    return () => { isMounted = false; };
   }, []);
 
   const getSentimentBadge = (sentiment?: string) => {

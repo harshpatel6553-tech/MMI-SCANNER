@@ -446,8 +446,12 @@ export function useAlerts(stocks?: StockData[]) {
         if (!s || s.price <= 0 || s.dayHigh <= 0 || s.dayLow <= 0) continue;
         if (s.dayHigh <= s.dayLow) continue;
 
-        // CRITICAL: Reject stale quotes from previous month/session (e.g. October 30th quotes)
-        if (s.lastUpdated && s.lastUpdated.includes('2026-10-')) continue;
+        // CRITICAL: Reject stale quotes from previous calendar sessions in IST
+        const todayIst = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(now);
+        if (s.lastUpdated) {
+          const quoteDate = s.lastUpdated.slice(0, 10);
+          if (quoteDate && quoteDate < todayIst) continue;
+        }
 
         const spread = s.dayHigh - s.dayLow;
         if (spread <= 0.05) continue;
@@ -464,10 +468,10 @@ export function useAlerts(stocks?: StockData[]) {
         const isDeclining = (s.changePercent ?? 0) < -0.05 && (s.change ?? 0) < 0;
 
         const isBreakoutHigh = s.price >= s.dayHigh || s.atDayHigh === true;
-        const isDayHighHit = isGaining && (isBreakoutHigh || distHighPct <= 0.15);
+        const isDayHighHit = isGaining && isBreakoutHigh;
 
         const isBreakdownLow = s.price <= s.dayLow || s.atDayLow === true;
-        const isDayLowHit = isDeclining && (isBreakdownLow || distLowPct <= 0.15);
+        const isDayLowHit = isDeclining && isBreakdownLow;
 
         // Timestamp hygiene: if stock timestamp is older than 10 mins, stamp with current time
         const quoteTime = s.lastUpdated ? new Date(s.lastUpdated).getTime() : 0;

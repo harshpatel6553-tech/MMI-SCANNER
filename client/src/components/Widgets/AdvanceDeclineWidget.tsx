@@ -27,7 +27,8 @@ function AdvanceDeclineWithHook() {
 function AdvanceDeclineContent({ stats }: { stats: NonNullable<AdvanceDeclineProps['stats']> }) {
   const gainerPct = stats.total > 0 ? ((stats.gainers / stats.total) * 100) : 50;
   const loserPct = stats.total > 0 ? ((stats.losers / stats.total) * 100) : 50;
-  const adRatio = stats.advanceDeclineRatio === Infinity ? '∞' : stats.advanceDeclineRatio.toFixed(2);
+  const rawRatio = stats.advanceDeclineRatio ?? (stats.losers > 0 ? stats.gainers / stats.losers : (stats.gainers > 0 ? Infinity : 1));
+  const adRatio = isNaN(rawRatio) ? '1.00' : (rawRatio === Infinity ? '∞' : rawRatio.toFixed(2));
   
   const isBullish = stats.gainers > stats.losers;
   const isNeutral = stats.gainers === stats.losers;

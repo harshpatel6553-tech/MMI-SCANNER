@@ -51,7 +51,7 @@ function isNoisyOrBlacklisted(n: { source?: string; title?: string }): boolean {
   return false;
 }
 
-const API_URL = (import.meta.env.VITE_SOCKET_URL || window.location.origin) + '/api';
+const API_URL = (import.meta.env.VITE_SOCKET_URL || window.location.origin).replace(/\/+$/, '') + '/api';
 
 /**
  * Compares two news arrays to prevent unnecessary React re-renders.

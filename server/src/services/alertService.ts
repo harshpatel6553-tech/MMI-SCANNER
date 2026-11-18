@@ -70,6 +70,14 @@ class AlertService {
         continue;
       }
 
+      // Reject stale quotes from previous calendar trading days in IST
+      if (stock.lastUpdated) {
+        const quoteDate = stock.lastUpdated.slice(0, 10);
+        if (quoteDate && quoteDate < istDate) {
+          continue;
+        }
+      }
+
       const isIndex = stock.indexName === 'INDEX' || stock.symbol.includes('NIFTY') || stock.symbol.includes('SENSEX');
       const isGaining = (stock.changePercent ?? 0) > 0.05 && (stock.change ?? 0) > 0;
       const isDeclining = (stock.changePercent ?? 0) < -0.05 && (stock.change ?? 0) < 0;
@@ -85,34 +93,38 @@ class AlertService {
           lastAlertPrice: 0,
         });
 
-        const quoteTime = stock.lastUpdated ? new Date(stock.lastUpdated).getTime() : 0;
-        const isFreshQuote = quoteTime > 0 && Math.abs(currentMs - quoteTime) < 12 * 60 * 60 * 1000;
-        const initialTimestamp = isFreshQuote ? stock.lastUpdated! : nowIso;
+        const quoteIstDay = stock.lastUpdated
+          ? new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date(stock.lastUpdated))
+          : '';
+        const isFromTodaySession = quoteIstDay === istDate;
 
-        if (isGaining && (stock.atDayHigh || stock.price >= stock.dayHigh)) {
-          this.inMemoryAlerts.push({
-            id: this.generateDeterministicUUID(`${stock.symbol}_DAY_HIGH_${dayTimestamp}`),
-            symbol: stock.symbol,
-            name: stock.name,
-            alertType: 'DAY_HIGH',
-            price: stock.price,
-            change: stock.change,
-            changePercent: stock.changePercent,
-            details: `Cleared session high at ₹${stock.price.toFixed(2)}`,
-            createdAt: initialTimestamp
-          });
-        } else if (isDeclining && (stock.atDayLow || (stock.dayLow > 0 && stock.price <= stock.dayLow))) {
-          this.inMemoryAlerts.push({
-            id: this.generateDeterministicUUID(`${stock.symbol}_DAY_LOW_${dayTimestamp}`),
-            symbol: stock.symbol,
-            name: stock.name,
-            alertType: 'DAY_LOW',
-            price: stock.price,
-            change: stock.change,
-            changePercent: stock.changePercent,
-            details: `Broke session low at ₹${stock.price.toFixed(2)}`,
-            createdAt: initialTimestamp
-          });
+        if (isFromTodaySession) {
+          const initialTimestamp = stock.lastUpdated || nowIso;
+          if (isGaining && (stock.atDayHigh || stock.price >= stock.dayHigh)) {
+            this.inMemoryAlerts.push({
+              id: this.generateDeterministicUUID(`${stock.symbol}_DAY_HIGH_${dayTimestamp}`),
+              symbol: stock.symbol,
+              name: stock.name,
+              alertType: 'DAY_HIGH',
+              price: stock.price,
+              change: stock.change,
+              changePercent: stock.changePercent,
+              details: `Cleared session high at ₹${stock.price.toFixed(2)}`,
+              createdAt: initialTimestamp
+            });
+          } else if (isDeclining && (stock.atDayLow || (stock.dayLow > 0 && stock.price <= stock.dayLow))) {
+            this.inMemoryAlerts.push({
+              id: this.generateDeterministicUUID(`${stock.symbol}_DAY_LOW_${dayTimestamp}`),
+              symbol: stock.symbol,
+              name: stock.name,
+              alertType: 'DAY_LOW',
+              price: stock.price,
+              change: stock.change,
+              changePercent: stock.changePercent,
+              details: `Broke session low at ₹${stock.price.toFixed(2)}`,
+              createdAt: initialTimestamp
+            });
+          }
         }
         continue;
       }

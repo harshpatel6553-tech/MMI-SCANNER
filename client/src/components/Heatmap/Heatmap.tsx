@@ -65,9 +65,9 @@ export function Heatmap({ stocks }: HeatmapProps) {
   const telemetry = useMemo(() => {
     const total = filteredStocks.length;
     if (total === 0) return { total: 0, advancers: 0, decliners: 0, avgChange: 0, bullPct: 50 };
-    const advancers = filteredStocks.filter(s => s.changePercent >= 0).length;
+    const advancers = filteredStocks.filter(s => (s.changePercent ?? 0) >= 0).length;
     const decliners = total - advancers;
-    const avgChange = filteredStocks.reduce((acc, s) => acc + s.changePercent, 0) / total;
+    const avgChange = filteredStocks.reduce((acc, s) => acc + (s.changePercent || 0), 0) / total;
     const bullPct = Math.round((advancers / total) * 100);
     return { total, advancers, decliners, avgChange, bullPct };
   }, [filteredStocks]);
@@ -84,8 +84,8 @@ export function Heatmap({ stocks }: HeatmapProps) {
     return Array.from(map.entries())
       .map(([sectorName, secStocks]) => {
         const count = secStocks.length;
-        const avg = secStocks.reduce((a, b) => a + b.changePercent, 0) / (count || 1);
-        const upCount = secStocks.filter(s => s.changePercent >= 0).length;
+        const avg = secStocks.reduce((a, b) => a + (b.changePercent || 0), 0) / (count || 1);
+        const upCount = secStocks.filter(s => (s.changePercent ?? 0) >= 0).length;
         return { sectorName, stocks: secStocks, count, avg, upCount };
       })
       .sort((a, b) => b.avg - a.avg);
