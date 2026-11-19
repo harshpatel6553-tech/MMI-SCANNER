@@ -145,7 +145,13 @@ export function useIndices(allStocks: StockData[]) {
     };
 
     fetchIndices();
-    const interval = setInterval(fetchIndices, 3000);
+    const interval = setInterval(() => {
+      if (!isMounted) return;
+      // Skip redundant HTTP requests if live WebSocket is already streaming indices
+      if (socket && socket.connected) return;
+      fetchIndices();
+    }, 10000);
+
     return () => {
       isMounted = false;
       clearInterval(interval);
@@ -153,7 +159,7 @@ export function useIndices(allStocks: StockData[]) {
       if (timers.current.bank) clearTimeout(timers.current.bank);
       if (timers.current.sensex) clearTimeout(timers.current.sensex);
     };
-  }, []);
+  }, [socket]);
 
   // 3. Fallback from parent allStocks prop
   useEffect(() => {

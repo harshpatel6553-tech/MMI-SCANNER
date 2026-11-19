@@ -84,6 +84,7 @@ export function useAlerts(stocks?: StockData[]) {
   // Hydration state: suppresses burst barrage on initial page load, then surfaces top fresh breakouts
   const [isHydrated, setIsHydrated] = useState(false);
   const initialFetchDoneRef = useRef(false);
+  const lastNewsFetchTimeRef = useRef(0);
 
   // Unified Toast Queue & Enqueue System for Alert Panel & Pop-Up synchronization
   const toastQueueRef = useRef<StockAlert[]>([]);
@@ -310,40 +311,45 @@ export function useAlerts(stocks?: StockData[]) {
           // Ignore F&O fetch errors
         }
 
-        // Also fetch recent breaking news alerts to populate the NEWS tab immediately
-        try {
-          const newsUrl = isLocal ? `/api/news?_t=${Date.now()}` : `${baseUrl}/api/news?_t=${Date.now()}`;
-          let newsRes = await fetch(newsUrl).catch(() => null);
-          if (!newsRes || !newsRes.ok) {
-            const fallback = newsUrl.startsWith('http') ? `/api/news?_t=${Date.now()}` : `${baseUrl}/api/news?_t=${Date.now()}`;
-            newsRes = await fetch(fallback).catch(() => null);
-          }
-          if (newsRes && newsRes.ok) {
-            const newsJson = await newsRes.json();
-            if (newsJson?.success && Array.isArray(newsJson.data)) {
-              const mappedNews: StockAlert[] = newsJson.data
-                .filter((item: any) => isAllowedNewsSource(item.source))
-                .slice(0, 30)
-                .map((n: any) => ({
-                  id: `news-${n.id}`,
-                  symbol: n.source.startsWith('@') ? n.source : `@${n.source}`,
-                  name: n.title,
-                  alertType: 'NEWS',
-                  price: 0,
-                  details: 'Institutional News Wire',
-                  createdAt: n.pubDate || new Date().toISOString(),
-                }));
-
-              const existingIds = new Set(alertsData.map(a => a.id));
-              mappedNews.forEach(nw => {
-                if (!existingIds.has(nw.id)) {
-                  alertsData.push(nw);
-                }
-              });
+        // Fetch breaking news via HTTP on initial load or gently every 60s (otherwise live via socket)
+        const isInitialNewsLoad = !initialFetchDoneRef.current;
+        const nowTime = Date.now();
+        if (isInitialNewsLoad || (nowTime - lastNewsFetchTimeRef.current >= 60000)) {
+          lastNewsFetchTimeRef.current = nowTime;
+          try {
+            const newsUrl = isLocal ? `/api/news` : `${baseUrl}/api/news`;
+            let newsRes = await fetch(newsUrl).catch(() => null);
+            if (!newsRes || !newsRes.ok) {
+              const fallback = newsUrl.startsWith('http') ? `/api/news` : `${baseUrl}/api/news`;
+              newsRes = await fetch(fallback).catch(() => null);
             }
+            if (newsRes && newsRes.ok) {
+              const newsJson = await newsRes.json();
+              if (newsJson?.success && Array.isArray(newsJson.data)) {
+                const mappedNews: StockAlert[] = newsJson.data
+                  .filter((item: any) => isAllowedNewsSource(item.source))
+                  .slice(0, 30)
+                  .map((n: any) => ({
+                    id: `news-${n.id}`,
+                    symbol: n.source.startsWith('@') ? n.source : `@${n.source}`,
+                    name: n.title,
+                    alertType: 'NEWS',
+                    price: 0,
+                    details: 'Institutional News Wire',
+                    createdAt: n.pubDate || new Date().toISOString(),
+                  }));
+
+                const existingIds = new Set(alertsData.map(a => a.id));
+                mappedNews.forEach(nw => {
+                  if (!existingIds.has(nw.id)) {
+                    alertsData.push(nw);
+                  }
+                });
+              }
+            }
+          } catch {
+            // Ignore news fetch errors
           }
-        } catch {
-          // Ignore news fetch errors
         }
 
         if (!isMounted) return;
@@ -422,7 +428,10 @@ export function useAlerts(stocks?: StockData[]) {
     };
 
     fetchServerAlerts();
-    const interval = setInterval(fetchServerAlerts, 5000);
+    const interval = setInterval(() => {
+      if (!isMounted) return;
+      fetchServerAlerts();
+    }, 20000);
 
     return () => {
       isMounted = false;

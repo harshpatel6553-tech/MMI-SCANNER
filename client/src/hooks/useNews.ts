@@ -304,24 +304,37 @@ export function useNews() {
     let isMounted = true;
     fetchNews();
 
-    // Refresh every 4 seconds; if content hasn't changed, areNewsListsEqual prevents re-render
+    // Gentle sync: if socket is connected, sync every 60s; if disconnected, poll every 10s
+    let lastPoll = Date.now();
     const tickInterval = setInterval(() => {
       if (!isMounted) return;
-      fetchNews();
-    }, 4000);
+      const isDisconnected = !socket || !socket.connected;
+      const isDueForSync = Date.now() - lastPoll >= 60000;
+      if (isDisconnected || isDueForSync) {
+        lastPoll = Date.now();
+        fetchNews();
+      }
+    }, 10000);
 
     return () => {
       isMounted = false;
       clearInterval(tickInterval);
     };
-  }, [fetchNews]);
+  }, [fetchNews, socket]);
 
   useEffect(() => {
     if (!socket) return;
 
-    // When a real-time news alert or update arrives, trigger an immediate fresh fetch of the full authoritative news list
+    // When an authoritative news update arrives, trigger an immediate fresh fetch
     const handleNewsTrigger = () => {
       fetchNews();
+    };
+
+    // Only trigger news refresh if the alert is actually a breaking news item
+    const handleAlertNew = (alert: any) => {
+      if (alert && alert.alertType === 'NEWS') {
+        fetchNews();
+      }
     };
 
     const handleSnapshot = (fullNews: NewsItem[]) => {
@@ -337,7 +350,7 @@ export function useNews() {
       }
     };
 
-    socket.on('alert:new', handleNewsTrigger);
+    socket.on('alert:new', handleAlertNew);
     socket.on('news:update', handleNewsTrigger);
     socket.on('news:snapshot', handleSnapshot);
 
@@ -345,7 +358,7 @@ export function useNews() {
     socket.emit('news:request_snapshot');
 
     return () => {
-      socket.off('alert:new', handleNewsTrigger);
+      socket.off('alert:new', handleAlertNew);
       socket.off('news:update', handleNewsTrigger);
       socket.off('news:snapshot', handleSnapshot);
     };
