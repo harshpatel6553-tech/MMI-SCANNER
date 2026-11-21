@@ -128,6 +128,96 @@ export function calcRSI(data: Candle[], period = 14): LineData[] {
   return out;
 }
 
+// MACD (12, 26, 9)
+export function calcMACD(data: Candle[]): { macdLine: LineData[]; signalLine: LineData[]; histogram: LineData[] } {
+  if (data.length < 26) return { macdLine: [], signalLine: [], histogram: [] };
+  const ema = (d: number[], period: number): number[] => {
+    const k = 2 / (period + 1);
+    const result: number[] = [];
+    let e = d.slice(0, period).reduce((s, v) => s + v, 0) / period;
+    result.push(e);
+    for (let i = period; i < d.length; i++) {
+      e = d[i] * k + e * (1 - k);
+      result.push(e);
+    }
+    return result;
+  };
+  const closes = data.map(d => d.close);
+  const ema12arr = ema(closes, 12);
+  const ema26arr = ema(closes, 26);
+  const macdArr: number[] = [];
+  const offsetDiff = ema12arr.length - ema26arr.length;
+  for (let i = 0; i < ema26arr.length; i++) {
+    macdArr.push(ema12arr[i + offsetDiff] - ema26arr[i]);
+  }
+  const signalArr = ema(macdArr, 9);
+  const offset26 = data.length - ema26arr.length;
+  const offsetSig = macdArr.length - signalArr.length;
+  const macdLine: LineData[] = macdArr.map((v, i) => ({ time: data[offset26 + i].time as any, value: +v.toFixed(3) }));
+  const signalLine: LineData[] = signalArr.map((v, i) => ({ time: data[offset26 + offsetSig + i].time as any, value: +v.toFixed(3) }));
+  const histogram: LineData[] = signalArr.map((v, i) => ({ time: data[offset26 + offsetSig + i].time as any, value: +(macdArr[offsetSig + i] - v).toFixed(3) }));
+  return { macdLine, signalLine, histogram };
+}
+
+// Bollinger Bands (20, 2)
+export function calcBollingerBands(data: Candle[], period = 20, multiplier = 2): { upper: LineData[]; middle: LineData[]; lower: LineData[] } {
+  if (data.length < period) return { upper: [], middle: [], lower: [] };
+  const upper: LineData[] = [], middle: LineData[] = [], lower: LineData[] = [];
+  for (let i = period - 1; i < data.length; i++) {
+    const slice = data.slice(i - period + 1, i + 1).map(d => d.close);
+    const avg = slice.reduce((s, v) => s + v, 0) / period;
+    const std = Math.sqrt(slice.reduce((s, v) => s + (v - avg) ** 2, 0) / period);
+    const t = data[i].time as any;
+    upper.push({ time: t, value: +(avg + multiplier * std).toFixed(2) });
+    middle.push({ time: t, value: +avg.toFixed(2) });
+    lower.push({ time: t, value: +(avg - multiplier * std).toFixed(2) });
+  }
+  return { upper, middle, lower };
+}
+
+// VWAP (Volume Weighted Average Price)
+export function calcVWAP(data: Candle[]): LineData[] {
+  if (data.length === 0) return [];
+  const out: LineData[] = [];
+  let cumTPV = 0, cumVol = 0;
+  for (let i = 0; i < data.length; i++) {
+    if (i > 0 && data[i].time - data[i-1].time > 14400) {
+      cumTPV = 0; cumVol = 0;
+    }
+    const tp = (data[i].high + data[i].low + data[i].close) / 3;
+    cumTPV += tp * (data[i].volume || 1);
+    cumVol += (data[i].volume || 1);
+    out.push({ time: data[i].time as any, value: +(cumTPV / cumVol).toFixed(2) });
+  }
+  return out;
+}
+
+// Auto Support/Resistance from pivot highs/lows
+export function calcSupportResistance(data: Candle[], lookback = 4): { supports: number[]; resistances: number[] } {
+  const supports: number[] = [], resistances: number[] = [];
+  for (let i = lookback; i < data.length - lookback; i++) {
+    let isLow = true, isHigh = true;
+    for (let j = i - lookback; j <= i + lookback; j++) {
+      if (j === i) continue;
+      if (data[j].low < data[i].low) isLow = false;
+      if (data[j].high > data[i].high) isHigh = false;
+    }
+    if (isLow) supports.push(data[i].low);
+    if (isHigh) resistances.push(data[i].high);
+  }
+  const cluster = (arr: number[]) => {
+    const sorted = [...arr].sort((a, b) => a - b);
+    const result: number[] = [];
+    for (const v of sorted) {
+      if (!result.length || Math.abs(v - result[result.length - 1]) / result[result.length - 1] > 0.006) {
+        result.push(+v.toFixed(2));
+      }
+    }
+    return result.slice(-8);
+  };
+  return { supports: cluster(supports), resistances: cluster(resistances) };
+}
+
 import type { PineExecutionResult } from '../../utils/pineRunner';
 
 // ── Props ─────────────────────────────────────────────────────────────────────
@@ -173,6 +263,18 @@ export function ChartPane({
   const pineSeriesRef   = useRef<Map<string, ISeriesApi<'Line'>>>(new Map());
   const lastCandleRef   = useRef<Candle | null>(null);
   const candlesRef      = useRef<Candle[]>([]);
+
+  // Advanced Indicators & Subpanes Refs
+  const macdContainerRef = useRef<HTMLDivElement>(null);
+  const macdChartRef     = useRef<IChartApi | null>(null);
+  const macdLineRef      = useRef<ISeriesApi<'Line'> | null>(null);
+  const macdSignalRef    = useRef<ISeriesApi<'Line'> | null>(null);
+  const macdHistRef      = useRef<ISeriesApi<'Histogram'> | null>(null);
+  const bbUpperRef       = useRef<ISeriesApi<'Line'> | null>(null);
+  const bbMiddleRef      = useRef<ISeriesApi<'Line'> | null>(null);
+  const bbLowerRef       = useRef<ISeriesApi<'Line'> | null>(null);
+  const vwapRef          = useRef<ISeriesApi<'Line'> | null>(null);
+  const srLinesRef       = useRef<any[]>([]);
 
   const [loading, setLoading]       = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -268,6 +370,72 @@ export function ChartPane({
       } else {
         rsiSeriesRef.current.setData([]);
       }
+    }
+
+    // MACD (12, 26, 9)
+    if (inds.has('macd')) {
+      const macdRes = calcMACD(deduped);
+      macdLineRef.current?.setData(macdRes.macdLine);
+      macdSignalRef.current?.setData(macdRes.signalLine);
+      macdHistRef.current?.setData(macdRes.histogram.map(d => ({
+        ...d,
+        color: (d.value as number) >= 0 ? 'rgba(8, 153, 129, 0.7)' : 'rgba(242, 54, 69, 0.7)',
+      })));
+    } else {
+      macdLineRef.current?.setData([]);
+      macdSignalRef.current?.setData([]);
+      macdHistRef.current?.setData([]);
+    }
+
+    // Bollinger Bands (20, 2)
+    if (inds.has('bb')) {
+      const bbData = calcBollingerBands(deduped);
+      bbUpperRef.current?.setData(bbData.upper);
+      bbMiddleRef.current?.setData(bbData.middle);
+      bbLowerRef.current?.setData(bbData.lower);
+    } else {
+      bbUpperRef.current?.setData([]);
+      bbMiddleRef.current?.setData([]);
+      bbLowerRef.current?.setData([]);
+    }
+
+    // VWAP
+    if (inds.has('vwap')) {
+      vwapRef.current?.setData(calcVWAP(deduped));
+    } else {
+      vwapRef.current?.setData([]);
+    }
+
+    // Dynamic Support & Resistance levels on price chart
+    srLinesRef.current.forEach(pl => {
+      try { candleRef.current?.removePriceLine(pl); } catch {}
+    });
+    srLinesRef.current = [];
+    if (inds.has('sr')) {
+      const { supports, resistances } = calcSupportResistance(deduped);
+      const currP = deduped[deduped.length - 1]?.close || 0;
+      supports.filter(s => s >= currP * 0.94 && s <= currP).slice(-3).forEach(level => {
+        const pl = candleRef.current?.createPriceLine({
+          price: level,
+          color: 'rgba(8, 153, 129, 0.75)',
+          lineWidth: 1,
+          lineStyle: LineStyle.Dashed,
+          axisLabelVisible: true,
+          title: `S ₹${level.toFixed(0)}`,
+        });
+        if (pl) srLinesRef.current.push(pl);
+      });
+      resistances.filter(r => r <= currP * 1.06 && r >= currP).slice(0, 3).forEach(level => {
+        const pl = candleRef.current?.createPriceLine({
+          price: level,
+          color: 'rgba(242, 54, 69, 0.75)',
+          lineWidth: 1,
+          lineStyle: LineStyle.Dashed,
+          axisLabelVisible: true,
+          title: `R ₹${level.toFixed(0)}`,
+        });
+        if (pl) srLinesRef.current.push(pl);
+      });
     }
 
     if (onCandlesReady) {
@@ -489,6 +657,12 @@ export function ChartPane({
     ema34Ref.current  = chart.addLineSeries(lineOpts('#f59e0b', 1));
     dma50Ref.current  = chart.addLineSeries(lineOpts('#a855f7', 2));
     dma200Ref.current = chart.addLineSeries(lineOpts('#ef4444', 2));
+
+    // Bollinger Bands & VWAP Overlay Series
+    bbUpperRef.current  = chart.addLineSeries({ color: 'rgba(99, 102, 241, 0.65)', lineWidth: 1, priceLineVisible: false, lastValueVisible: false, lineStyle: LineStyle.Dotted });
+    bbMiddleRef.current = chart.addLineSeries({ color: 'rgba(99, 102, 241, 0.35)', lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
+    bbLowerRef.current  = chart.addLineSeries({ color: 'rgba(99, 102, 241, 0.65)', lineWidth: 1, priceLineVisible: false, lastValueVisible: false, lineStyle: LineStyle.Dotted });
+    vwapRef.current     = chart.addLineSeries({ color: 'rgba(251, 191, 36, 0.9)',   lineWidth: 2, priceLineVisible: false, lastValueVisible: true, title: 'VWAP' });
 
     chart.subscribeCrosshairMove(param => {
       if (!param?.time || !param.seriesData || !candleRef.current) {
@@ -714,6 +888,130 @@ export function ChartPane({
       }
     };
   }, [activeInds.has('rsi')]);
+
+  // Dedicated Separate MACD subpane
+  useEffect(() => {
+    if (!activeInds.has('macd') || !macdContainerRef.current) {
+      if (macdChartRef.current) {
+        macdChartRef.current.remove();
+        macdChartRef.current = null;
+        macdLineRef.current = null;
+        macdSignalRef.current = null;
+        macdHistRef.current = null;
+      }
+      return;
+    }
+
+    if (macdChartRef.current) {
+      macdChartRef.current.remove();
+      macdChartRef.current = null;
+    }
+
+    const macdChart = createChart(macdContainerRef.current, {
+      layout: {
+        background: { color: '#0d1117' },
+        textColor: '#8b949e',
+        fontSize: 10,
+        fontFamily: 'Space Grotesk, -apple-system, sans-serif',
+      },
+      grid: {
+        vertLines: { color: 'rgba(255, 255, 255, 0.03)' },
+        horzLines: { color: 'rgba(255, 255, 255, 0.03)' },
+      },
+      rightPriceScale: {
+        borderColor: '#21262d',
+        scaleMargins: { top: 0.1, bottom: 0.1 },
+        autoScale: true,
+      },
+      timeScale: {
+        visible: false,
+        borderColor: '#21262d',
+      },
+      crosshair: {
+        mode: CrosshairMode.Normal,
+        vertLine: { color: '#58636d', width: 1, style: LineStyle.Dashed },
+        horzLine: { color: '#58636d', width: 1, style: LineStyle.Dashed },
+      },
+      handleScroll: { mouseWheel: true, pressedMouseMove: true },
+      handleScale:  { mouseWheel: true, pinch: true, axisPressedMouseMove: true },
+      width:  macdContainerRef.current.clientWidth || 400,
+      height: macdContainerRef.current.clientHeight || 100,
+    });
+
+    macdHistRef.current = macdChart.addHistogramSeries({
+      priceLineVisible: false,
+      lastValueVisible: false,
+    });
+
+    macdLineRef.current = macdChart.addLineSeries({
+      color: '#38bdf8',
+      lineWidth: 1,
+      priceLineVisible: false,
+      lastValueVisible: true,
+      title: 'MACD',
+    });
+
+    macdSignalRef.current = macdChart.addLineSeries({
+      color: '#f97316',
+      lineWidth: 1,
+      priceLineVisible: false,
+      lastValueVisible: true,
+      title: 'Signal',
+    });
+
+    if (candlesRef.current.length >= 26) {
+      const macdRes = calcMACD(candlesRef.current);
+      macdLineRef.current.setData(macdRes.macdLine);
+      macdSignalRef.current.setData(macdRes.signalLine);
+      macdHistRef.current.setData(macdRes.histogram.map(d => ({
+        ...d,
+        color: (d.value as number) >= 0 ? 'rgba(8, 153, 129, 0.7)' : 'rgba(242, 54, 69, 0.7)',
+      })));
+    }
+
+    macdChartRef.current = macdChart;
+
+    let isSyncing = false;
+    chartRef.current?.timeScale().subscribeVisibleLogicalRangeChange(r => {
+      if (isSyncing || !r || !macdChartRef.current) return;
+      isSyncing = true;
+      try { macdChartRef.current.timeScale().setVisibleLogicalRange(r); } catch {}
+      isSyncing = false;
+    });
+
+    macdChart.timeScale().subscribeVisibleLogicalRangeChange(r => {
+      if (isSyncing || !r || !chartRef.current) return;
+      isSyncing = true;
+      try { chartRef.current.timeScale().setVisibleLogicalRange(r); } catch {}
+      isSyncing = false;
+    });
+
+    const currR = chartRef.current?.timeScale().getVisibleLogicalRange();
+    if (currR) {
+      try { macdChart.timeScale().setVisibleLogicalRange(currR); } catch {}
+    }
+
+    const ro = new ResizeObserver(() => {
+      if (macdContainerRef.current && macdChartRef.current) {
+        macdChartRef.current.resize(
+          macdContainerRef.current.clientWidth,
+          macdContainerRef.current.clientHeight
+        );
+      }
+    });
+    ro.observe(macdContainerRef.current);
+
+    return () => {
+      ro.disconnect();
+      if (macdChartRef.current) {
+        macdChartRef.current.remove();
+        macdChartRef.current = null;
+        macdLineRef.current = null;
+        macdSignalRef.current = null;
+        macdHistRef.current = null;
+      }
+    };
+  }, [activeInds.has('macd')]);
 
   const toggleIndicator = (ind: string) => {
     setActiveInds(prev => {
@@ -959,6 +1257,66 @@ export function ChartPane({
             >
               ● VOL
             </button>
+            <button
+              style={{
+                background: '#21262d',
+                border: 'none',
+                borderRadius: 4,
+                padding: '2px 6px',
+                fontSize: 10,
+                color: activeInds.has('macd') ? '#38bdf8' : '#58636d',
+                cursor: 'pointer',
+                fontWeight: 600,
+              }}
+              onClick={(e) => { e.stopPropagation(); toggleIndicator('macd'); }}
+            >
+              ● MACD
+            </button>
+            <button
+              style={{
+                background: '#21262d',
+                border: 'none',
+                borderRadius: 4,
+                padding: '2px 6px',
+                fontSize: 10,
+                color: activeInds.has('bb') ? '#818cf8' : '#58636d',
+                cursor: 'pointer',
+                fontWeight: 600,
+              }}
+              onClick={(e) => { e.stopPropagation(); toggleIndicator('bb'); }}
+            >
+              ● BB
+            </button>
+            <button
+              style={{
+                background: '#21262d',
+                border: 'none',
+                borderRadius: 4,
+                padding: '2px 6px',
+                fontSize: 10,
+                color: activeInds.has('vwap') ? '#fbbf24' : '#58636d',
+                cursor: 'pointer',
+                fontWeight: 600,
+              }}
+              onClick={(e) => { e.stopPropagation(); toggleIndicator('vwap'); }}
+            >
+              ● VWAP
+            </button>
+            <button
+              style={{
+                background: '#21262d',
+                border: 'none',
+                borderRadius: 4,
+                padding: '2px 6px',
+                fontSize: 10,
+                color: activeInds.has('sr') ? '#00f59b' : '#58636d',
+                cursor: 'pointer',
+                fontWeight: 600,
+              }}
+              onClick={(e) => { e.stopPropagation(); toggleIndicator('sr'); }}
+            >
+              ● S/R
+            </button>
           </div>
         )}
       </div>
@@ -1025,6 +1383,48 @@ export function ChartPane({
               </button>
             </div>
             <div ref={rsiContainerRef} style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }} />
+          </div>
+        )}
+
+        {/* Dedicated Separate MACD Subpane */}
+        {activeInds.has('macd') && (
+          <div style={{
+            height: isMultiView ? 80 : 110,
+            width: '100%',
+            flexShrink: 0,
+            position: 'relative',
+            borderTop: '1px solid #21262d',
+            background: '#0d1117',
+          }}>
+            <div style={{
+              position: 'absolute',
+              top: 3,
+              left: 10,
+              zIndex: 5,
+              fontSize: 10,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              color: '#8b949e',
+            }}>
+              <span style={{ color: '#38bdf8', fontWeight: 700 }}>MACD (12, 26, 9)</span>
+              <button
+                onClick={(e) => { e.stopPropagation(); toggleIndicator('macd'); }}
+                title="Close MACD Pane"
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#8b949e',
+                  cursor: 'pointer',
+                  fontSize: 10,
+                  padding: '0 4px',
+                  lineHeight: 1,
+                }}
+              >
+                ✕
+              </button>
+            </div>
+            <div ref={macdContainerRef} style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }} />
           </div>
         )}
 

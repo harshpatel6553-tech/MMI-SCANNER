@@ -14,6 +14,7 @@ import {
   Candle,
 } from './ChartPane';
 import { PineStudio } from './PineStudio';
+import { ChartAIPanel } from './ChartAIPanel';
 import type { PineExecutionResult } from '../../utils/pineRunner';
 import { StockLogo } from '../common/StockLogo';
 import { isMarketOpen } from '../../utils/marketHours';
@@ -66,6 +67,7 @@ function ChartViewContent({ allStocks: liveStocks, priceFlash }: { allStocks: St
 
   // Pine Script Studio & Strategy State
   const [isPineStudioOpen, setIsPineStudioOpen] = useState(false);
+  const [isAIPanelOpen, setIsAIPanelOpen]       = useState(false);
   const [activeCandles, setActiveCandles]       = useState<Candle[]>([]);
   const [pineResult, setPineResult]             = useState<PineExecutionResult | null>(null);
 
@@ -243,6 +245,37 @@ function ChartViewContent({ allStocks: liveStocks, priceFlash }: { allStocks: St
                 boxShadow: '0 0 6px #10b981',
               }} />
             )}
+          </button>
+
+          {/* ARIA AI Chart Quant Analysis Toggle */}
+          <button
+            title="ARIA AI Quant Chart Intelligence & Backtesting"
+            style={{
+              ...styles.layoutBtn,
+              ...(isAIPanelOpen ? styles.layoutBtnActive : {}),
+              display: 'flex',
+              alignItems: 'center',
+              gap: 5,
+              padding: '4px 10px',
+              marginLeft: 6,
+              color: isAIPanelOpen ? '#28CFFF' : '#c9d1d9',
+              borderColor: isAIPanelOpen ? '#28CFFF' : undefined,
+              background: isAIPanelOpen ? 'rgba(40, 207, 255, 0.14)' : undefined,
+            }}
+            onClick={() => setIsAIPanelOpen(prev => !prev)}
+          >
+            <span style={{ fontSize: 13 }}>🧠</span>
+            <span style={{ fontSize: 11, fontWeight: 700 }}>AI Quant</span>
+            <span style={{
+              fontSize: 9,
+              fontWeight: 800,
+              padding: '1px 5px',
+              borderRadius: 4,
+              background: 'rgba(40, 207, 255, 0.2)',
+              color: '#28CFFF',
+            }}>
+              ARIA
+            </span>
           </button>
         </div>
 
@@ -438,6 +471,17 @@ function ChartViewContent({ allStocks: liveStocks, priceFlash }: { allStocks: St
               activeTimeframe={slots[activeSlotIdx]?.timeframe || '1D'}
               onApplyResult={setPineResult}
               onClose={() => setIsPineStudioOpen(false)}
+            />
+          )}
+
+          {/* ARIA AI Chart Intelligence & Backtesting Panel */}
+          {isAIPanelOpen && (
+            <ChartAIPanel
+              candles={activeCandles}
+              symbol={slots[activeSlotIdx]?.symbol || 'RELIANCE'}
+              timeframe={slots[activeSlotIdx]?.timeframe || '1D'}
+              isOpen={isAIPanelOpen}
+              onToggle={() => setIsAIPanelOpen(prev => !prev)}
             />
           )}
         </div>
