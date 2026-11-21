@@ -36,6 +36,7 @@ import { useStocks } from './hooks/useStocks';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { MaintenanceCountdown, TARGET_LAUNCH_TIME } from './components/Maintenance/MaintenanceCountdown';
 import { AnimatedBackground } from './components/AnimatedBackground/AnimatedBackground';
+import { AIChat } from './components/AIChat/AIChat';
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { audioAlerts } from './utils/audioAlerts';
@@ -283,6 +284,9 @@ function AppContent() {
       <AlertPanel alerts={alertHistory} onClearAll={clearAll} />
       <FundamentalsModal stocks={allStocks} />
       <AlertToast toasts={toasts} onDismiss={dismissToast} />
+
+      {/* AI Market Analyst — ARIA */}
+      <AIChat />
 
       {/* Floating Customize Button */}
       <div
