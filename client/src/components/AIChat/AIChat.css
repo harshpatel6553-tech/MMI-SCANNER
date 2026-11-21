@@ -1,0 +1,504 @@
+/* ============================================================
+   ARIA AI Market Analyst Chat — MMI Terminal Style
+   ============================================================ */
+
+/* ── Floating Trigger Button ─────────────────────────── */
+.aria-trigger {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0a1628 0%, #0f2040 100%);
+  border: 1.5px solid rgba(40, 207, 255, 0.5);
+  box-shadow:
+    0 0 0 0 rgba(40, 207, 255, 0),
+    0 8px 24px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 999;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+.aria-trigger:hover {
+  border-color: rgba(40, 207, 255, 0.9);
+  box-shadow:
+    0 0 20px rgba(40, 207, 255, 0.35),
+    0 8px 24px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  transform: scale(1.07);
+}
+
+.aria-trigger.open {
+  border-color: rgba(40, 207, 255, 0.9);
+  box-shadow:
+    0 0 24px rgba(40, 207, 255, 0.4),
+    0 8px 32px rgba(0, 0, 0, 0.6);
+  background: linear-gradient(135deg, #0f2040 0%, #142850 100%);
+}
+
+.aria-trigger-pulse {
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  border: 2px solid rgba(40, 207, 255, 0.3);
+  animation: aria-pulse-ring 2.5s ease-out infinite;
+  pointer-events: none;
+}
+
+@keyframes aria-pulse-ring {
+  0% { transform: scale(1); opacity: 0.8; }
+  70% { transform: scale(1.4); opacity: 0; }
+  100% { transform: scale(1.4); opacity: 0; }
+}
+
+.aria-trigger-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Badge for new messages */
+.aria-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #00D6A3;
+  border: 2px solid #070B12;
+  animation: aria-badge-pop 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes aria-badge-pop {
+  from { transform: scale(0); }
+  to { transform: scale(1); }
+}
+
+/* ── Chat Panel ──────────────────────────────────────── */
+.aria-panel {
+  position: fixed;
+  bottom: 82px;
+  right: 20px;
+  width: 400px;
+  max-height: 580px;
+  display: flex;
+  flex-direction: column;
+  background: #070B12;
+  border: 1px solid rgba(40, 207, 255, 0.25);
+  border-radius: 20px;
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.75),
+    0 0 0 1px rgba(255, 255, 255, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  z-index: 998;
+  overflow: hidden;
+}
+
+/* ── Panel Header ────────────────────────────────────── */
+.aria-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px 12px;
+  background: linear-gradient(135deg, #0a1628 0%, #0d1f3a 100%);
+  border-bottom: 1px solid rgba(40, 207, 255, 0.12);
+  flex-shrink: 0;
+}
+
+.aria-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #28CFFF 0%, #0d9fd4 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+  box-shadow: 0 0 12px rgba(40, 207, 255, 0.4);
+}
+
+.aria-header-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.aria-name {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text-1);
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.aria-status {
+  font-size: 10px;
+  color: var(--up);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 1px;
+}
+
+.aria-status-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--up);
+  animation: aria-status-blink 2s ease-in-out infinite;
+}
+
+@keyframes aria-status-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.aria-close-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-3);
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.aria-close-btn:hover {
+  background: rgba(255, 66, 104, 0.12);
+  border-color: rgba(255, 66, 104, 0.3);
+  color: var(--down);
+}
+
+.aria-context-pill {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  background: rgba(0, 214, 163, 0.08);
+  border: 1px solid rgba(0, 214, 163, 0.2);
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--up);
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+/* ── Messages Area ───────────────────────────────────── */
+.aria-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 14px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(40, 207, 255, 0.15) transparent;
+}
+
+.aria-messages::-webkit-scrollbar { width: 4px; }
+.aria-messages::-webkit-scrollbar-track { background: transparent; }
+.aria-messages::-webkit-scrollbar-thumb { background: rgba(40, 207, 255, 0.15); border-radius: 2px; }
+
+/* Welcome state */
+.aria-welcome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  gap: 12px;
+  text-align: center;
+  flex: 1;
+}
+
+.aria-welcome-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(40, 207, 255, 0.15) 0%, rgba(40, 207, 255, 0.05) 100%);
+  border: 1px solid rgba(40, 207, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+}
+
+.aria-welcome h3 {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-1);
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.aria-welcome p {
+  font-size: 12px;
+  color: var(--text-3);
+  line-height: 1.6;
+  margin: 0;
+  max-width: 280px;
+}
+
+.aria-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+.aria-chip {
+  padding: 5px 10px;
+  background: rgba(40, 207, 255, 0.07);
+  border: 1px solid rgba(40, 207, 255, 0.2);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--cyan);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.aria-chip:hover {
+  background: rgba(40, 207, 255, 0.14);
+  border-color: rgba(40, 207, 255, 0.4);
+  transform: translateY(-1px);
+}
+
+/* ── Message Bubbles ─────────────────────────────────── */
+.aria-msg {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  animation: aria-msg-in 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes aria-msg-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.aria-msg.user {
+  flex-direction: row-reverse;
+}
+
+.aria-msg-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.aria-msg.assistant .aria-msg-avatar {
+  background: linear-gradient(135deg, rgba(40, 207, 255, 0.2) 0%, rgba(40, 207, 255, 0.08) 100%);
+  border: 1px solid rgba(40, 207, 255, 0.2);
+  color: #28CFFF;
+}
+
+.aria-msg.user .aria-msg-avatar {
+  background: rgba(0, 214, 163, 0.1);
+  border: 1px solid rgba(0, 214, 163, 0.2);
+  color: var(--up);
+}
+
+.aria-bubble {
+  max-width: 82%;
+  padding: 9px 12px;
+  border-radius: 14px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  position: relative;
+}
+
+.aria-msg.assistant .aria-bubble {
+  background: rgba(40, 207, 255, 0.05);
+  border: 1px solid rgba(40, 207, 255, 0.12);
+  border-radius: 4px 14px 14px 14px;
+  color: var(--text-1);
+}
+
+.aria-msg.user .aria-bubble {
+  background: rgba(0, 214, 163, 0.08);
+  border: 1px solid rgba(0, 214, 163, 0.2);
+  border-radius: 14px 14px 4px 14px;
+  color: var(--text-1);
+}
+
+/* Markdown-like formatting in bubble */
+.aria-bubble strong,
+.aria-bubble b {
+  color: var(--cyan);
+  font-weight: 700;
+}
+
+.aria-bubble .aria-bullish { color: var(--up); font-weight: 700; }
+.aria-bubble .aria-bearish { color: var(--down); font-weight: 700; }
+
+/* Typing indicator */
+.aria-typing {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 12px;
+  background: rgba(40, 207, 255, 0.05);
+  border: 1px solid rgba(40, 207, 255, 0.12);
+  border-radius: 4px 14px 14px 14px;
+}
+
+.aria-typing span {
+  width: 5px;
+  height: 5px;
+  background: rgba(40, 207, 255, 0.5);
+  border-radius: 50%;
+  animation: aria-bounce 1.2s ease-in-out infinite;
+}
+
+.aria-typing span:nth-child(2) { animation-delay: 0.2s; }
+.aria-typing span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes aria-bounce {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.5; }
+  40% { transform: translateY(-5px); opacity: 1; }
+}
+
+/* ── Input Area ──────────────────────────────────────── */
+.aria-input-area {
+  padding: 10px 12px 12px;
+  border-top: 1px solid rgba(40, 207, 255, 0.08);
+  background: rgba(10, 22, 40, 0.5);
+  flex-shrink: 0;
+}
+
+.aria-input-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(40, 207, 255, 0.15);
+  border-radius: 14px;
+  padding: 8px 10px 8px 14px;
+  transition: border-color 0.2s ease;
+}
+
+.aria-input-row:focus-within {
+  border-color: rgba(40, 207, 255, 0.4);
+  box-shadow: 0 0 12px rgba(40, 207, 255, 0.08);
+}
+
+.aria-input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--text-1);
+  font-size: 12.5px;
+  font-family: var(--font-body);
+  resize: none;
+  max-height: 80px;
+  min-height: 20px;
+  line-height: 1.5;
+  scrollbar-width: thin;
+}
+
+.aria-input::placeholder {
+  color: var(--text-3);
+}
+
+.aria-send-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #28CFFF 0%, #0d9fd4 100%);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 8px rgba(40, 207, 255, 0.3);
+}
+
+.aria-send-btn:hover:not(:disabled) {
+  transform: scale(1.07);
+  box-shadow: 0 4px 14px rgba(40, 207, 255, 0.45);
+}
+
+.aria-send-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  background: rgba(40, 207, 255, 0.3);
+}
+
+.aria-footer-note {
+  font-size: 9.5px;
+  color: var(--text-3);
+  text-align: center;
+  margin-top: 6px;
+  letter-spacing: 0.02em;
+}
+
+/* ── Disclaimer ──────────────────────────────────────── */
+.aria-disclaimer {
+  font-size: 9px;
+  color: rgba(100, 116, 139, 0.6);
+  text-align: center;
+  padding: 4px 16px 8px;
+  line-height: 1.4;
+  flex-shrink: 0;
+}
+
+/* ── Error state ─────────────────────────────────────── */
+.aria-error-bubble {
+  font-size: 12px;
+  color: var(--down);
+  padding: 8px 12px;
+  background: rgba(255, 66, 104, 0.07);
+  border: 1px solid rgba(255, 66, 104, 0.2);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ── Clear button ────────────────────────────────────── */
+.aria-clear-btn {
+  background: none;
+  border: none;
+  color: var(--text-3);
+  font-size: 10px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: color 0.15s;
+  font-family: var(--font-body);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.aria-clear-btn:hover {
+  color: var(--down);
+}

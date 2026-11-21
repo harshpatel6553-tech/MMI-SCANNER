@@ -37,6 +37,7 @@ import dealsRoutes from './routes/dealsRoutes.js';
 import { settingsRoutes } from './routes/settingsRoutes.js';
 import fnoRoutes from './routes/fnoRoutes.js';
 import smartMoneyRoutes from './routes/smartMoneyRoutes.js';
+import aiRoutes from './routes/aiRoutes.js';
 import { stockService } from './services/stockService.js';
 import { smartMoneyService } from './services/smartMoneyService.js';
 import { alertService } from './services/alertService.js';
@@ -141,6 +142,7 @@ app.use('/api/deals', dealsRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/fno', fnoRoutes);
 app.use('/api/smart-money', smartMoneyRoutes);
+app.use('/api/ai', aiRoutes);
 
 // Chart alias route for trade/chart requests
 app.get('/api/chart', (req, res) => {
