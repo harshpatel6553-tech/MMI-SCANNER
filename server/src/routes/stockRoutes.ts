@@ -595,10 +595,33 @@ router.get('/quote/:symbol', async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    const price      = meta.regularMarketPrice ?? 0;
-    const prevClose  = meta.previousClose ?? meta.chartPreviousClose ?? price;
-    const change     = parseFloat((price - prevClose).toFixed(2));
-    const changePct  = prevClose > 0 ? parseFloat(((change / prevClose) * 100).toFixed(2)) : 0;
+    const price = meta.regularMarketPrice ?? 0;
+    let changePercent = (typeof meta.fulldayChangePercent === 'number' && !isNaN(meta.fulldayChangePercent))
+      ? Number(meta.fulldayChangePercent.toFixed(2))
+      : (typeof meta.regularMarketChangePercent === 'number' && !isNaN(meta.regularMarketChangePercent)
+        ? Number(meta.regularMarketChangePercent.toFixed(2))
+        : 0);
+    let change = (typeof meta.fulldayChange === 'number' && !isNaN(meta.fulldayChange))
+      ? Number(meta.fulldayChange.toFixed(2))
+      : (typeof meta.regularMarketChange === 'number' && !isNaN(meta.regularMarketChange)
+        ? Number(meta.regularMarketChange.toFixed(2))
+        : 0);
+
+    let prevClose = price;
+    if (price > 0 && changePercent !== 0) {
+      prevClose = Number((price / (1 + changePercent / 100)).toFixed(2));
+      const impliedChange = Number((price - prevClose).toFixed(2));
+      if (change === 0 || Math.sign(change) !== Math.sign(changePercent) || Math.abs(change - impliedChange) > (price * 0.0005)) {
+        change = impliedChange;
+      }
+    } else if (change !== 0) {
+      prevClose = Number((price - change).toFixed(2));
+      if (prevClose > 0) {
+        changePercent = Number(((change / prevClose) * 100).toFixed(2));
+      }
+    } else {
+      prevClose = meta.previousClose ?? meta.chartPreviousClose ?? price;
+    }
 
     res.json({
       symbol:           yfSymbol,
@@ -608,7 +631,7 @@ router.get('/quote/:symbol', async (req: Request, res: Response): Promise<void> 
       dayLow:           parseFloat((meta.regularMarketDayLow  ?? price).toFixed(2)),
       previousClose:    parseFloat(prevClose.toFixed(2)),
       change,
-      changePercent:    changePct,
+      changePercent,
       volume:           meta.regularMarketVolume ?? 0,
       fiftyTwoWeekHigh: meta.fiftyTwoWeekHigh ?? 0,
       fiftyTwoWeekLow:  meta.fiftyTwoWeekLow  ?? 0,

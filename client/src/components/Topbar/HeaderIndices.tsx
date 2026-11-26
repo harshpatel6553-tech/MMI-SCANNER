@@ -15,8 +15,28 @@ interface HeaderIndicesProps {
 
 function formatIndexDelta(item?: StockData) {
   if (!item) return { pts: '0.00', pct: '(0.00%)', isUp: true };
-  const chg = item.change ?? 0;
-  const chgPct = item.changePercent ?? 0;
+  const price = item.price ?? 0;
+  let chg = item.change ?? 0;
+  let chgPct = item.changePercent ?? 0;
+
+  // Strict mathematical synchronization:
+  // If price and chgPct are present, derive expected change and eliminate stale data
+  if (price > 0 && chgPct !== 0) {
+    const impliedPrevClose = price / (1 + chgPct / 100);
+    const impliedChange = price - impliedPrevClose;
+    const signMismatch = Math.sign(chg) !== Math.sign(chgPct) && chg !== 0;
+    const magnitudeMismatch = Math.abs(chg - impliedChange) > (price * 0.0005);
+
+    if (signMismatch || magnitudeMismatch) {
+      chg = Number(impliedChange.toFixed(2));
+    }
+  } else if (price > 0 && chg !== 0 && chgPct === 0) {
+    const prevClose = price - chg;
+    if (prevClose > 0) {
+      chgPct = Number(((chg / prevClose) * 100).toFixed(2));
+    }
+  }
+
   const isUp = chgPct !== 0 ? chgPct >= 0 : chg >= 0;
   const ptsSign = chg > 0 ? '+' : chg < 0 ? '-' : '';
   const pctSign = chgPct > 0 ? '+' : chgPct < 0 ? '-' : '';

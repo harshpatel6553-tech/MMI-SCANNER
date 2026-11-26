@@ -37,10 +37,17 @@ export function useIndices(allStocks: StockData[]) {
       let changePercent = item.changePercent ?? 0;
       let prevClose = item.previousClose ?? price;
 
-      if (Math.sign(change) !== Math.sign(changePercent) && change !== 0 && changePercent !== 0) {
-        change = Number((price * (changePercent / 100)).toFixed(2));
-        prevClose = Number((price - change).toFixed(2));
-      } else if (change !== 0 && (prevClose <= 0 || Math.abs(price - prevClose - change) > 2)) {
+      if (price > 0 && changePercent !== 0) {
+        const impliedPrevClose = Number((price / (1 + changePercent / 100)).toFixed(2));
+        const impliedChange = Number((price - impliedPrevClose).toFixed(2));
+        const signMismatch = Math.sign(change) !== Math.sign(changePercent) && change !== 0;
+        const magnitudeMismatch = Math.abs(change - impliedChange) > (price * 0.0005);
+
+        if (signMismatch || magnitudeMismatch || prevClose <= 0 || Math.abs(prevClose - impliedPrevClose) > (price * 0.0005)) {
+          change = impliedChange;
+          prevClose = impliedPrevClose;
+        }
+      } else if (price > 0 && change !== 0) {
         prevClose = Number((price - change).toFixed(2));
         if (prevClose > 0) {
           changePercent = Number(((change / prevClose) * 100).toFixed(2));
