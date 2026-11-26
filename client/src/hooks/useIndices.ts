@@ -29,6 +29,37 @@ export function useIndices(allStocks: StockData[]) {
 
     if (!niftyItem && !bankItem && !sensexItem) return;
 
+    // Sanitize any data discrepancies between change and changePercent
+    const sanitizeIndexItem = (item?: StockData): StockData | undefined => {
+      if (!item) return undefined;
+      const price = item.price;
+      let change = item.change ?? 0;
+      let changePercent = item.changePercent ?? 0;
+      let prevClose = item.previousClose ?? price;
+
+      if (Math.sign(change) !== Math.sign(changePercent) && change !== 0 && changePercent !== 0) {
+        change = Number((price * (changePercent / 100)).toFixed(2));
+        prevClose = Number((price - change).toFixed(2));
+      } else if (change !== 0 && (prevClose <= 0 || Math.abs(price - prevClose - change) > 2)) {
+        prevClose = Number((price - change).toFixed(2));
+        if (prevClose > 0) {
+          changePercent = Number(((change / prevClose) * 100).toFixed(2));
+        }
+      }
+
+      return {
+        ...item,
+        price,
+        change,
+        changePercent,
+        previousClose: prevClose,
+      };
+    };
+
+    niftyItem = sanitizeIndexItem(niftyItem);
+    bankItem = sanitizeIndexItem(bankItem);
+    sensexItem = sanitizeIndexItem(sensexItem);
+
     // Detect live price movement for pulse animations
     if (niftyItem && prevNiftyPrice.current !== null && niftyItem.price !== prevNiftyPrice.current) {
       const dir = niftyItem.price > prevNiftyPrice.current ? 'up' : 'down';

@@ -562,27 +562,49 @@ export class StockService {
                 : (parseFloat(meta.regularMarketPrice) || (existing?.price || 0)));
             if (price === 0) continue;
 
-            const candidatePrev = (isSensex && bseSensex)
-              ? bseSensex.previousClose
-              : ((typeof meta.previousClose === 'number' && meta.previousClose > 0)
-                ? meta.previousClose
-                : ((typeof meta.chartPreviousClose === 'number' && meta.chartPreviousClose > 0) ? meta.chartPreviousClose : undefined));
-
-            const prevClose: number = (isSensex && bseSensex)
-              ? bseSensex.previousClose
-              : this.getOrLockPrevClose(idx.displaySymbol, candidatePrev, existing?.previousClose, price);
-
-            const change: number = (isSensex && bseSensex)
+            // 1. Authoritative Change from Yahoo (fulldayChange takes precedence over missing regularMarketChange):
+            let change: number = (isSensex && bseSensex)
               ? bseSensex.change
-              : (typeof meta.regularMarketChange === 'number' && !isNaN(meta.regularMarketChange)
-                ? Number(meta.regularMarketChange.toFixed(2))
-                : Number((price - prevClose).toFixed(2)));
+              : (typeof meta.fulldayChange === 'number' && !isNaN(meta.fulldayChange)
+                ? Number(meta.fulldayChange.toFixed(2))
+                : (typeof meta.regularMarketChange === 'number' && !isNaN(meta.regularMarketChange)
+                  ? Number(meta.regularMarketChange.toFixed(2))
+                  : 0));
 
-            const changePercent: number = (isSensex && bseSensex)
+            // 2. Authoritative ChangePercent from Yahoo:
+            let changePercent: number = (isSensex && bseSensex)
               ? bseSensex.changePercent
-              : (typeof meta.regularMarketChangePercent === 'number' && !isNaN(meta.regularMarketChangePercent)
-                ? Number(meta.regularMarketChangePercent.toFixed(2))
-                : (prevClose > 0 ? Number(((change / prevClose) * 100).toFixed(2)) : 0));
+              : (typeof meta.fulldayChangePercent === 'number' && !isNaN(meta.fulldayChangePercent)
+                ? Number(meta.fulldayChangePercent.toFixed(2))
+                : (typeof meta.regularMarketChangePercent === 'number' && !isNaN(meta.regularMarketChangePercent)
+                  ? Number(meta.regularMarketChangePercent.toFixed(2))
+                  : 0));
+
+            // 3. Authoritative Previous Close:
+            // Stale chartPreviousClose/previousClose in Yahoo (which can be off by hundreds of points) is overridden by price - change
+            let prevClose: number = (isSensex && bseSensex)
+              ? bseSensex.previousClose
+              : (change !== 0
+                ? Number((price - change).toFixed(2))
+                : (changePercent !== 0
+                  ? Number((price / (1 + changePercent / 100)).toFixed(2))
+                  : this.getOrLockPrevClose(idx.displaySymbol, meta.previousClose || meta.chartPreviousClose, existing?.previousClose, price)));
+
+            if (change === 0 && prevClose > 0 && price !== prevClose) {
+              change = Number((price - prevClose).toFixed(2));
+            }
+            if (changePercent === 0 && prevClose > 0 && change !== 0) {
+              changePercent = Number(((change / prevClose) * 100).toFixed(2));
+            }
+
+            // Absolute mathematical guarantee: change and changePercent must never contradict in sign
+            if (change > 0 && changePercent < 0) {
+              change = Number((price * (changePercent / 100)).toFixed(2));
+              prevClose = Number((price - change).toFixed(2));
+            } else if (change < 0 && changePercent > 0) {
+              change = Number((price * (changePercent / 100)).toFixed(2));
+              prevClose = Number((price - change).toFixed(2));
+            }
 
             const rawHigh: number = (isSensex && bseSensex) ? bseSensex.dayHigh : (meta.regularMarketDayHigh ?? 0);
             const rawLow: number = (isSensex && bseSensex) ? bseSensex.dayLow : (meta.regularMarketDayLow ?? 0);
@@ -672,19 +694,44 @@ export class StockService {
           let price = (isSensex && bseSensex) ? bseSensex.price : (q.regularMarketPrice ?? (existing?.price || 0));
           if (price === 0) continue;
 
-          const prevClose = (isSensex && bseSensex)
-            ? bseSensex.previousClose
-            : this.getOrLockPrevClose(idx.displaySymbol, q.regularMarketPreviousClose, existing?.previousClose, price);
-          const change = (isSensex && bseSensex)
+          let change = (isSensex && bseSensex)
             ? bseSensex.change
             : (typeof q.regularMarketChange === 'number' && !isNaN(q.regularMarketChange)
               ? Number(q.regularMarketChange.toFixed(2))
-              : Number((price - prevClose).toFixed(2)));
-          const changePercent = (isSensex && bseSensex)
+              : (typeof (q as any).fulldayChange === 'number' && !isNaN((q as any).fulldayChange)
+                ? Number((q as any).fulldayChange.toFixed(2))
+                : 0));
+
+          let changePercent = (isSensex && bseSensex)
             ? bseSensex.changePercent
             : (typeof q.regularMarketChangePercent === 'number' && !isNaN(q.regularMarketChangePercent)
               ? Number(q.regularMarketChangePercent.toFixed(2))
-              : (prevClose > 0 ? Number(((change / prevClose) * 100).toFixed(2)) : 0));
+              : (typeof (q as any).fulldayChangePercent === 'number' && !isNaN((q as any).fulldayChangePercent)
+                ? Number((q as any).fulldayChangePercent.toFixed(2))
+                : 0));
+
+          let prevClose = (isSensex && bseSensex)
+            ? bseSensex.previousClose
+            : (change !== 0
+              ? Number((price - change).toFixed(2))
+              : (changePercent !== 0
+                ? Number((price / (1 + changePercent / 100)).toFixed(2))
+                : this.getOrLockPrevClose(idx.displaySymbol, q.regularMarketPreviousClose, existing?.previousClose, price)));
+
+          if (change === 0 && prevClose > 0 && price !== prevClose) {
+            change = Number((price - prevClose).toFixed(2));
+          }
+          if (changePercent === 0 && prevClose > 0 && change !== 0) {
+            changePercent = Number(((change / prevClose) * 100).toFixed(2));
+          }
+
+          if (change > 0 && changePercent < 0) {
+            change = Number((price * (changePercent / 100)).toFixed(2));
+            prevClose = Number((price - change).toFixed(2));
+          } else if (change < 0 && changePercent > 0) {
+            change = Number((price * (changePercent / 100)).toFixed(2));
+            prevClose = Number((price - change).toFixed(2));
+          }
           const open = (isSensex && bseSensex) ? bseSensex.open : (q.regularMarketOpen ?? (existing?.open || price));
 
           const rawHigh = (isSensex && bseSensex) ? bseSensex.dayHigh : (q.regularMarketDayHigh ?? 0);

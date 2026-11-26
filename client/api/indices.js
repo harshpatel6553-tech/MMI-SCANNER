@@ -94,11 +94,21 @@ export default async function handler(req, res) {
           if (price <= 0) return null;
 
           // Crucial: Use official exchange fulldayChange/fulldayChangePercent instead of stale chartPreviousClose!
-          const change = Number((meta.fulldayChange ?? meta.regularMarketChange ?? 0).toFixed(2));
-          const changePercent = Number((meta.fulldayChangePercent ?? meta.regularMarketChangePercent ?? 0).toFixed(2));
-          const prevClose = change !== 0
+          let change = Number((meta.fulldayChange ?? meta.regularMarketChange ?? 0).toFixed(2));
+          let changePercent = Number((meta.fulldayChangePercent ?? meta.regularMarketChangePercent ?? 0).toFixed(2));
+          let prevClose = change !== 0
             ? Number((price - change).toFixed(2))
-            : (meta.previousClose || meta.chartPreviousClose || price);
+            : (changePercent !== 0
+              ? Number((price / (1 + changePercent / 100)).toFixed(2))
+              : (meta.previousClose || meta.chartPreviousClose || price));
+
+          if (change > 0 && changePercent < 0) {
+            change = Number((price * (changePercent / 100)).toFixed(2));
+            prevClose = Number((price - change).toFixed(2));
+          } else if (change < 0 && changePercent > 0) {
+            change = Number((price * (changePercent / 100)).toFixed(2));
+            prevClose = Number((price - change).toFixed(2));
+          }
 
           const dayHigh = meta.regularMarketDayHigh ?? price;
           const dayLow = meta.regularMarketDayLow ?? price;
